@@ -218,3 +218,7 @@ docs/png/             # README 和演示文档截图
 - 下游节点优先读取正式产物和 context manifest，不把 Agent transcript 当作业务输入。
 - Java 实现和测试节点必须通过工具真实读写项目文件。
 - 回退和重试保留历史工具轨迹，便于用户确认每一轮发生了什么。
+
+## 交流方式
+  邮箱：153268908@qq.com 
+![wechat.jpg](wechat.jpg)
