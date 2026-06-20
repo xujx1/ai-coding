@@ -1,0 +1,401 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/main/java/com/ump/marketing/application/service/ActivityService.java (lines 1-400 of 802) ---
+   1	package com.ump.marketing.application.service;
+   2	
+   3	import com.fasterxml.jackson.databind.ObjectMapper;
+   4	import com.ump.marketing.api.dto.ActivityDTO;
+   5	import com.ump.marketing.api.dto.ApproveActivityRequest;
+   6	import com.ump.marketing.api.dto.CreateActivityRequest;
+   7	import com.ump.marketing.api.dto.DeleteActivityRequest;
+   8	import com.ump.marketing.api.dto.ForceOfflineRequest;
+   9	import com.ump.marketing.api.dto.OnlineActivityRequest;
+  10	import com.ump.marketing.api.dto.PauseActivityRequest;
+  11	import com.ump.marketing.api.dto.RejectActivityRequest;
+  12	import com.ump.marketing.api.dto.SubmitApprovalRequest;
+  13	import com.ump.marketing.api.dto.UpdateActivityRequest;
+  14	import com.ump.marketing.api.enums.ActivityStatus;
+  15	import com.ump.marketing.api.enums.ErrorCode;
+  16	import com.ump.marketing.api.result.RpcResult;
+  17	import com.ump.marketing.domain.model.Activity;
+  18	import com.ump.marketing.domain.service.RuleValidator;
+  19	import com.ump.marketing.domain.statemachine.ActivityStateMachine;
+  20	import com.ump.marketing.infrastructure.cache.LocalCache;
+  21	import com.ump.marketing.infrastructure.config.IdGenerator;
+  22	import com.ump.marketing.infrastructure.mapper.ActivityMapper;
+  23	import com.ump.marketing.infrastructure.sharding.RegionRouter;
+  24	import org.springframework.beans.factory.annotation.Autowired;
+  25	import org.springframework.stereotype.Service;
+  26	import org.springframework.transaction.annotation.Transactional;
+  27	
+  28	import java.util.Arrays;
+  29	import java.util.HashSet;
+  30	import java.util.Set;
+  31	import java.util.concurrent.TimeUnit;
+  32	
+  33	/**
+  34	 * Application service for the Activity bounded context.
+  35	 * Handles activity lifecycle: create, update, submit, approve, reject, online, pause, force-offline.
+  36	 */
+  37	@Service
+  38	public class ActivityService {
+  39	
+  40	    private static final String AGGREGATE_TYPE = "Activity";
+  41	    private static final int IDEMPOTENCY_TTL_DAYS = 7;
+  42	    private static final Set<String> DELETABLE_STATUSES = new HashSet<>(Arrays.asList(
+  43	            ActivityStatus.DRAFT.name(),
+  44	            ActivityStatus.REJECTED.name(),
+  45	            ActivityStatus.TERMINATED.name()
+  46	    ));
+  47	
+  48	    private final ActivityMapper activityMapper;
+  49	    private final IdempotencyService idempotencyService;
+  50	    private final AuditService auditService;
+  51	    private final SyncEventPublisher syncEventPublisher;
+  52	    private final RegionRouter regionRouter;
+  53	    private final IdGenerator idGenerator;
+  54	    private final LocalCache localCache;
+  55	    private final ObjectMapper objectMapper;
+  56	
+  57	    public ActivityService(ActivityMapper activityMapper,
+  58	                           IdempotencyService idempotencyService,
+  59	                           AuditService auditService,
+  60	                           SyncEventPublisher syncEventPublisher,
+  61	                           RegionRouter regionRouter,
+  62	                           IdGenerator idGenerator,
+  63	                           LocalCache localCache,
+  64	                           @Autowired(required = false) ObjectMapper objectMapper) {
+  65	        this.activityMapper = activityMapper;
+  66	        this.idempotencyService = idempotencyService;
+  67	        this.auditService = auditService;
+  68	        this.syncEventPublisher = syncEventPublisher;
+  69	        this.regionRouter = regionRouter;
+  70	        this.idGenerator = idGenerator;
+  71	        this.localCache = localCache;
+  72	        this.objectMapper = objectMapper;
+  73	    }
+  74	
+  75	    // =========================================================================
+  76	    // 1. createActivity
+  77	    // =========================================================================
+  78	
+  79	    /**
+  80	     * Create a new activity in DRAFT status.
+  81	     */
+  82	    @Transactional(rollbackFor = Exception.class)
+  83	    public RpcResult<ActivityDTO> createActivity(CreateActivityRequest req) {
+  84	        // Validate
+  85	        RuleValidator.validateRegionCode(req.getRegionCode());
+  86	        RuleValidator.validateIdempotencyKey(req.getIdempotencyKey());
+  87	        if (req.getActivityName() == null || req.getActivityName().isEmpty()) {
+  88	            return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "activityName is required", req.getRequestId());
+  89	        }
+  90	
+  91	        // Idempotency check
+  92	        String requestHash = hashRequest(req);
+  93	        RpcResult<ActivityDTO> cached = idempotencyService.checkAndRecord(
+  94	                req.getIdempotencyKey(), req.getRegionCode(), requestHash, IDEMPOTENCY_TTL_DAYS, req.getRequestId());
+  95	        if (cached != null) {
+  96	            return cached;
+  97	        }
+  98	
+  99	        long now = System.currentTimeMillis();
+ 100	
+ 101	        Activity activity = new Activity();
+ 102	        activity.setActivityId(idGenerator.generateId("act"));
+ 103	        activity.setTenantId(req.getTenantId());
+ 104	        activity.setActivityName(req.getActivityName());
+ 105	        activity.setRegionCode(req.getRegionCode());
+ 106	        activity.setToolId(req.getToolId());
+ 107	        activity.setToolType(req.getToolType());
+ 108	        activity.setStatus(ActivityStatus.DRAFT.name());
+ 109	        activity.setVersion(0);
+ 110	        activity.setThresholdAmount(req.getThresholdAmount());
+ 111	        activity.setDiscountAmount(req.getDiscountAmount());
+ 112	        activity.setDiscountRate(req.getDiscountRate());
+ 113	        activity.setMaxDiscount(req.getMaxDiscount());
+ 114	        activity.setCouponTemplateId(req.getCouponTemplateId());
+ 115	        activity.setStartTime(req.getStartTime());
+ 116	        activity.setEndTime(req.getEndTime());
+ 117	        activity.setScopeType(req.getScopeType());
+ 118	        activity.setScopeRefs(req.getScopeRefs());
+ 119	        activity.setIsPurchaseLimited(req.getIsPurchaseLimited() != null ? req.getIsPurchaseLimited() : false);
+ 120	        activity.setPurchaseLimitPerUser(req.getPurchaseLimitPerUser());
+ 121	        activity.setCreatedAt(now);
+ 122	        activity.setUpdatedAt(now);
+ 123	        activity.setCreatedBy(req.getOperator());
+ 124	        activity.setUpdatedBy(req.getOperator());
+ 125	
+ 126	        activityMapper.insert(activity);
+ 127	
+ 128	        // Audit log
+ 129	        String afterJson = toJson(activity);
+ 130	        auditService.logStateChange(
+ 131	                req.getRequestId(), req.getOperator(), "CREATE_ACTIVITY",
+ 132	                AGGREGATE_TYPE, activity.getActivityId(), req.getRegionCode(),
+ 133	                "{}", afterJson);
+ 134	
+ 135	        idempotencyService.markCompleted(req.getIdempotencyKey(), req.getRegionCode(),
+ 136	                toJson(RpcResult.success(convertToDTO(activity), req.getRequestId())));
+ 137	
+ 138	        return RpcResult.success(convertToDTO(activity), req.getRequestId());
+ 139	    }
+ 140	
+ 141	    // =========================================================================
+ 142	    // 2. updateActivity
+ 143	    // =========================================================================
+ 144	
+ 145	    /**
+ 146	     * Update an existing activity. Only DRAFT or REJECTED activities can be edited.
+ 147	     */
+ 148	    @Transactional(rollbackFor = Exception.class)
+ 149	    public RpcResult<ActivityDTO> updateActivity(UpdateActivityRequest req) {
+ 150	        RuleValidator.validateRegionCode(req.getRegionCode());
+ 151	        RuleValidator.validateIdempotencyKey(req.getIdempotencyKey());
+ 152	
+ 153	        String requestHash = hashRequest(req);
+ 154	        RpcResult<ActivityDTO> cached = idempotencyService.checkAndRecord(
+ 155	                req.getIdempotencyKey(), req.getRegionCode(), requestHash, IDEMPOTENCY_TTL_DAYS, req.getRequestId());
+ 156	        if (cached != null) {
+ 157	            return cached;
+ 158	        }
+ 159	
+ 160	        Activity activity = activityMapper.selectByActivityId(req.getActivityId(), req.getRegionCode());
+ 161	        if (activity == null) {
+ 162	            return RpcResult.fail(ErrorCode.RESOURCE_NOT_FOUND, "Activity not found", req.getRequestId());
+ 163	        }
+ 164	
+ 165	        String currentStatus = activity.getStatus();
+ 166	        if (!ActivityStatus.DRAFT.name().equals(currentStatus)
+ 167	                && !ActivityStatus.REJECTED.name().equals(currentStatus)) {
+ 168	            return RpcResult.fail(ErrorCode.ILLEGAL_STATE,
+ 169	                    "Only DRAFT or REJECTED activities can be updated, current status: " + currentStatus,
+ 170	                    req.getRequestId());
+ 171	        }
+ 172	
+ 173	        String beforeJson = toJson(activity);
+ 174	        long now = System.currentTimeMillis();
+ 175	
+ 176	        // Optimistic locking: if expectedVersion provided, verify it matches
+ 177	        if (req.getExpectedVersion() != null && !req.getExpectedVersion().equals(activity.getVersion())) {
+ 178	            return RpcResult.fail(ErrorCode.VERSION_CONFLICT, "Version mismatch", req.getRequestId());
+ 179	        }
+ 180	
+ 181	        // Update mutable fields
+ 182	        if (req.getActivityName() != null) {
+ 183	            activity.setActivityName(req.getActivityName());
+ 184	        }
+ 185	        if (req.getThresholdAmount() != null) {
+ 186	            activity.setThresholdAmount(req.getThresholdAmount());
+ 187	        }
+ 188	        if (req.getDiscountAmount() != null) {
+ 189	            activity.setDiscountAmount(req.getDiscountAmount());
+ 190	        }
+ 191	        if (req.getDiscountRate() != null) {
+ 192	            activity.setDiscountRate(req.getDiscountRate());
+ 193	        }
+ 194	        if (req.getMaxDiscount() != null) {
+ 195	            activity.setMaxDiscount(req.getMaxDiscount());
+ 196	        }
+ 197	        if (req.getStartTime() != null) {
+ 198	            activity.setStartTime(req.getStartTime());
+ 199	        }
+ 200	        if (req.getEndTime() != null) {
+ 201	            activity.setEndTime(req.getEndTime());
+ 202	        }
+ 203	        if (req.getScopeType() != null) {
+ 204	            activity.setScopeType(req.getScopeType());
+ 205	        }
+ 206	        if (req.getScopeRefs() != null) {
+ 207	            activity.setScopeRefs(req.getScopeRefs());
+ 208	        }
+ 209	        activity.setUpdatedAt(now);
+ 210	        activity.setUpdatedBy(req.getOperator());
+ 211	
+ 212	        int rows = activityMapper.updateWithVersion(activity);
+ 213	        if (rows == 0) {
+ 214	            return RpcResult.fail(ErrorCode.VERSION_CONFLICT, "Concurrent update detected", req.getRequestId());
+ 215	        }
+ 216	
+ 217	        activity.setVersion(activity.getVersion() + 1);
+ 218	
+ 219	        String afterJson = toJson(activity);
+ 220	        auditService.logStateChange(
+ 221	                req.getRequestId(), req.getOperator(), "UPDATE_ACTIVITY",
+ 222	                AGGREGATE_TYPE, activity.getActivityId(), req.getRegionCode(),
+ 223	                beforeJson, afterJson);
+ 224	
+ 225	        syncEventPublisher.publishEvent(
+ 226	                "ACTIVITY_UPDATED", AGGREGATE_TYPE, activity.getActivityId(),
+ 227	                req.getRegionCode(), activity.getVersion().longValue(), afterJson);
+ 228	
+ 229	        idempotencyService.markCompleted(req.getIdempotencyKey(), req.getRegionCode(),
+ 230	                toJson(RpcResult.success(convertToDTO(activity), req.getRequestId())));
+ 231	
+ 232	        return RpcResult.success(convertToDTO(activity), req.getRequestId());
+ 233	    }
+ 234	
+ 235	    // =========================================================================
+ 236	    // 3. submitForApproval
+ 237	    // =========================================================================
+ 238	
+ 239	    /**
+ 240	     * Submit a DRAFT activity for approval.
+ 241	     */
+ 242	    @Transactional(rollbackFor = Exception.class)
+ 243	    public RpcResult<ActivityDTO> submitForApproval(SubmitApprovalRequest req) {
+ 244	        RuleValidator.validateRegionCode(req.getRegionCode());
+ 245	        RuleValidator.validateIdempotencyKey(req.getIdempotencyKey());
+ 246	
+ 247	        String requestHash = hashRequest(req);
+ 248	        RpcResult<ActivityDTO> cached = idempotencyService.checkAndRecord(
+ 249	                req.getIdempotencyKey(), req.getRegionCode(), requestHash, IDEMPOTENCY_TTL_DAYS, req.getRequestId());
+ 250	        if (cached != null) {
+ 251	            return cached;
+ 252	        }
+ 253	
+ 254	        Activity activity = activityMapper.selectByActivityId(req.getActivityId(), req.getRegionCode());
+ 255	        if (activity == null) {
+ 256	            return RpcResult.fail(ErrorCode.RESOURCE_NOT_FOUND, "Activity not found", req.getRequestId());
+ 257	        }
+ 258	
+ 259	        if (!ActivityStatus.DRAFT.name().equals(activity.getStatus())) {
+ 260	            return RpcResult.fail(ErrorCode.ILLEGAL_STATE,
+ 261	                    "Only DRAFT activities can be submitted for approval, current: " + activity.getStatus(),
+ 262	                    req.getRequestId());
+ 263	        }
+ 264	
+ 265	        ActivityStateMachine.assertTransition(ActivityStatus.DRAFT, ActivityStatus.PENDING_APPROVAL);
+ 266	
+ 267	        String beforeJson = toJson(activity);
+ 268	        long now = System.currentTimeMillis();
+ 269	        int oldVersion = activity.getVersion();
+ 270	        int newVersion = oldVersion + 1;
+ 271	
+ 272	        int rows = activityMapper.updateStatus(
+ 273	                req.getActivityId(), req.getRegionCode(),
+ 274	                ActivityStatus.DRAFT.name(), ActivityStatus.PENDING_APPROVAL.name(),
+ 275	                oldVersion, newVersion, now, req.getOperator());
+ 276	        if (rows == 0) {
+ 277	            return RpcResult.fail(ErrorCode.ILLEGAL_STATE, "Concurrent state modification detected", req.getRequestId());
+ 278	        }
+ 279	
+ 280	        activity.setStatus(ActivityStatus.PENDING_APPROVAL.name());
+ 281	        activity.setVersion(newVersion);
+ 282	        activity.setUpdatedAt(now);
+ 283	        activity.setUpdatedBy(req.getOperator());
+ 284	
+ 285	        String afterJson = toJson(activity);
+ 286	        auditService.logStateChange(
+ 287	                req.getRequestId(), req.getOperator(), "SUBMIT_APPROVAL",
+ 288	                AGGREGATE_TYPE, activity.getActivityId(), req.getRegionCode(),
+ 289	                beforeJson, afterJson);
+ 290	
+ 291	        idempotencyService.markCompleted(req.getIdempotencyKey(), req.getRegionCode(),
+ 292	                toJson(RpcResult.success(convertToDTO(activity), req.getRequestId())));
+ 293	
+ 294	        return RpcResult.success(convertToDTO(activity), req.getRequestId());
+ 295	    }
+ 296	
+ 297	    // =========================================================================
+ 298	    // 4. approveActivity
+ 299	    // =========================================================================
+ 300	
+ 301	    /**
+ 302	     * Approve a PENDING_APPROVAL activity.
+ 303	     */
+ 304	    @Transactional(rollbackFor = Exception.class)
+ 305	    public RpcResult<ActivityDTO> approveActivity(ApproveActivityRequest req) {
+ 306	        RuleValidator.validateRegionCode(req.getRegionCode());
+ 307	        RuleValidator.validateIdempotencyKey(req.getIdempotencyKey());
+ 308	
+ 309	        String requestHash = hashRequest(req);
+ 310	        RpcResult<ActivityDTO> cached = idempotencyService.checkAndRecord(
+ 311	                req.getIdempotencyKey(), req.getRegionCode(), requestHash, IDEMPOTENCY_TTL_DAYS, req.getRequestId());
+ 312	        if (cached != null) {
+ 313	            return cached;
+ 314	        }
+ 315	
+ 316	        Activity activity = activityMapper.selectByActivityId(req.getActivityId(), req.getRegionCode());
+ 317	        if (activity == null) {
+ 318	            return RpcResult.fail(ErrorCode.RESOURCE_NOT_FOUND, "Activity not found", req.getRequestId());
+ 319	        }
+ 320	
+ 321	        if (!ActivityStatus.PENDING_APPROVAL.name().equals(activity.getStatus())) {
+ 322	            return RpcResult.fail(ErrorCode.ILLEGAL_STATE,
+ 323	                    "Only PENDING_APPROVAL activities can be approved, current: " + activity.getStatus(),
+ 324	                    req.getRequestId());
+ 325	        }
+ 326	
+ 327	        ActivityStateMachine.assertTransition(ActivityStatus.PENDING_APPROVAL, ActivityStatus.APPROVED);
+ 328	
+ 329	        String beforeJson = toJson(activity);
+ 330	        long now = System.currentTimeMillis();
+ 331	        int oldVersion = activity.getVersion();
+ 332	        int newVersion = oldVersion + 1;
+ 333	
+ 334	        int rows = activityMapper.updateStatusWithApproval(
+ 335	                req.getActivityId(), req.getRegionCode(),
+ 336	                ActivityStatus.PENDING_APPROVAL.name(), ActivityStatus.APPROVED.name(),
+ 337	                req.getApproverId(), now,
+ 338	                oldVersion, newVersion, now, req.getOperator(), null);
+ 339	        if (rows == 0) {
+ 340	            return RpcResult.fail(ErrorCode.ILLEGAL_STATE, "Concurrent state modification detected", req.getRequestId());
+ 341	        }
+ 342	
+ 343	        activity.setStatus(ActivityStatus.APPROVED.name());
+ 344	        activity.setApproverId(req.getApproverId());
+ 345	        activity.setApprovalTime(now);
+ 346	        activity.setRejectReason(null);
+ 347	        activity.setVersion(newVersion);
+ 348	        activity.setUpdatedAt(now);
+ 349	        activity.setUpdatedBy(req.getOperator());
+ 350	
+ 351	        String afterJson = toJson(activity);
+ 352	        auditService.logStateChange(
+ 353	                req.getRequestId(), req.getOperator(), "APPROVE_ACTIVITY",
+ 354	                AGGREGATE_TYPE, activity.getActivityId(), req.getRegionCode(),
+ 355	                beforeJson, afterJson);
+ 356	
+ 357	        syncEventPublisher.publishEvent(
+ 358	                "ACTIVITY_APPROVED", AGGREGATE_TYPE, activity.getActivityId(),
+ 359	                req.getRegionCode(), activity.getVersion().longValue(), afterJson);
+ 360	
+ 361	        idempotencyService.markCompleted(req.getIdempotencyKey(), req.getRegionCode(),
+ 362	                toJson(RpcResult.success(convertToDTO(activity), req.getRequestId())));
+ 363	
+ 364	        return RpcResult.success(convertToDTO(activity), req.getRequestId());
+ 365	    }
+ 366	
+ 367	    // =========================================================================
+ 368	    // 5. rejectActivity
+ 369	    // =========================================================================
+ 370	
+ 371	    /**
+ 372	     * Reject a PENDING_APPROVAL activity.
+ 373	     */
+ 374	    @Transactional(rollbackFor = Exception.class)
+ 375	    public RpcResult<ActivityDTO> rejectActivity(RejectActivityRequest req) {
+ 376	        RuleValidator.validateRegionCode(req.getRegionCode());
+ 377	        RuleValidator.validateIdempotencyKey(req.getIdempotencyKey());
+ 378	
+ 379	        String requestHash = hashRequest(req);
+ 380	        RpcResult<ActivityDTO> cached = idempotencyService.checkAndRecord(
+ 381	                req.getIdempotencyKey(), req.getRegionCode(), requestHash, IDEMPOTENCY_TTL_DAYS, req.getRequestId());
+ 382	        if (cached != null) {
+ 383	            return cached;
+ 384	        }
+ 385	
+ 386	        Activity activity = activityMapper.selectByActivityId(req.getActivityId(), req.getRegionCode());
+ 387	        if (activity == null) {
+ 388	            return RpcResult.fail(ErrorCode.RESOURCE_NOT_FOUND, "Activity not found", req.getRequestId());
+ 389	        }
+ 390	
+ 391	        if (!ActivityStatus.PENDING_APPROVAL.name().equals(activity.getStatus())) {
+ 392	            return RpcResult.fail(ErrorCode.ILLEGAL_STATE,
+ 393	                    "Only PENDING_APPROVAL activities can be rejected, current: " + activity.getStatus(),
+ 394	                    req.getRequestId());
+ 395	        }
+ 396	
+ 397	        ActivityStateMachine.assertTransition(ActivityStatus.PENDING_APPROVAL, ActivityStatus.REJECTED);
+ 398	
+ 399	        String beforeJson = toJson(activity);
+ 400	        long now = System.currentTimeMillis();

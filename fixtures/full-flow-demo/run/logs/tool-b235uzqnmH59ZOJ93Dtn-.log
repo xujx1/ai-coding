@@ -1,0 +1,88 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/ActivityService.java (lines 719-805 of 805) ---
+ 719	        String afterJson = toJson(activity);
+ 720	
+ 721	        auditService.logStateChange(
+ 722	                req.getRequestId(), req.getOperator(), "DELETE_ACTIVITY",
+ 723	                AGGREGATE_TYPE, activity.getActivityId(), req.getRegionCode(),
+ 724	                beforeJson, afterJson);
+ 725	
+ 726	        RpcResult<Void> result = RpcResult.success(null, req.getRequestId());
+ 727	        idempotencyService.markCompleted(req.getIdempotencyKey(), req.getRegionCode(), toJson(result));
+ 728	        return result;
+ 729	    }
+ 730	
+ 731	    // =========================================================================
+ 732	    // Helper methods
+ 733	    // =========================================================================
+ 734	
+ 735	    private ActivityDTO convertToDTO(Activity a) {
+ 736	        ActivityDTO dto = new ActivityDTO();
+ 737	        dto.setActivityId(a.getActivityId());
+ 738	        dto.setTenantId(a.getTenantId());
+ 739	        dto.setActivityName(a.getActivityName());
+ 740	        dto.setRegionCode(a.getRegionCode());
+ 741	        dto.setToolId(a.getToolId());
+ 742	        dto.setToolType(a.getToolType());
+ 743	        dto.setStatus(a.getStatus());
+ 744	        dto.setVersion(a.getVersion());
+ 745	        dto.setThresholdAmount(a.getThresholdAmount());
+ 746	        dto.setDiscountAmount(a.getDiscountAmount());
+ 747	        dto.setDiscountRate(a.getDiscountRate());
+ 748	        dto.setMaxDiscount(a.getMaxDiscount());
+ 749	        dto.setCouponTemplateId(a.getCouponTemplateId());
+ 750	        dto.setStartTime(a.getStartTime());
+ 751	        dto.setEndTime(a.getEndTime());
+ 752	        dto.setScopeType(a.getScopeType());
+ 753	        dto.setScopeRefs(a.getScopeRefs());
+ 754	        dto.setIsPurchaseLimited(a.getIsPurchaseLimited());
+ 755	        dto.setPurchaseLimitPerUser(a.getPurchaseLimitPerUser());
+ 756	        dto.setApproverId(a.getApproverId());
+ 757	        dto.setApprovalTime(a.getApprovalTime());
+ 758	        dto.setOnlineTime(a.getOnlineTime());
+ 759	        dto.setRejectReason(a.getRejectReason());
+ 760	        dto.setForceOfflineReason(a.getForceOfflineReason());
+ 761	        dto.setCreatedAt(a.getCreatedAt());
+ 762	        dto.setUpdatedAt(a.getUpdatedAt());
+ 763	        dto.setCreatedBy(a.getCreatedBy());
+ 764	        dto.setUpdatedBy(a.getUpdatedBy());
+ 765	        return dto;
+ 766	    }
+ 767	
+ 768	    private RpcResult<Void> validateDeleteRequest(DeleteActivityRequest req) {
+ 769	        if (req == null) {
+ 770	            return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "request body is required", null);
+ 771	        }
+ 772	        if (req.getRequestId() == null || req.getRequestId().trim().isEmpty()) {
+ 773	            return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "requestId is required", null);
+ 774	        }
+ 775	        if (req.getActivityId() == null || req.getActivityId().trim().isEmpty()) {
+ 776	            return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "activityId is required", req.getRequestId());
+ 777	        }
+ 778	        if (req.getRegionCode() == null || req.getRegionCode().trim().isEmpty()) {
+ 779	            return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "regionCode is required", req.getRequestId());
+ 780	        }
+ 781	        if (req.getIdempotencyKey() == null || req.getIdempotencyKey().trim().isEmpty()) {
+ 782	            return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "idempotencyKey is required", req.getRequestId());
+ 783	        }
+ 784	        if (req.getOperator() == null || req.getOperator().trim().isEmpty()) {
+ 785	            return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "operator is required", req.getRequestId());
+ 786	        }
+ 787	        return null;
+ 788	    }
+ 789	
+ 790	    private String hashRequest(Object req) {
+ 791	        return toJson(req);
+ 792	    }
+ 793	
+ 794	    private String toJson(Object obj) {
+ 795	        if (obj == null) {
+ 796	            return "null";
+ 797	        }
+ 798	        try {
+ 799	            return objectMapper != null ? objectMapper.writeValueAsString(obj) : String.valueOf(obj);
+ 800	        } catch (Exception e) {
+ 801	            return String.valueOf(obj);
+ 802	        }
+ 803	    }
+ 804	}
+ 805	

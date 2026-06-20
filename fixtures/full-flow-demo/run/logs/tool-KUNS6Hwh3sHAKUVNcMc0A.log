@@ -1,0 +1,16 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/testcode-generation-report.md (lines 1-15 of 15) ---
+   1	# project 测试代码生成报告
+   2	
+   3	Updated tests in [ActivityServiceTest.java](/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/test/java/com/ump/marketing/application/service/ActivityServiceTest.java) and [ActivityControllerTest.java](/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/test/java/com/ump/marketing/web/controller/ActivityControllerTest.java).
+   4	
+   5	`ActivityControllerTest` now matches the current implementation: it registers [GlobalExceptionHandler.java](/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/main/java/com/ump/marketing/web/controller/GlobalExceptionHandler.java), verifies controller pass-through for success / illegal state / not found / idempotency conflict, and checks `@Valid` failure paths for missing `activityId`, `regionCode`, `idempotencyKey`, `operator`, and missing body without invoking `ActivityService`. `ActivityServiceTest` was extended with a `null` request case to cover the current manual validation branch in `deleteActivity`.
+   6	
+   7	Changed test files:
+   8	- [src/test/java/com/ump/marketing/application/service/ActivityServiceTest.java](/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/test/java/com/ump/marketing/application/service/ActivityServiceTest.java)
+   9	- [src/test/java/com/ump/marketing/web/controller/ActivityControllerTest.java](/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/test/java/com/ump/marketing/web/controller/ActivityControllerTest.java)
+  10	
+  11	Verification result:
+  12	- `mvn compile -DskipTests=true`: passed
+  13	- `mvn test-compile -DskipTests=true`: passed
+  14	
+  15	I did not run `mvn test`; only compile and test-compile verification were executed as requested by the tooling requirement.

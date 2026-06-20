@@ -1,0 +1,41 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/code-preview-manifest.json (lines 1-40 of 40) ---
+   1	{
+   2	  "project": "project",
+   3	  "files": [
+   4	    {
+   5	      "sourcePath": "src/main/java/com/ump/marketing/api/dto/BaseRequest.java",
+   6	      "status": "modified",
+   7	      "language": "java",
+   8	      "artifactPath": "artifacts/project/changed-files/BaseRequest.java",
+   9	      "absoluteArtifactPath": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/BaseRequest.java"
+  10	    },
+  11	    {
+  12	      "sourcePath": "src/main/java/com/ump/marketing/api/dto/DeleteActivityRequest.java",
+  13	      "status": "modified",
+  14	      "language": "java",
+  15	      "artifactPath": "artifacts/project/changed-files/DeleteActivityRequest.java",
+  16	      "absoluteArtifactPath": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/DeleteActivityRequest.java"
+  17	    },
+  18	    {
+  19	      "sourcePath": "src/main/java/com/ump/marketing/application/service/ActivityService.java",
+  20	      "status": "modified",
+  21	      "language": "java",
+  22	      "artifactPath": "artifacts/project/changed-files/ActivityService.java",
+  23	      "absoluteArtifactPath": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/ActivityService.java"
+  24	    },
+  25	    {
+  26	      "sourcePath": "src/main/java/com/ump/marketing/web/controller/ActivityController.java",
+  27	      "status": "modified",
+  28	      "language": "java",
+  29	      "artifactPath": "artifacts/project/changed-files/ActivityController.java",
+  30	      "absoluteArtifactPath": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/ActivityController.java"
+  31	    },
+  32	    {
+  33	      "sourcePath": "src/main/java/com/ump/marketing/web/controller/GlobalExceptionHandler.java",
+  34	      "status": "added",
+  35	      "language": "java",
+  36	      "artifactPath": "artifacts/project/changed-files/GlobalExceptionHandler.java",
+  37	      "absoluteArtifactPath": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/GlobalExceptionHandler.java"
+  38	    }
+  39	  ]
+  40	}

@@ -1,0 +1,28 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/BaseRequest.java (lines 1-27 of 27) ---
+   1	package com.ump.marketing.api.dto;
+   2	
+   3	import lombok.Data;
+   4	
+   5	import javax.validation.constraints.NotBlank;
+   6	import java.io.Serializable;
+   7	
+   8	/**
+   9	 * Common fields for all requests.
+  10	 */
+  11	@Data
+  12	public class BaseRequest implements Serializable {
+  13	    private static final long serialVersionUID = 1L;
+  14	
+  15	    @NotBlank(message = "requestId is required")
+  16	    private String requestId;
+  17	    private String caller;
+  18	    @NotBlank(message = "operator is required")
+  19	    private String operator;
+  20	    @NotBlank(message = "regionCode is required")
+  21	    private String regionCode;
+  22	    @NotBlank(message = "idempotencyKey is required")
+  23	    private String idempotencyKey;
+  24	    private Long timestampMs;
+  25	    private Integer expectedVersion;
+  26	}
+  27	

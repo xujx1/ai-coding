@@ -1,0 +1,167 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/test/java/com/ump/marketing/integration/BaseIntegrationTest.java (lines 1-166 of 166) ---
+   1	package com.ump.marketing.integration;
+   2	
+   3	import com.ump.marketing.UmpMarketingApplication;
+   4	import com.ump.marketing.api.dto.CreateActivityRequest;
+   5	import com.ump.marketing.application.service.ActivityService;
+   6	import com.ump.marketing.application.service.CouponService;
+   7	import com.ump.marketing.application.service.ProductService;
+   8	import com.ump.marketing.application.service.QuotaService;
+   9	import com.ump.marketing.application.service.SyncService;
+  10	import com.ump.marketing.domain.model.RegionCell;
+  11	import com.ump.marketing.infrastructure.cache.LocalCache;
+  12	import com.ump.marketing.infrastructure.config.IdGenerator;
+  13	import com.ump.marketing.infrastructure.dlq.DlqService;
+  14	import com.ump.marketing.infrastructure.mapper.ActivityMapper;
+  15	import com.ump.marketing.infrastructure.mapper.CouponTemplateMapper;
+  16	import com.ump.marketing.infrastructure.mapper.DlqMessageMapper;
+  17	import com.ump.marketing.infrastructure.mapper.OrderOccupyMapper;
+  18	import com.ump.marketing.infrastructure.mapper.RegionCellMapper;
+  19	import com.ump.marketing.infrastructure.messaging.MockKafkaProducer;
+  20	import com.ump.marketing.infrastructure.sharding.RegionRouter;
+  21	import com.ump.marketing.infrastructure.sharding.ShardingRouter;
+  22	import org.junit.jupiter.api.BeforeEach;
+  23	import org.springframework.beans.factory.annotation.Autowired;
+  24	import org.springframework.boot.test.context.SpringBootTest;
+  25	import org.springframework.test.context.ActiveProfiles;
+  26	
+  27	import java.math.BigDecimal;
+  28	
+  29	/**
+  30	 * Abstract base class for all integration tests.
+  31	 * Boots the full Spring context against an in-memory H2 database,
+  32	 * autowires core services, and ensures region cells are registered before each test.
+  33	 */
+  34	@SpringBootTest(classes = UmpMarketingApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
+  35	@ActiveProfiles("test")
+  36	public abstract class BaseIntegrationTest {
+  37	
+  38	    @Autowired
+  39	    protected ActivityService activityService;
+  40	
+  41	    @Autowired
+  42	    protected ProductService productService;
+  43	
+  44	    @Autowired
+  45	    protected CouponService couponService;
+  46	
+  47	    @Autowired
+  48	    protected QuotaService quotaService;
+  49	
+  50	    @Autowired
+  51	    protected SyncService syncService;
+  52	
+  53	    @Autowired
+  54	    protected RegionCellMapper regionCellMapper;
+  55	
+  56	    @Autowired
+  57	    protected ActivityMapper activityMapper;
+  58	
+  59	    @Autowired
+  60	    protected CouponTemplateMapper couponTemplateMapper;
+  61	
+  62	    @Autowired
+  63	    protected DlqMessageMapper dlqMessageMapper;
+  64	
+  65	    @Autowired
+  66	    protected OrderOccupyMapper orderOccupyMapper;
+  67	
+  68	    @Autowired
+  69	    protected RegionRouter regionRouter;
+  70	
+  71	    @Autowired
+  72	    protected ShardingRouter shardingRouter;
+  73	
+  74	    @Autowired
+  75	    protected IdGenerator idGenerator;
+  76	
+  77	    @Autowired
+  78	    protected MockKafkaProducer kafkaProducer;
+  79	
+  80	    @Autowired
+  81	    protected LocalCache localCache;
+  82	
+  83	    @Autowired
+  84	    protected DlqService dlqService;
+  85	
+  86	    protected static final String REGION_CN = "CN";
+  87	    protected static final String REGION_US = "US";
+  88	    protected static final String OPERATOR = "test-operator";
+  89	    protected static final String CALLER = "test-caller";
+  90	
+  91	    @BeforeEach
+  92	    void setUp() {
+  93	        kafkaProducer.clear();
+  94	        // Register CN region cell if not already present
+  95	        try {
+  96	            regionRouter.resolve(REGION_CN);
+  97	        } catch (Exception e) {
+  98	            RegionCell cn = new RegionCell();
+  99	            cn.setRegionCode(REGION_CN);
+ 100	            cn.setRegionName("China");
+ 101	            cn.setDbShardKey("shard-cn");
+ 102	            cn.setRedisNamespace("cn");
+ 103	            cn.setKafkaTopicPrefix("cn-");
+ 104	            cn.setCurrency("CNY");
+ 105	            cn.setLanguage("zh-CN");
+ 106	            cn.setStatus("ACTIVE");
+ 107	            cn.setCreatedAt(System.currentTimeMillis());
+ 108	            cn.setUpdatedAt(System.currentTimeMillis());
+ 109	            cn.setCreatedBy("system");
+ 110	            cn.setUpdatedBy("system");
+ 111	            cn.setIsDeleted(false);
+ 112	            cn.setVersion(0);
+ 113	            regionCellMapper.insert(cn);
+ 114	            regionRouter.registerCell(cn);
+ 115	        }
+ 116	        // Register US region cell if not already present
+ 117	        try {
+ 118	            regionRouter.resolve(REGION_US);
+ 119	        } catch (Exception e) {
+ 120	            RegionCell us = new RegionCell();
+ 121	            us.setRegionCode(REGION_US);
+ 122	            us.setRegionName("US");
+ 123	            us.setDbShardKey("shard-us");
+ 124	            us.setRedisNamespace("us");
+ 125	            us.setKafkaTopicPrefix("us-");
+ 126	            us.setCurrency("USD");
+ 127	            us.setLanguage("en-US");
+ 128	            us.setStatus("ACTIVE");
+ 129	            us.setCreatedAt(System.currentTimeMillis());
+ 130	            us.setUpdatedAt(System.currentTimeMillis());
+ 131	            us.setCreatedBy("system");
+ 132	            us.setUpdatedBy("system");
+ 133	            us.setIsDeleted(false);
+ 134	            us.setVersion(0);
+ 135	            regionCellMapper.insert(us);
+ 136	            regionRouter.registerCell(us);
+ 137	        }
+ 138	    }
+ 139	
+ 140	    /**
+ 141	     * Helper that builds a valid CreateActivityRequest with sensible defaults for FULL_REDUCE tool type.
+ 142	     * Each call produces a unique idempotencyKey and requestId.
+ 143	     */
+ 144	    protected CreateActivityRequest buildCreateRequest(String name) {
+ 145	        CreateActivityRequest req = new CreateActivityRequest();
+ 146	        req.setRequestId("req-" + System.nanoTime());
+ 147	        req.setCaller(CALLER);
+ 148	        req.setOperator(OPERATOR);
+ 149	        req.setRegionCode(REGION_CN);
+ 150	        req.setIdempotencyKey("idem-" + System.nanoTime());
+ 151	        req.setTimestampMs(System.currentTimeMillis());
+ 152	        req.setActivityName(name);
+ 153	        req.setToolId("tool-full-reduce");
+ 154	        req.setToolType("FULL_REDUCE");
+ 155	        req.setTenantId("tenant-001");
+ 156	        req.setThresholdAmount(new BigDecimal("100.00"));
+ 157	        req.setDiscountAmount(new BigDecimal("20.00"));
+ 158	        req.setStartTime(System.currentTimeMillis() + 3600000L);
+ 159	        req.setEndTime(System.currentTimeMillis() + 86400000L);
+ 160	        req.setScopeType("ALL");
+ 161	        req.setIsPurchaseLimited(false);
+ 162	        req.setPurchaseLimitPerUser(1);
+ 163	        return req;
+ 164	    }
+ 165	}
+ 166	

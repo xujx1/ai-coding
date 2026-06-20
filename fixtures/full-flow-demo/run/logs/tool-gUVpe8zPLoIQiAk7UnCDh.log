@@ -1,0 +1,24 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project-manifest.json (lines 1-23 of 23) ---
+   1	{
+   2	  "requirements": [
+   3	    {
+   4	      "name": "mrd.md",
+   5	      "path": "input/mrd.md",
+   6	      "size": 5037
+   7	    }
+   8	  ],
+   9	  "projects": [
+  10	    {
+  11	      "name": "project",
+  12	      "root": "project",
+  13	      "buildTool": "maven",
+  14	      "pomPath": "project/pom.xml",
+  15	      "sourceRoots": [
+  16	        "src/main/java"
+  17	      ],
+  18	      "testRoots": [
+  19	        "src/test/java"
+  20	      ]
+  21	    }
+  22	  ]
+  23	}

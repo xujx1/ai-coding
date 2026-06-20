@@ -1,0 +1,107 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/main/java/com/ump/marketing/domain/service/RuleValidator.java (lines 1-106 of 106) ---
+   1	package com.ump.marketing.domain.service;
+   2	
+   3	import java.math.BigDecimal;
+   4	
+   5	/**
+   6	 * Simple domain-level validation utilities.
+   7	 * All methods throw IllegalArgumentException when validation fails.
+   8	 */
+   9	public final class RuleValidator {
+  10	
+  11	    private RuleValidator() {
+  12	        // utility class
+  13	    }
+  14	
+  15	    /**
+  16	     * Validates activity time window.
+  17	     * Both startTime and endTime must be non-null and positive; startTime must be strictly less than endTime.
+  18	     *
+  19	     * @param startTime activity start time (epoch millis)
+  20	     * @param endTime   activity end time (epoch millis)
+  21	     * @throws IllegalArgumentException if validation fails
+  22	     */
+  23	    public static void validateActivityTime(Long startTime, Long endTime) {
+  24	        if (startTime == null) {
+  25	            throw new IllegalArgumentException("startTime must not be null");
+  26	        }
+  27	        if (endTime == null) {
+  28	            throw new IllegalArgumentException("endTime must not be null");
+  29	        }
+  30	        if (startTime <= 0L) {
+  31	            throw new IllegalArgumentException("startTime must be positive, got: " + startTime);
+  32	        }
+  33	        if (endTime <= 0L) {
+  34	            throw new IllegalArgumentException("endTime must be positive, got: " + endTime);
+  35	        }
+  36	        if (startTime >= endTime) {
+  37	            throw new IllegalArgumentException(
+  38	                    "startTime must be less than endTime, got startTime=" + startTime + ", endTime=" + endTime
+  39	            );
+  40	        }
+  41	    }
+  42	
+  43	    /**
+  44	     * Validates coupon template fields.
+  45	     * faceValue must be positive; minAmount must be non-null and non-negative;
+  46	     * totalCount and perUserLimit must be positive.
+  47	     *
+  48	     * @param faceValue     coupon face value
+  49	     * @param minAmount     minimum order amount
+  50	     * @param totalCount    total coupon count
+  51	     * @param perUserLimit  per-user claim limit
+  52	     * @throws IllegalArgumentException if validation fails
+  53	     */
+  54	    public static void validateCouponTemplate(BigDecimal faceValue, BigDecimal minAmount,
+  55	                                              Integer totalCount, Integer perUserLimit) {
+  56	        if (faceValue == null) {
+  57	            throw new IllegalArgumentException("faceValue must not be null");
+  58	        }
+  59	        if (faceValue.compareTo(BigDecimal.ZERO) <= 0) {
+  60	            throw new IllegalArgumentException("faceValue must be positive, got: " + faceValue);
+  61	        }
+  62	        if (minAmount == null) {
+  63	            throw new IllegalArgumentException("minAmount must not be null");
+  64	        }
+  65	        if (minAmount.compareTo(BigDecimal.ZERO) < 0) {
+  66	            throw new IllegalArgumentException("minAmount must not be negative, got: " + minAmount);
+  67	        }
+  68	        if (totalCount == null || totalCount <= 0) {
+  69	            throw new IllegalArgumentException("totalCount must be positive, got: " + totalCount);
+  70	        }
+  71	        if (perUserLimit == null || perUserLimit <= 0) {
+  72	            throw new IllegalArgumentException("perUserLimit must be positive, got: " + perUserLimit);
+  73	        }
+  74	    }
+  75	
+  76	    /**
+  77	     * Validates an idempotency key: must be non-null and non-empty (after trimming).
+  78	     *
+  79	     * @param key the idempotency key
+  80	     * @throws IllegalArgumentException if validation fails
+  81	     */
+  82	    public static void validateIdempotencyKey(String key) {
+  83	        if (key == null) {
+  84	            throw new IllegalArgumentException("idempotencyKey must not be null");
+  85	        }
+  86	        if (key.trim().isEmpty()) {
+  87	            throw new IllegalArgumentException("idempotencyKey must not be empty");
+  88	        }
+  89	    }
+  90	
+  91	    /**
+  92	     * Validates a region code: must be non-null and non-empty (after trimming).
+  93	     *
+  94	     * @param regionCode the region code
+  95	     * @throws IllegalArgumentException if validation fails
+  96	     */
+  97	    public static void validateRegionCode(String regionCode) {
+  98	        if (regionCode == null) {
+  99	            throw new IllegalArgumentException("regionCode must not be null");
+ 100	        }
+ 101	        if (regionCode.trim().isEmpty()) {
+ 102	            throw new IllegalArgumentException("regionCode must not be empty");
+ 103	        }
+ 104	    }
+ 105	}
+ 106	

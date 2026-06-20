@@ -1,0 +1,33 @@
+{
+  "agentRunId": "dgv4YpAV",
+  "runId": "XOjoDRmUAx",
+  "nodeId": "spec-generate",
+  "projectName": "project",
+  "projectRoot": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project",
+  "taskDescription": "生成 project 项目的开发 OpenSpec 任务清单",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 4,
+  "tokenUsage": {
+    "input": 109437,
+    "output": 2716
+  },
+  "compactCount": 0,
+  "toolCallCount": 21,
+  "inputArtifacts": [
+    "artifacts/prd.md",
+    "artifacts/project/tech-design.md",
+    "artifacts/implementation-plan-manifest.json"
+  ],
+  "outputArtifacts": [
+    "artifacts/project/openspec-task.md",
+    "artifacts/project/openspec-test-task.md"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1781940222002,
+  "updatedAt": 1781940291583,
+  "completedAt": 1781940291583
+}

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ump.marketing.infrastructure.mapper.CouponInstanceMapper">
+
+    <resultMap id="CouponInstanceResultMap" type="com.ump.marketing.domain.model.CouponInstance">
+        <id column="id" property="id"/>
+        <result column="coupon_inst_id" property="couponInstId"/>
+        <result column="template_id" property="templateId"/>
+        <result column="batch_id" property="batchId"/>
+        <result column="activity_id" property="activityId"/>
+        <result column="user_id" property="userId"/>
+        <result column="region_code" property="regionCode"/>
+        <result column="status" property="status"/>
+        <result column="coupon_type" property="couponType"/>
+        <result column="face_value" property="faceValue"/>
+        <result column="threshold_amount" property="thresholdAmount"/>
+        <result column="order_id" property="orderId"/>
+        <result column="used_at" property="usedAt"/>
+        <result column="valid_start_time" property="validStartTime"/>
+        <result column="valid_end_time" property="validEndTime"/>
+        <result column="issued_at" property="issuedAt"/>
+        <result column="received_at" property="receivedAt"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ump.marketing.domain.model.CouponInstance">
+        INSERT INTO t_coupon_inst_${tableSuffix}
+        (coupon_inst_id, template_id, batch_id, activity_id, user_id, region_code, status, coupon_type, face_value, threshold_amount, valid_start_time, valid_end_time, issued_at, version, created_at, updated_at)
+        VALUES
+        (#{record.couponInstId}, #{record.templateId}, #{record.batchId}, #{record.activityId}, #{record.userId}, #{record.regionCode}, #{record.status}, #{record.couponType}, #{record.faceValue}, #{record.thresholdAmount}, #{record.validStartTime}, #{record.validEndTime}, #{record.issuedAt}, #{record.version}, #{record.createdAt}, #{record.updatedAt})
+    </insert>
+
+    <select id="selectByCouponInstId" resultMap="CouponInstanceResultMap">
+        SELECT * FROM t_coupon_inst_${tableSuffix}
+        WHERE coupon_inst_id = #{couponInstId} AND region_code = #{regionCode}
+    </select>
+
+    <select id="selectByUserId" resultMap="CouponInstanceResultMap">
+        SELECT * FROM t_coupon_inst_${tableSuffix}
+        WHERE user_id = #{userId} AND region_code = #{regionCode}
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE t_coupon_inst_${tableSuffix}
+        SET status = #{newStatus},
+            received_at = #{updatedAt},
+            updated_at = #{updatedAt}
+        WHERE coupon_inst_id = #{couponInstId}
+          AND user_id = #{userId}
+          AND region_code = #{regionCode}
+          AND status = #{oldStatus}
+    </update>
+
+    <update id="updateStatusWithOrder">
+        UPDATE t_coupon_inst_${tableSuffix}
+        SET status = #{newStatus},
+            order_id = #{orderId},
+            used_at = #{usedAt},
+            updated_at = #{updatedAt}
+        WHERE coupon_inst_id = #{couponInstId}
+          AND user_id = #{userId}
+          AND region_code = #{regionCode}
+          AND status = #{oldStatus}
+    </update>
+
+    <select id="countByTemplateAndUser" resultType="int">
+        SELECT COUNT(*) FROM t_coupon_inst_${tableSuffix}
+        WHERE template_id = #{templateId} AND user_id = #{userId} AND region_code = #{regionCode}
+          AND status IN ('RECEIVED', 'USED', 'REFUNDED')
+    </select>
+
+    <update id="refund">
+        UPDATE t_coupon_inst_${tableSuffix}
+        SET status = #{newStatus},
+            order_id = NULL,
+            used_at = NULL,
+            updated_at = #{updatedAt}
+        WHERE coupon_inst_id = #{couponInstId}
+          AND order_id = #{orderId}
+          AND region_code = #{regionCode}
+          AND status = #{oldStatus}
+    </update>
+
+</mapper>

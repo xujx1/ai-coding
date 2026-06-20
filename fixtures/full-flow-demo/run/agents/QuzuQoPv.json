@@ -1,0 +1,32 @@
+{
+  "agentRunId": "QuzuQoPv",
+  "runId": "XOjoDRmUAx",
+  "nodeId": "archive",
+  "projectName": "project",
+  "projectRoot": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project",
+  "taskDescription": "归档 project 项目文件夹的修改结果",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-mini",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 3,
+  "modelSwitchHistory": [],
+  "turnCount": 4,
+  "tokenUsage": {
+    "input": 82955,
+    "output": 4460
+  },
+  "compactCount": 0,
+  "toolCallCount": 10,
+  "inputArtifacts": [
+    "artifacts/implementation-plan-manifest.json",
+    "artifacts/project/test-report.md"
+  ],
+  "outputArtifacts": [
+    "artifacts/project/archive-report.md",
+    "artifacts/archive-manifest.json"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1781940864597,
+  "updatedAt": 1781940924541,
+  "completedAt": 1781940924541
+}

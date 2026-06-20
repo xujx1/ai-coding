@@ -1,0 +1,261 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/test/resources/schema.sql (lines 1-260 of 2643) ---
+   1	-- UMP Marketing Platform v1 - Sprint 1+ Database Schema
+   2	-- H2 MySQL-compatible mode; same DDL works on MySQL 8.
+   3	
+   4	-- ============================================================
+   5	-- B-END MANAGEMENT TABLES
+   6	-- ============================================================
+   7	
+   8	CREATE TABLE IF NOT EXISTS t_activity (
+   9	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  10	    activity_id VARCHAR(32) NOT NULL,
+  11	    tenant_id VARCHAR(32) NOT NULL,
+  12	    activity_name VARCHAR(128) NOT NULL,
+  13	    tool_id VARCHAR(32) NOT NULL,
+  14	    tool_type VARCHAR(32) NOT NULL,
+  15	    threshold_amount DECIMAL(18,2),
+  16	    discount_amount DECIMAL(18,2),
+  17	    discount_rate DECIMAL(5,2),
+  18	    max_discount DECIMAL(18,2),
+  19	    coupon_template_id VARCHAR(32),
+  20	    status VARCHAR(32) NOT NULL,
+  21	    start_time BIGINT NOT NULL,
+  22	    end_time BIGINT NOT NULL,
+  23	    scope_type VARCHAR(16) NOT NULL DEFAULT 'ALL',
+  24	    scope_refs VARCHAR(2048),
+  25	    is_purchase_limited TINYINT DEFAULT 0,
+  26	    purchase_limit_per_user INT DEFAULT 0,
+  27	    approval_status VARCHAR(32) DEFAULT 'NONE',
+  28	    approver_id VARCHAR(32),
+  29	    approval_time BIGINT,
+  30	    online_time BIGINT,
+  31	    reject_reason VARCHAR(512),
+  32	    force_offline_reason VARCHAR(512),
+  33	    is_deleted TINYINT DEFAULT 0,
+  34	    version INT DEFAULT 0,
+  35	    region_code VARCHAR(32) NOT NULL,
+  36	    created_at BIGINT NOT NULL,
+  37	    updated_at BIGINT NOT NULL,
+  38	    created_by VARCHAR(64) NOT NULL DEFAULT 'system',
+  39	    updated_by VARCHAR(64) NOT NULL DEFAULT 'system'
+  40	);
+  41	CREATE UNIQUE INDEX IF NOT EXISTS uk_activity_id ON t_activity(activity_id, region_code);
+  42	CREATE INDEX IF NOT EXISTS idx_act_region_status ON t_activity(region_code, status);
+  43	
+  44	CREATE TABLE IF NOT EXISTS t_activity_tool (
+  45	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  46	    tool_id VARCHAR(32) NOT NULL,
+  47	    tenant_id VARCHAR(32) NOT NULL,
+  48	    tool_name VARCHAR(128) NOT NULL,
+  49	    tool_type VARCHAR(32) NOT NULL,
+  50	    tool_description VARCHAR(512),
+  51	    exclusion_rules VARCHAR(2048) DEFAULT '{}',
+  52	    priority INT DEFAULT 0,
+  53	    status VARCHAR(16) NOT NULL DEFAULT 'DRAFT',
+  54	    is_deleted TINYINT DEFAULT 0,
+  55	    version INT DEFAULT 0,
+  56	    region_code VARCHAR(32) NOT NULL,
+  57	    created_at BIGINT NOT NULL,
+  58	    updated_at BIGINT NOT NULL,
+  59	    created_by VARCHAR(64) NOT NULL DEFAULT 'system',
+  60	    updated_by VARCHAR(64) NOT NULL DEFAULT 'system'
+  61	);
+  62	CREATE UNIQUE INDEX IF NOT EXISTS uk_tool_id ON t_activity_tool(tool_id, region_code);
+  63	
+  64	CREATE TABLE IF NOT EXISTS t_activity_scope (
+  65	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  66	    scope_key VARCHAR(64) NOT NULL,
+  67	    activity_id VARCHAR(32) NOT NULL,
+  68	    product_id VARCHAR(32),
+  69	    sku_id VARCHAR(32),
+  70	    scope_type VARCHAR(16) NOT NULL,
+  71	    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+  72	    is_deleted TINYINT DEFAULT 0,
+  73	    version INT DEFAULT 0,
+  74	    region_code VARCHAR(32) NOT NULL,
+  75	    created_at BIGINT NOT NULL,
+  76	    updated_at BIGINT NOT NULL,
+  77	    created_by VARCHAR(64) NOT NULL DEFAULT 'system',
+  78	    updated_by VARCHAR(64) NOT NULL DEFAULT 'system'
+  79	);
+  80	CREATE UNIQUE INDEX IF NOT EXISTS uk_scope_key ON t_activity_scope(scope_key, region_code);
+  81	CREATE INDEX IF NOT EXISTS idx_scope_act ON t_activity_scope(activity_id, region_code);
+  82	
+  83	CREATE TABLE IF NOT EXISTS t_coupon_template (
+  84	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  85	    template_id VARCHAR(32) NOT NULL,
+  86	    template_name VARCHAR(128) NOT NULL,
+  87	    coupon_type VARCHAR(32) NOT NULL,
+  88	    face_value DECIMAL(18,2) NOT NULL,
+  89	    min_amount DECIMAL(18,2) DEFAULT 0,
+  90	    total_count INT NOT NULL,
+  91	    remain_count INT NOT NULL,
+  92	    per_user_limit INT DEFAULT 1,
+  93	    valid_start_time BIGINT NOT NULL,
+  94	    valid_end_time BIGINT NOT NULL,
+  95	    activity_id VARCHAR(32),
+  96	    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+  97	    is_deleted TINYINT DEFAULT 0,
+  98	    version INT DEFAULT 0,
+  99	    region_code VARCHAR(32) NOT NULL,
+ 100	    created_at BIGINT NOT NULL,
+ 101	    updated_at BIGINT NOT NULL,
+ 102	    created_by VARCHAR(64) NOT NULL DEFAULT 'system',
+ 103	    updated_by VARCHAR(64) NOT NULL DEFAULT 'system'
+ 104	);
+ 105	CREATE UNIQUE INDEX IF NOT EXISTS uk_template_id ON t_coupon_template(template_id, region_code);
+ 106	
+ 107	CREATE TABLE IF NOT EXISTS t_coupon_batch (
+ 108	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ 109	    batch_id VARCHAR(32) NOT NULL,
+ 110	    template_id VARCHAR(32) NOT NULL,
+ 111	    batch_name VARCHAR(128),
+ 112	    total_count INT NOT NULL,
+ 113	    issued_count INT DEFAULT 0,
+ 114	    received_count INT DEFAULT 0,
+ 115	    used_count INT DEFAULT 0,
+ 116	    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+ 117	    is_deleted TINYINT DEFAULT 0,
+ 118	    version INT DEFAULT 0,
+ 119	    region_code VARCHAR(32) NOT NULL,
+ 120	    created_at BIGINT NOT NULL,
+ 121	    updated_at BIGINT NOT NULL,
+ 122	    created_by VARCHAR(64) NOT NULL DEFAULT 'system',
+ 123	    updated_by VARCHAR(64) NOT NULL DEFAULT 'system'
+ 124	);
+ 125	CREATE UNIQUE INDEX IF NOT EXISTS uk_batch_id ON t_coupon_batch(batch_id, region_code);
+ 126	
+ 127	CREATE TABLE IF NOT EXISTS t_region_cell (
+ 128	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ 129	    region_code VARCHAR(32) NOT NULL,
+ 130	    region_name VARCHAR(128),
+ 131	    db_shard_key VARCHAR(64),
+ 132	    redis_namespace VARCHAR(64),
+ 133	    kafka_topic_prefix VARCHAR(64),
+ 134	    currency VARCHAR(8) DEFAULT 'CNY',
+ 135	    language VARCHAR(8) DEFAULT 'zh-CN',
+ 136	    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+ 137	    is_deleted TINYINT DEFAULT 0,
+ 138	    version INT DEFAULT 0,
+ 139	    created_at BIGINT NOT NULL,
+ 140	    updated_at BIGINT NOT NULL,
+ 141	    created_by VARCHAR(64) NOT NULL DEFAULT 'system',
+ 142	    updated_by VARCHAR(64) NOT NULL DEFAULT 'system'
+ 143	);
+ 144	CREATE UNIQUE INDEX IF NOT EXISTS uk_region_code ON t_region_cell(region_code);
+ 145	
+ 146	CREATE TABLE IF NOT EXISTS t_sync_event_log (
+ 147	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ 148	    event_id VARCHAR(64) NOT NULL,
+ 149	    event_type VARCHAR(64) NOT NULL,
+ 150	    aggregate_type VARCHAR(32) NOT NULL,
+ 151	    aggregate_id VARCHAR(64) NOT NULL,
+ 152	    region_code VARCHAR(32) NOT NULL,
+ 153	    version BIGINT DEFAULT 0,
+ 154	    payload CLOB,
+ 155	    consumer_group VARCHAR(64) NOT NULL,
+ 156	    consume_status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+ 157	    error_message VARCHAR(1024),
+ 158	    retry_count INT DEFAULT 0,
+ 159	    next_retry_at BIGINT,
+ 160	    occurred_at BIGINT NOT NULL,
+ 161	    created_at BIGINT NOT NULL,
+ 162	    updated_at BIGINT NOT NULL
+ 163	);
+ 164	CREATE UNIQUE INDEX IF NOT EXISTS uk_syncevent_id ON t_sync_event_log(event_id);
+ 165	
+ 166	CREATE TABLE IF NOT EXISTS t_operation_audit_log (
+ 167	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ 168	    trace_id VARCHAR(64) NOT NULL,
+ 169	    request_id VARCHAR(64),
+ 170	    operator VARCHAR(64),
+ 171	    operation_type VARCHAR(64) NOT NULL,
+ 172	    aggregate_type VARCHAR(32) NOT NULL,
+ 173	    aggregate_id VARCHAR(64) NOT NULL,
+ 174	    region_code VARCHAR(32),
+ 175	    before_snapshot CLOB,
+ 176	    after_snapshot CLOB,
+ 177	    created_at BIGINT NOT NULL
+ 178	);
+ 179	CREATE INDEX IF NOT EXISTS idx_audit_agg ON t_operation_audit_log(aggregate_id, region_code);
+ 180	
+ 181	CREATE TABLE IF NOT EXISTS t_idempotency_record (
+ 182	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ 183	    idempotency_key VARCHAR(128) NOT NULL,
+ 184	    request_hash VARCHAR(64) NOT NULL,
+ 185	    response_json CLOB,
+ 186	    status VARCHAR(16) NOT NULL DEFAULT 'PROCESSING',
+ 187	    region_code VARCHAR(32) NOT NULL,
+ 188	    version INT DEFAULT 0,
+ 189	    created_at BIGINT NOT NULL,
+ 190	    expired_at BIGINT NOT NULL
+ 191	);
+ 192	CREATE UNIQUE INDEX IF NOT EXISTS uk_idem_key ON t_idempotency_record(idempotency_key, region_code);
+ 193	
+ 194	CREATE TABLE IF NOT EXISTS t_dlq_message (
+ 195	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ 196	    event_id VARCHAR(64) NOT NULL,
+ 197	    topic VARCHAR(128) NOT NULL,
+ 198	    consumer_group VARCHAR(64) NOT NULL,
+ 199	    payload CLOB,
+ 200	    error_message VARCHAR(1024),
+ 201	    retry_count INT DEFAULT 0,
+ 202	    next_retry_at BIGINT,
+ 203	    status VARCHAR(16) NOT NULL DEFAULT 'RETRYABLE',
+ 204	    region_code VARCHAR(32),
+ 205	    created_at BIGINT NOT NULL,
+ 206	    updated_at BIGINT NOT NULL
+ 207	);
+ 208	CREATE INDEX IF NOT EXISTS idx_dlq_event ON t_dlq_message(event_id);
+ 209	CREATE INDEX IF NOT EXISTS idx_dlq_retry ON t_dlq_message(status, next_retry_at, retry_count);
+ 210	
+ 211	CREATE TABLE IF NOT EXISTS t_scope_act_00 (
+ 212	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ 213	    scope_key VARCHAR(64) NOT NULL,
+ 214	    activity_id VARCHAR(32) NOT NULL,
+ 215	    tool_id VARCHAR(32) NOT NULL,
+ 216	    tool_type VARCHAR(32),
+ 217	    status VARCHAR(16) NOT NULL DEFAULT 'ONLINE',
+ 218	    threshold_amount DECIMAL(18,2),
+ 219	    discount_amount DECIMAL(18,2),
+ 220	    discount_rate DECIMAL(5,2),
+ 221	    max_discount DECIMAL(18,2),
+ 222	    coupon_template_id VARCHAR(32),
+ 223	    region_code VARCHAR(32) NOT NULL,
+ 224	    version BIGINT DEFAULT 0,
+ 225	    event_id VARCHAR(64),
+ 226	    created_at BIGINT,
+ 227	    updated_at BIGINT
+ 228	);
+ 229	CREATE INDEX IF NOT EXISTS idx_sa00_scope ON t_scope_act_00(scope_key, region_code, status);
+ 230	CREATE INDEX IF NOT EXISTS idx_sa00_act ON t_scope_act_00(activity_id, region_code);
+ 231	CREATE TABLE IF NOT EXISTS t_scope_act_01 (
+ 232	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ 233	    scope_key VARCHAR(64) NOT NULL,
+ 234	    activity_id VARCHAR(32) NOT NULL,
+ 235	    tool_id VARCHAR(32) NOT NULL,
+ 236	    tool_type VARCHAR(32),
+ 237	    status VARCHAR(16) NOT NULL DEFAULT 'ONLINE',
+ 238	    threshold_amount DECIMAL(18,2),
+ 239	    discount_amount DECIMAL(18,2),
+ 240	    discount_rate DECIMAL(5,2),
+ 241	    max_discount DECIMAL(18,2),
+ 242	    coupon_template_id VARCHAR(32),
+ 243	    region_code VARCHAR(32) NOT NULL,
+ 244	    version BIGINT DEFAULT 0,
+ 245	    event_id VARCHAR(64),
+ 246	    created_at BIGINT,
+ 247	    updated_at BIGINT
+ 248	);
+ 249	CREATE INDEX IF NOT EXISTS idx_sa01_scope ON t_scope_act_01(scope_key, region_code, status);
+ 250	CREATE INDEX IF NOT EXISTS idx_sa01_act ON t_scope_act_01(activity_id, region_code);
+ 251	CREATE TABLE IF NOT EXISTS t_scope_act_02 (
+ 252	    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ 253	    scope_key VARCHAR(64) NOT NULL,
+ 254	    activity_id VARCHAR(32) NOT NULL,
+ 255	    tool_id VARCHAR(32) NOT NULL,
+ 256	    tool_type VARCHAR(32),
+ 257	    status VARCHAR(16) NOT NULL DEFAULT 'ONLINE',
+ 258	    threshold_amount DECIMAL(18,2),
+ 259	    discount_amount DECIMAL(18,2),
+ 260	    discount_rate DECIMAL(5,2),

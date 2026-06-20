@@ -1,0 +1,316 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-test-files/ActivityServiceTest.java (lines 1-315 of 315) ---
+   1	package com.ump.marketing.application.service;
+   2	
+   3	import com.fasterxml.jackson.databind.ObjectMapper;
+   4	import com.ump.marketing.api.dto.DeleteActivityRequest;
+   5	import com.ump.marketing.api.enums.ActivityStatus;
+   6	import com.ump.marketing.api.enums.ErrorCode;
+   7	import com.ump.marketing.api.result.RpcResult;
+   8	import com.ump.marketing.domain.model.Activity;
+   9	import com.ump.marketing.infrastructure.cache.LocalCache;
+  10	import com.ump.marketing.infrastructure.config.IdGenerator;
+  11	import com.ump.marketing.infrastructure.mapper.ActivityMapper;
+  12	import com.ump.marketing.infrastructure.sharding.RegionRouter;
+  13	import org.junit.jupiter.api.BeforeEach;
+  14	import org.junit.jupiter.api.DisplayName;
+  15	import org.junit.jupiter.api.Test;
+  16	import org.junit.jupiter.api.extension.ExtendWith;
+  17	import org.mockito.ArgumentCaptor;
+  18	import org.mockito.Mock;
+  19	import org.mockito.junit.jupiter.MockitoExtension;
+  20	
+  21	import static org.junit.jupiter.api.Assertions.assertEquals;
+  22	import static org.junit.jupiter.api.Assertions.assertFalse;
+  23	import static org.junit.jupiter.api.Assertions.assertNotNull;
+  24	import static org.junit.jupiter.api.Assertions.assertTrue;
+  25	import static org.mockito.ArgumentMatchers.anyLong;
+  26	import static org.mockito.ArgumentMatchers.eq;
+  27	import static org.mockito.Mockito.never;
+  28	import static org.mockito.Mockito.verify;
+  29	import static org.mockito.Mockito.verifyNoInteractions;
+  30	import static org.mockito.Mockito.when;
+  31	
+  32	@ExtendWith(MockitoExtension.class)
+  33	class ActivityServiceTest {
+  34	
+  35	    @Mock
+  36	    private ActivityMapper activityMapper;
+  37	    @Mock
+  38	    private IdempotencyService idempotencyService;
+  39	    @Mock
+  40	    private AuditService auditService;
+  41	    @Mock
+  42	    private SyncEventPublisher syncEventPublisher;
+  43	    @Mock
+  44	    private RegionRouter regionRouter;
+  45	    @Mock
+  46	    private IdGenerator idGenerator;
+  47	    @Mock
+  48	    private LocalCache localCache;
+  49	
+  50	    private ActivityService activityService;
+  51	
+  52	    @BeforeEach
+  53	    void setUp() {
+  54	        activityService = new ActivityService(
+  55	                activityMapper,
+  56	                idempotencyService,
+  57	                auditService,
+  58	                syncEventPublisher,
+  59	                regionRouter,
+  60	                idGenerator,
+  61	                localCache,
+  62	                new ObjectMapper()
+  63	        );
+  64	    }
+  65	
+  66	    @Test
+  67	    @DisplayName("deleteActivity returns invalid argument when request body is null")
+  68	    void deleteActivityNullRequest() {
+  69	        RpcResult<Void> result = activityService.deleteActivity(null);
+  70	
+  71	        assertFalse(result.isSuccess());
+  72	        assertEquals(ErrorCode.INVALID_ARGUMENT.getCode(), result.getCode());
+  73	        assertEquals("request body is required", result.getMessage());
+  74	        verifyNoInteractions(activityMapper, idempotencyService, auditService);
+  75	    }
+  76	
+  77	    @Test
+  78	    @DisplayName("deleteActivity deletes a draft activity and records audit plus idempotency result")
+  79	    void deleteActivityDraftSuccess() {
+  80	        DeleteActivityRequest request = buildRequest("req-1", "idem-1", "act-1", "CN", "operator-1");
+  81	        Activity activity = buildActivity("act-1", "CN", ActivityStatus.DRAFT.name(), 3, false, "creator");
+  82	
+  83	        when(idempotencyService.checkAndRecord(eq("idem-1"), eq("CN"), eq(expectedRequestHash(request)), eq(7), eq("req-1")))
+  84	                .thenReturn(null);
+  85	        when(activityMapper.selectByActivityId("act-1", "CN")).thenReturn(activity);
+  86	        when(activityMapper.softDelete(eq("act-1"), eq("CN"), eq(ActivityStatus.DRAFT.name()), eq(3), anyLong(), eq("operator-1")))
+  87	                .thenReturn(1);
+  88	
+  89	        RpcResult<Void> result = activityService.deleteActivity(request);
+  90	
+  91	        assertTrue(result.isSuccess());
+  92	        assertEquals(ErrorCode.SUCCESS.getCode(), result.getCode());
+  93	        assertEquals("req-1", result.getRequestId());
+  94	
+  95	        ArgumentCaptor<String> beforeCaptor = ArgumentCaptor.forClass(String.class);
+  96	        ArgumentCaptor<String> afterCaptor = ArgumentCaptor.forClass(String.class);
+  97	        verify(auditService).logStateChange(eq("req-1"), eq("operator-1"), eq("DELETE_ACTIVITY"),
+  98	                eq("Activity"), eq("act-1"), eq("CN"), beforeCaptor.capture(), afterCaptor.capture());
+  99	        assertTrue(beforeCaptor.getValue().contains("\"status\":\"DRAFT\""));
+ 100	        assertTrue(beforeCaptor.getValue().contains("\"isDeleted\":false"));
+ 101	        assertTrue(beforeCaptor.getValue().contains("\"version\":3"));
+ 102	        assertTrue(afterCaptor.getValue().contains("\"isDeleted\":true"));
+ 103	        assertTrue(afterCaptor.getValue().contains("\"version\":4"));
+ 104	        assertTrue(afterCaptor.getValue().contains("\"updatedBy\":\"operator-1\""));
+ 105	        verify(idempotencyService).markCompleted(eq("idem-1"), eq("CN"), eq("{\"code\":0,\"message\":\"SUCCESS\",\"requestId\":\"req-1\",\"data\":null,\"success\":true}"));
+ 106	    }
+ 107	
+ 108	    @Test
+ 109	    @DisplayName("deleteActivity keeps operator and version increment in rejected activity audit snapshot")
+ 110	    void deleteActivityRejectedSuccess() {
+ 111	        DeleteActivityRequest request = buildRequest("req-2", "idem-2", "act-2", "CN", "operator-2");
+ 112	        Activity activity = buildActivity("act-2", "CN", ActivityStatus.REJECTED.name(), 5, false, "old-operator");
+ 113	
+ 114	        when(idempotencyService.checkAndRecord(eq("idem-2"), eq("CN"), eq(expectedRequestHash(request)), eq(7), eq("req-2")))
+ 115	                .thenReturn(null);
+ 116	        when(activityMapper.selectByActivityId("act-2", "CN")).thenReturn(activity);
+ 117	        when(activityMapper.softDelete(eq("act-2"), eq("CN"), eq(ActivityStatus.REJECTED.name()), eq(5), anyLong(), eq("operator-2")))
+ 118	                .thenReturn(1);
+ 119	
+ 120	        activityService.deleteActivity(request);
+ 121	
+ 122	        ArgumentCaptor<String> beforeCaptor = ArgumentCaptor.forClass(String.class);
+ 123	        ArgumentCaptor<String> afterCaptor = ArgumentCaptor.forClass(String.class);
+ 124	        verify(auditService).logStateChange(eq("req-2"), eq("operator-2"), eq("DELETE_ACTIVITY"),
+ 125	                eq("Activity"), eq("act-2"), eq("CN"), beforeCaptor.capture(), afterCaptor.capture());
+ 126	        assertTrue(beforeCaptor.getValue().contains("\"status\":\"REJECTED\""));
+ 127	        assertTrue(beforeCaptor.getValue().contains("\"isDeleted\":false"));
+ 128	        assertTrue(beforeCaptor.getValue().contains("\"version\":5"));
+ 129	        assertTrue(afterCaptor.getValue().contains("\"updatedBy\":\"operator-2\""));
+ 130	        assertTrue(afterCaptor.getValue().contains("\"isDeleted\":true"));
+ 131	        assertTrue(afterCaptor.getValue().contains("\"version\":6"));
+ 132	    }
+ 133	
+ 134	    @Test
+ 135	    @DisplayName("deleteActivity allows terminated activities to be deleted")
+ 136	    void deleteActivityTerminatedSuccess() {
+ 137	        DeleteActivityRequest request = buildRequest("req-3", "idem-3", "act-3", "CN", "operator-3");
+ 138	        Activity activity = buildActivity("act-3", "CN", ActivityStatus.TERMINATED.name(), 1, false, "old");
+ 139	
+ 140	        when(idempotencyService.checkAndRecord(eq("idem-3"), eq("CN"), eq(expectedRequestHash(request)), eq(7), eq("req-3")))
+ 141	                .thenReturn(null);
+ 142	        when(activityMapper.selectByActivityId("act-3", "CN")).thenReturn(activity);
+ 143	        when(activityMapper.softDelete(eq("act-3"), eq("CN"), eq(ActivityStatus.TERMINATED.name()), eq(1), anyLong(), eq("operator-3")))
+ 144	                .thenReturn(1);
+ 145	
+ 146	        RpcResult<Void> result = activityService.deleteActivity(request);
+ 147	
+ 148	        assertTrue(result.isSuccess());
+ 149	        verify(activityMapper).softDelete(eq("act-3"), eq("CN"), eq(ActivityStatus.TERMINATED.name()), eq(1), anyLong(), eq("operator-3"));
+ 150	    }
+ 151	
+ 152	    @Test
+ 153	    @DisplayName("deleteActivity rejects non deletable statuses with current status in message")
+ 154	    void deleteActivityIllegalStates() {
+ 155	        assertIllegalState(ActivityStatus.PENDING_APPROVAL.name());
+ 156	        assertIllegalState(ActivityStatus.APPROVED.name());
+ 157	        assertIllegalState(ActivityStatus.ONLINE.name());
+ 158	        assertIllegalState(ActivityStatus.PAUSED.name());
+ 159	    }
+ 160	
+ 161	    @Test
+ 162	    @DisplayName("deleteActivity returns resource not found when activity does not exist")
+ 163	    void deleteActivityNotFound() {
+ 164	        DeleteActivityRequest request = buildRequest("req-4", "idem-4", "act-4", "CN", "operator-4");
+ 165	
+ 166	        when(idempotencyService.checkAndRecord(eq("idem-4"), eq("CN"), eq(expectedRequestHash(request)), eq(7), eq("req-4")))
+ 167	                .thenReturn(null);
+ 168	        when(activityMapper.selectByActivityId("act-4", "CN")).thenReturn(null);
+ 169	
+ 170	        RpcResult<Void> result = activityService.deleteActivity(request);
+ 171	
+ 172	        assertFalse(result.isSuccess());
+ 173	        assertEquals(ErrorCode.RESOURCE_NOT_FOUND.getCode(), result.getCode());
+ 174	        assertEquals("Activity not found", result.getMessage());
+ 175	        verify(activityMapper, never()).softDelete(eq("act-4"), eq("CN"), eq(ActivityStatus.DRAFT.name()), eq(0), anyLong(), eq("operator-4"));
+ 176	        verifyNoInteractions(auditService);
+ 177	        verify(idempotencyService, never()).markCompleted(eq("idem-4"), eq("CN"), eq(""));
+ 178	    }
+ 179	
+ 180	    @Test
+ 181	    @DisplayName("deleteActivity replays cached idempotent result without extra side effects")
+ 182	    void deleteActivityIdempotentReplay() {
+ 183	        DeleteActivityRequest request = buildRequest("req-5", "idem-5", "act-5", "CN", "operator-5");
+ 184	        RpcResult<Void> cached = RpcResult.success(null, "req-first");
+ 185	
+ 186	        when(idempotencyService.<Void>checkAndRecord(eq("idem-5"), eq("CN"), eq(expectedRequestHash(request)), eq(7), eq("req-5")))
+ 187	                .thenReturn(cached);
+ 188	
+ 189	        RpcResult<Void> result = activityService.deleteActivity(request);
+ 190	
+ 191	        assertNotNull(result);
+ 192	        assertTrue(result.isSuccess());
+ 193	        assertEquals("req-first", result.getRequestId());
+ 194	        verifyNoInteractions(activityMapper, auditService);
+ 195	        verify(idempotencyService, never()).markCompleted(eq("idem-5"), eq("CN"), eq(""));
+ 196	    }
+ 197	
+ 198	    @Test
+ 199	    @DisplayName("deleteActivity returns idempotency conflict without entering delete flow")
+ 200	    void deleteActivityIdempotencyConflict() {
+ 201	        DeleteActivityRequest request = buildRequest("req-6", "idem-6", "act-6", "CN", "operator-6");
+ 202	        RpcResult<Void> conflict = RpcResult.fail(ErrorCode.IDEMPOTENCY_CONFLICT, "Idempotency key conflict", "req-6");
+ 203	
+ 204	        when(idempotencyService.<Void>checkAndRecord(eq("idem-6"), eq("CN"), eq(expectedRequestHash(request)), eq(7), eq("req-6")))
+ 205	                .thenReturn(conflict);
+ 206	
+ 207	        RpcResult<Void> result = activityService.deleteActivity(request);
+ 208	
+ 209	        assertEquals(ErrorCode.IDEMPOTENCY_CONFLICT.getCode(), result.getCode());
+ 210	        assertEquals("Idempotency key conflict", result.getMessage());
+ 211	        verifyNoInteractions(activityMapper, auditService);
+ 212	    }
+ 213	
+ 214	    @Test
+ 215	    @DisplayName("deleteActivity returns version conflict when concurrent delete leaves record still deletable")
+ 216	    void deleteActivityConcurrentDeleteVersionConflict() {
+ 217	        DeleteActivityRequest request = buildRequest("req-7", "idem-7", "act-7", "CN", "operator-7");
+ 218	        Activity activity = buildActivity("act-7", "CN", ActivityStatus.DRAFT.name(), 2, false, "old");
+ 219	        Activity current = buildActivity("act-7", "CN", ActivityStatus.DRAFT.name(), 2, false, "old");
+ 220	
+ 221	        when(idempotencyService.checkAndRecord(eq("idem-7"), eq("CN"), eq(expectedRequestHash(request)), eq(7), eq("req-7")))
+ 222	                .thenReturn(null);
+ 223	        when(activityMapper.selectByActivityId("act-7", "CN")).thenReturn(activity, current);
+ 224	        when(activityMapper.softDelete(eq("act-7"), eq("CN"), eq(ActivityStatus.DRAFT.name()), eq(2), anyLong(), eq("operator-7")))
+ 225	                .thenReturn(0);
+ 226	
+ 227	        RpcResult<Void> result = activityService.deleteActivity(request);
+ 228	
+ 229	        assertEquals(ErrorCode.VERSION_CONFLICT.getCode(), result.getCode());
+ 230	        assertEquals("Concurrent delete detected", result.getMessage());
+ 231	        verifyNoInteractions(auditService);
+ 232	        verify(idempotencyService, never()).markCompleted(eq("idem-7"), eq("CN"), eq(""));
+ 233	    }
+ 234	
+ 235	    private void assertIllegalState(String status) {
+ 236	        DeleteActivityRequest request = buildRequest("req-" + status, "idem-" + status, "act-" + status, "CN", "operator");
+ 237	        Activity activity = buildActivity("act-" + status, "CN", status, 0, false, "old");
+ 238	
+ 239	        when(idempotencyService.checkAndRecord(eq("idem-" + status), eq("CN"), eq(expectedRequestHash(request)), eq(7), eq("req-" + status)))
+ 240	                .thenReturn(null);
+ 241	        when(activityMapper.selectByActivityId("act-" + status, "CN")).thenReturn(activity);
+ 242	
+ 243	        RpcResult<Void> result = activityService.deleteActivity(request);
+ 244	
+ 245	        assertEquals(ErrorCode.ILLEGAL_STATE.getCode(), result.getCode());
+ 246	        assertTrue(result.getMessage().contains(status));
+ 247	        verify(activityMapper, never()).softDelete(eq("act-" + status), eq("CN"), eq(status), eq(0), anyLong(), eq("operator"));
+ 248	        verifyNoInteractions(auditService);
+ 249	    }
+ 250	
+ 251	    private DeleteActivityRequest buildRequest(String requestId, String idempotencyKey, String activityId,
+ 252	                                               String regionCode, String operator) {
+ 253	        DeleteActivityRequest request = new DeleteActivityRequest();
+ 254	        request.setRequestId(requestId);
+ 255	        request.setIdempotencyKey(idempotencyKey);
+ 256	        request.setActivityId(activityId);
+ 257	        request.setRegionCode(regionCode);
+ 258	        request.setOperator(operator);
+ 259	        request.setCaller("caller");
+ 260	        request.setTimestampMs(1000L);
+ 261	        return request;
+ 262	    }
+ 263	
+ 264	    private Activity buildActivity(String activityId, String regionCode, String status, int version,
+ 265	                                   boolean isDeleted, String updatedBy) {
+ 266	        Activity activity = new Activity();
+ 267	        activity.setActivityId(activityId);
+ 268	        activity.setRegionCode(regionCode);
+ 269	        activity.setStatus(status);
+ 270	        activity.setVersion(version);
+ 271	        activity.setIsDeleted(isDeleted);
+ 272	        activity.setUpdatedBy(updatedBy);
+ 273	        activity.setUpdatedAt(123L);
+ 274	        activity.setCreatedBy("creator");
+ 275	        activity.setCreatedAt(100L);
+ 276	        activity.setActivityName("activity-" + activityId);
+ 277	        activity.setToolId("tool-1");
+ 278	        activity.setToolType("FULL_REDUCE");
+ 279	        activity.setTenantId("tenant-1");
+ 280	        return activity;
+ 281	    }
+ 282	
+ 283	    private String expectedRequestHash(DeleteActivityRequest request) {
+ 284	        return "{\"requestId\":\"" + request.getRequestId() + "\",\"caller\":\"caller\",\"operator\":\""
+ 285	                + request.getOperator() + "\",\"regionCode\":\"" + request.getRegionCode()
+ 286	                + "\",\"idempotencyKey\":\"" + request.getIdempotencyKey()
+ 287	                + "\",\"timestampMs\":1000,\"expectedVersion\":null,\"activityId\":\""
+ 288	                + request.getActivityId() + "\"}";
+ 289	    }
+ 290	
+ 291	    private String expectedBeforeJson(Activity activity) {
+ 292	        return "{\"id\":null,\"activityId\":\"" + activity.getActivityId() + "\",\"tenantId\":\"tenant-1\"," +
+ 293	                "\"activityName\":\"activity-" + activity.getActivityId() + "\",\"toolId\":\"tool-1\"," +
+ 294	                "\"toolType\":\"FULL_REDUCE\",\"thresholdAmount\":null,\"discountAmount\":null,\"discountRate\":null," +
+ 295	                "\"maxDiscount\":null,\"couponTemplateId\":null,\"status\":\"" + activity.getStatus() + "\"," +
+ 296	                "\"startTime\":null,\"endTime\":null,\"scopeType\":null,\"scopeRefs\":null,\"isPurchaseLimited\":false," +
+ 297	                "\"purchaseLimitPerUser\":null,\"approvalStatus\":\"NONE\",\"approverId\":null,\"approvalTime\":null," +
+ 298	                "\"onlineTime\":null,\"rejectReason\":null,\"forceOfflineReason\":null,\"isDeleted\":false," +
+ 299	                "\"version\":" + activity.getVersion() + ",\"regionCode\":\"CN\",\"createdAt\":100,\"updatedAt\":123," +
+ 300	                "\"createdBy\":\"creator\",\"updatedBy\":\"" + activity.getUpdatedBy() + "\"}";
+ 301	    }
+ 302	
+ 303	    private String expectedAfterJson(Activity activity, String operator) {
+ 304	        return "{\"id\":null,\"activityId\":\"" + activity.getActivityId() + "\",\"tenantId\":\"tenant-1\"," +
+ 305	                "\"activityName\":\"activity-" + activity.getActivityId() + "\",\"toolId\":\"tool-1\"," +
+ 306	                "\"toolType\":\"FULL_REDUCE\",\"thresholdAmount\":null,\"discountAmount\":null,\"discountRate\":null," +
+ 307	                "\"maxDiscount\":null,\"couponTemplateId\":null,\"status\":\"" + activity.getStatus() + "\"," +
+ 308	                "\"startTime\":null,\"endTime\":null,\"scopeType\":null,\"scopeRefs\":null,\"isPurchaseLimited\":false," +
+ 309	                "\"purchaseLimitPerUser\":null,\"approvalStatus\":\"NONE\",\"approverId\":null,\"approvalTime\":null," +
+ 310	                "\"onlineTime\":null,\"rejectReason\":null,\"forceOfflineReason\":null,\"isDeleted\":true," +
+ 311	                "\"version\":" + (activity.getVersion() + 1) + ",\"regionCode\":\"CN\",\"createdAt\":100,\"updatedAt\":" + activity.getUpdatedAt() + "," +
+ 312	                "\"createdBy\":\"creator\",\"updatedBy\":\"" + operator + "\"}";
+ 313	    }
+ 314	}
+ 315	

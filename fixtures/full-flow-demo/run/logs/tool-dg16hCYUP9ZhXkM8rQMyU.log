@@ -1,0 +1,51 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/main/java/com/ump/marketing/infrastructure/mapper/ActivityMapper.java (lines 1-50 of 50) ---
+   1	package com.ump.marketing.infrastructure.mapper;
+   2	
+   3	import com.ump.marketing.domain.model.Activity;
+   4	import org.apache.ibatis.annotations.Insert;
+   5	import org.apache.ibatis.annotations.Mapper;
+   6	import org.apache.ibatis.annotations.Param;
+   7	import org.apache.ibatis.annotations.Select;
+   8	import org.apache.ibatis.annotations.Update;
+   9	
+  10	import java.util.List;
+  11	
+  12	@Mapper
+  13	public interface ActivityMapper {
+  14	
+  15	    @Insert("INSERT INTO t_activity(activity_id, tenant_id, activity_name, tool_id, tool_type, threshold_amount, discount_amount, discount_rate, max_discount, coupon_template_id, status, start_time, end_time, scope_type, scope_refs, is_purchase_limited, purchase_limit_per_user, approval_status, approver_id, approval_time, online_time, reject_reason, force_offline_reason, is_deleted, version, region_code, created_at, updated_at, created_by, updated_by) VALUES(#{activityId},#{tenantId},#{activityName},#{toolId},#{toolType},#{thresholdAmount},#{discountAmount},#{discountRate},#{maxDiscount},#{couponTemplateId},#{status},#{startTime},#{endTime},#{scopeType},#{scopeRefs},#{isPurchaseLimited},#{purchaseLimitPerUser},#{approvalStatus},#{approverId},#{approvalTime},#{onlineTime},#{rejectReason},#{forceOfflineReason},#{isDeleted},#{version},#{regionCode},#{createdAt},#{updatedAt},#{createdBy},#{updatedBy})")
+  16	    int insert(Activity activity);
+  17	
+  18	    @Select("SELECT * FROM t_activity WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND is_deleted = 0")
+  19	    Activity selectByActivityId(@Param("activityId") String activityId, @Param("regionCode") String regionCode);
+  20	
+  21	    @Update("UPDATE t_activity SET status = #{newStatus}, version = #{newVersion}, updated_at = #{updatedAt}, updated_by = #{updatedBy} WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND status = #{oldStatus} AND version = #{oldVersion}")
+  22	    int updateStatus(@Param("activityId") String activityId, @Param("regionCode") String regionCode, @Param("oldStatus") String oldStatus, @Param("newStatus") String newStatus, @Param("oldVersion") Integer oldVersion, @Param("newVersion") Integer newVersion, @Param("updatedAt") Long updatedAt, @Param("updatedBy") String updatedBy);
+  23	
+  24	    @Update("UPDATE t_activity SET status = #{newStatus}, approver_id = #{approverId}, approval_time = #{approvalTime}, version = #{newVersion}, updated_at = #{updatedAt}, updated_by = #{updatedBy}, reject_reason = #{rejectReason} WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND status = #{oldStatus} AND version = #{oldVersion}")
+  25	    int updateStatusWithApproval(@Param("activityId") String activityId, @Param("regionCode") String regionCode, @Param("oldStatus") String oldStatus, @Param("newStatus") String newStatus, @Param("approverId") String approverId, @Param("approvalTime") Long approvalTime, @Param("oldVersion") Integer oldVersion, @Param("newVersion") Integer newVersion, @Param("updatedAt") Long updatedAt, @Param("updatedBy") String updatedBy, @Param("rejectReason") String rejectReason);
+  26	
+  27	    @Update("UPDATE t_activity SET status = #{newStatus}, online_time = #{onlineTime}, version = #{newVersion}, updated_at = #{updatedAt}, updated_by = #{updatedBy} WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND status = #{oldStatus} AND version = #{oldVersion}")
+  28	    int updateStatusOnline(@Param("activityId") String activityId, @Param("regionCode") String regionCode, @Param("oldStatus") String oldStatus, @Param("newStatus") String newStatus, @Param("onlineTime") Long onlineTime, @Param("oldVersion") Integer oldVersion, @Param("newVersion") Integer newVersion, @Param("updatedAt") Long updatedAt, @Param("updatedBy") String updatedBy);
+  29	
+  30	    @Update("UPDATE t_activity SET status = #{newStatus}, force_offline_reason = #{forceOfflineReason}, version = #{newVersion}, updated_at = #{updatedAt}, updated_by = #{updatedBy} WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND status = #{oldStatus} AND version = #{oldVersion}")
+  31	    int updateStatusForceOffline(@Param("activityId") String activityId, @Param("regionCode") String regionCode, @Param("oldStatus") String oldStatus, @Param("newStatus") String newStatus, @Param("forceOfflineReason") String forceOfflineReason, @Param("oldVersion") Integer oldVersion, @Param("newVersion") Integer newVersion, @Param("updatedAt") Long updatedAt, @Param("updatedBy") String updatedBy);
+  32	
+  33	    @Update("UPDATE t_activity SET activity_name = #{activityName}, threshold_amount = #{thresholdAmount}, discount_amount = #{discountAmount}, discount_rate = #{discountRate}, max_discount = #{maxDiscount}, start_time = #{startTime}, end_time = #{endTime}, scope_type = #{scopeType}, scope_refs = #{scopeRefs}, updated_at = #{updatedAt}, updated_by = #{updatedBy}, version = version + 1 WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND version = #{version} AND is_deleted = 0")
+  34	    int updateWithVersion(Activity activity);
+  35	
+  36	    @Update("UPDATE t_activity SET is_deleted = 1, version = version + 1, updated_at = #{updatedAt}, updated_by = #{updatedBy} WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND status = #{status} AND version = #{version} AND is_deleted = 0")
+  37	    int softDelete(@Param("activityId") String activityId,
+  38	                   @Param("regionCode") String regionCode,
+  39	                   @Param("status") String status,
+  40	                   @Param("version") Integer version,
+  41	                   @Param("updatedAt") Long updatedAt,
+  42	                   @Param("updatedBy") String updatedBy);
+  43	
+  44	    @Select("SELECT * FROM t_activity WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND is_deleted = 0 FOR UPDATE")
+  45	    Activity selectForUpdate(@Param("activityId") String activityId, @Param("regionCode") String regionCode);
+  46	
+  47	    @Select("SELECT * FROM t_activity WHERE region_code = #{regionCode} AND is_deleted = 0 LIMIT #{limit} OFFSET #{offset}")
+  48	    List<Activity> selectList(@Param("regionCode") String regionCode, @Param("limit") int limit, @Param("offset") int offset);
+  49	}
+  50	

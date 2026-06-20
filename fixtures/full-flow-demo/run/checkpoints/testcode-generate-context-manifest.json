@@ -1,0 +1,36 @@
+{
+  "nodeId": "testcode-generate",
+  "outputArtifacts": [
+    {
+      "path": "artifacts/project/changed-test-files/ActivityControllerTest.java",
+      "summary": "package com.ump.marketing.web.controller; import com.fasterxml.jackson.databind.ObjectMapper; import com.ump.marketing.api.dto.DeleteActivityRequest; import com.ump.marketing.api.enums.ErrorCode; import com.ump.marketing.api.result.RpcResult; import com.ump.marketing.application.service.ActivityService; import org.junit.jupiter.api.BeforeEach; import org.junit.jupiter.api.DisplayName; import org.junit.jupiter.api.Test; import org.junit.jupiter.api.extension.ExtendWith; import org.mockito.Mock; i...",
+      "size": 10293
+    },
+    {
+      "path": "artifacts/project/test-file-list.md",
+      "summary": "project 测试文件清单 src/test/java/com/ump/marketing/application/service/ActivityServiceTest.java src/test/java/com/ump/marketing/web/controller/ActivityControllerTest.java",
+      "size": 186
+    },
+    {
+      "path": "artifacts/project/changed-test-files/ActivityServiceTest.java",
+      "summary": "package com.ump.marketing.application.service; import com.fasterxml.jackson.databind.ObjectMapper; import com.ump.marketing.api.dto.DeleteActivityRequest; import com.ump.marketing.api.enums.ActivityStatus; import com.ump.marketing.api.enums.ErrorCode; import com.ump.marketing.api.result.RpcResult; import com.ump.marketing.domain.model.Activity; import com.ump.marketing.infrastructure.cache.LocalCache; import com.ump.marketing.infrastructure.config.IdGenerator; import com.ump.marketing.infrastruc...",
+      "size": 16847
+    }
+  ],
+  "importantDecisions": [],
+  "riskNotes": [],
+  "nextNodeInputs": [
+    "artifacts/project/openspec-task.md",
+    "artifacts/project/openspec-test-task.md",
+    "artifacts/project/changed-files/BaseRequest.java",
+    "artifacts/project/changed-files.json",
+    "artifacts/project/changed-files/DeleteActivityRequest.java",
+    "artifacts/project/changed-files/ActivityController.java",
+    "artifacts/project/changed-files/GlobalExceptionHandler.java",
+    "artifacts/project/changed-files/ActivityService.java",
+    "artifacts/project/changed-test-files/ActivityControllerTest.java",
+    "artifacts/project/test-file-list.md",
+    "artifacts/project/changed-test-files/ActivityServiceTest.java",
+    "artifacts/project-manifest.json"
+  ]
+}

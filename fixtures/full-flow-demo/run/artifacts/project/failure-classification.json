@@ -1,0 +1,5 @@
+{
+  "project": "project",
+  "category": "runner_asset_failure",
+  "reason": "未能从 Maven 输出中识别成功、编译失败或测试失败。"
+}

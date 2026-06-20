@@ -1,0 +1,232 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/input/mrd.md (lines 1-231 of 231) ---
+   1	# 活动软删除能力 MRD
+   2	
+   3	## 1. 背景
+   4	
+   5	当前活动管理已支持创建、编辑、提审、审批、驳回、上线、暂停和强制下线能力，但不支持运营侧删除活动。实际运营过程中，草稿活动、被驳回活动或已终止活动可能因为配置错误、重复创建、测试数据等原因不再需要继续展示和维护。
+   6	
+   7	系统表 `t_activity` 已具备 `is_deleted` 字段，查询逻辑也普遍按 `is_deleted = 0` 过滤，但业务代码尚未暴露活动删除入口。本需求补齐活动软删除能力。
+   8	
+   9	## 2. 目标
+  10	
+  11	为活动管理新增软删除能力，使运营人员可以删除不再使用的活动，同时保留数据库记录用于审计和问题追溯。
+  12	
+  13	## 3. 范围
+  14	
+  15	### 3.1 本期包含
+  16	
+  17	- 新增活动删除接口。
+  18	- 支持按 `activityId + regionCode` 软删除活动。
+  19	- 删除时更新 `t_activity.is_deleted`、`updated_at`、`updated_by` 和 `version`。
+  20	- 删除操作记录审计日志。
+  21	- 删除接口支持幂等控制。
+  22	- 增加基础测试覆盖。
+  23	
+  24	### 3.2 本期不包含
+  25	
+  26	- 不做物理删除。
+  27	- 不删除活动关联的券模板、券实例、商品绑定、订单占用记录。
+  28	- 不做批量删除。
+  29	- 不做活动回收站和恢复能力。
+  30	- 不新增前端页面。
+  31	
+  32	## 4. 业务规则
+  33	
+  34	### 4.1 可删除状态
+  35	
+  36	仅允许删除以下状态的活动：
+  37	
+  38	- `DRAFT`
+  39	- `REJECTED`
+  40	- `TERMINATED`
+  41	
+  42	### 4.2 不可删除状态
+  43	
+  44	以下状态不允许删除：
+  45	
+  46	- `PENDING_APPROVAL`
+  47	- `APPROVED`
+  48	- `ONLINE`
+  49	- `PAUSED`
+  50	
+  51	不可删除时返回非法状态错误，错误信息需包含当前活动状态。
+  52	
+  53	### 4.3 删除结果
+  54	
+  55	删除成功后：
+  56	
+  57	- `t_activity.is_deleted` 更新为 `1`。
+  58	- `updated_at` 更新为当前时间。
+  59	- `updated_by` 更新为当前操作人。
+  60	- `version` 自增。
+  61	- 后续通过现有活动查询逻辑不可再查到该活动。
+  62	
+  63	### 4.4 幂等要求
+  64	
+  65	删除接口需要校验 `idempotencyKey`。
+  66	
+  67	- 相同 `idempotencyKey`、相同请求内容重复提交，应返回首次处理结果。
+  68	- 相同 `idempotencyKey`、不同请求内容重复提交，应返回幂等冲突。
+  69	
+  70	### 4.5 审计要求
+  71	
+  72	删除成功后写入操作审计日志：
+  73	
+  74	- `operationType`: `DELETE_ACTIVITY`
+  75	- `aggregateType`: `Activity`
+  76	- `aggregateId`: 活动 ID
+  77	- `regionCode`: 活动区域
+  78	- `beforeJson`: 删除前活动快照
+  79	- `afterJson`: 删除后活动快照
+  80	
+  81	## 5. 接口设计
+  82	
+  83	### 5.1 删除活动
+  84	
+  85	接口：
+  86	
+  87	```http
+  88	POST /api/activity/delete
+  89	```
+  90	
+  91	请求体：
+  92	
+  93	```json
+  94	{
+  95	  "requestId": "req_001",
+  96	  "idempotencyKey": "idem_001",
+  97	  "activityId": "act_001",
+  98	  "regionCode": "CN",
+  99	  "operator": "admin"
+ 100	}
+ 101	```
+ 102	
+ 103	成功响应：
+ 104	
+ 105	```json
+ 106	{
+ 107	  "success": true,
+ 108	  "code": "SUCCESS",
+ 109	  "message": "success",
+ 110	  "data": null,
+ 111	  "requestId": "req_001"
+ 112	}
+ 113	```
+ 114	
+ 115	活动不存在响应：
+ 116	
+ 117	```json
+ 118	{
+ 119	  "success": false,
+ 120	  "code": "RESOURCE_NOT_FOUND",
+ 121	  "message": "Activity not found",
+ 122	  "data": null,
+ 123	  "requestId": "req_001"
+ 124	}
+ 125	```
+ 126	
+ 127	状态不允许删除响应：
+ 128	
+ 129	```json
+ 130	{
+ 131	  "success": false,
+ 132	  "code": "ILLEGAL_STATE",
+ 133	  "message": "Only DRAFT, REJECTED or TERMINATED activities can be deleted, current status: ONLINE",
+ 134	  "data": null,
+ 135	  "requestId": "req_001"
+ 136	}
+ 137	```
+ 138	
+ 139	## 6. 数据变更
+ 140	
+ 141	无需新增表和字段。
+ 142	
+ 143	复用 `t_activity.is_deleted` 字段。
+ 144	
+ 145	建议新增 mapper 方法：
+ 146	
+ 147	```sql
+ 148	UPDATE t_activity
+ 149	SET is_deleted = 1,
+ 150	    version = version + 1,
+ 151	    updated_at = #{updatedAt},
+ 152	    updated_by = #{updatedBy}
+ 153	WHERE activity_id = #{activityId}
+ 154	  AND region_code = #{regionCode}
+ 155	  AND status = #{status}
+ 156	  AND version = #{version}
+ 157	  AND is_deleted = 0
+ 158	```
+ 159	
+ 160	## 7. 开发拆分
+ 161	
+ 162	### 7.1 DTO
+ 163	
+ 164	新增：
+ 165	
+ 166	- `DeleteActivityRequest`
+ 167	
+ 168	字段：
+ 169	
+ 170	- `requestId`
+ 171	- `idempotencyKey`
+ 172	- `activityId`
+ 173	- `regionCode`
+ 174	- `operator`
+ 175	
+ 176	### 7.2 Controller
+ 177	
+ 178	`ActivityController` 新增：
+ 179	
+ 180	```java
+ 181	@PostMapping("/delete")
+ 182	public RpcResult<Void> delete(@RequestBody DeleteActivityRequest req) {
+ 183	    return activityService.deleteActivity(req);
+ 184	}
+ 185	```
+ 186	
+ 187	### 7.3 Service
+ 188	
+ 189	`ActivityService` 新增 `deleteActivity` 方法。
+ 190	
+ 191	核心流程：
+ 192	
+ 193	1. 校验 `regionCode`。
+ 194	2. 校验 `idempotencyKey`。
+ 195	3. 幂等检查。
+ 196	4. 查询活动。
+ 197	5. 校验活动状态是否允许删除。
+ 198	6. 执行软删除。
+ 199	7. 写审计日志。
+ 200	8. 标记幂等完成。
+ 201	9. 返回成功。
+ 202	
+ 203	### 7.4 Mapper
+ 204	
+ 205	`ActivityMapper` 新增软删除方法：
+ 206	
+ 207	- `softDelete`
+ 208	
+ 209	## 8. 验收标准
+ 210	
+ 211	- `DRAFT` 活动调用删除接口后，数据库 `is_deleted = 1`。
+ 212	- `REJECTED` 活动调用删除接口后，数据库 `is_deleted = 1`。
+ 213	- `TERMINATED` 活动调用删除接口后，数据库 `is_deleted = 1`。
+ 214	- `ONLINE` 活动调用删除接口返回 `ILLEGAL_STATE`。
+ 215	- 删除后的活动通过现有 `selectByActivityId` 查询不到。
+ 216	- 删除成功后写入 `DELETE_ACTIVITY` 审计日志。
+ 217	- 重复提交相同删除请求返回幂等结果。
+ 218	- 项目测试通过。
+ 219	
+ 220	## 9. 工期评估
+ 221	
+ 222	预计 1 人日。
+ 223	
+ 224	拆分如下：
+ 225	
+ 226	- DTO、Controller、Mapper：0.2 人日
+ 227	- Service 业务逻辑和审计：0.4 人日
+ 228	- 测试用例：0.3 人日
+ 229	- 联调和问题修复：0.1 人日
+ 230	
+ 231	

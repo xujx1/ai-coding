@@ -1,0 +1,156 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/main/java/com/ump/marketing/application/service/IdempotencyService.java (lines 1-155 of 155) ---
+   1	package com.ump.marketing.application.service;
+   2	
+   3	import com.fasterxml.jackson.databind.JsonNode;
+   4	import com.fasterxml.jackson.databind.ObjectMapper;
+   5	import com.fasterxml.jackson.databind.node.ObjectNode;
+   6	import com.ump.marketing.api.enums.ErrorCode;
+   7	import com.ump.marketing.api.result.RpcResult;
+   8	import com.ump.marketing.domain.model.IdempotencyRecord;
+   9	import com.ump.marketing.infrastructure.mapper.IdempotencyRecordMapper;
+  10	import org.springframework.beans.factory.annotation.Autowired;
+  11	import org.springframework.stereotype.Service;
+  12	
+  13	import java.nio.charset.StandardCharsets;
+  14	import java.security.MessageDigest;
+  15	import java.security.NoSuchAlgorithmException;
+  16	
+  17	/**
+  18	 * Handles idempotency checks for all write operations to prevent duplicate processing.
+  19	 */
+  20	@Service
+  21	public class IdempotencyService {
+  22	
+  23	    private final IdempotencyRecordMapper idempotencyRecordMapper;
+  24	    private final ObjectMapper objectMapper;
+  25	
+  26	    public IdempotencyService(IdempotencyRecordMapper idempotencyRecordMapper,
+  27	                              @Autowired(required = false) ObjectMapper objectMapper) {
+  28	        this.idempotencyRecordMapper = idempotencyRecordMapper;
+  29	        this.objectMapper = objectMapper;
+  30	    }
+  31	
+  32	    /**
+  33	     * Check if request already processed. Returns the cached response if same key+hash exists.
+  34	     * Throws IDEMPOTENCY_CONFLICT if same key but different hash.
+  35	     * Returns null if this is a new request (caller should proceed with business logic).
+  36	     *
+  37	     * @param idempotencyKey the idempotency key from the request
+  38	     * @param regionCode     the region code for sharding
+  39	     * @param requestHash    hash of the request body for conflict detection
+  40	     * @param ttlDays        time-to-live in days for the record
+  41	     * @return cached RpcResult if duplicate, null if new request should proceed
+  42	     */
+  43	    @SuppressWarnings("unchecked")
+  44	    public <T> RpcResult<T> checkAndRecord(String idempotencyKey, String regionCode,
+  45	                                           String requestHash, int ttlDays) {
+  46	        return checkAndRecord(idempotencyKey, regionCode, requestHash, ttlDays, null);
+  47	    }
+  48	
+  49	    /**
+  50	     * Check if request already processed and, if so, replay the first result with the current request ID.
+  51	     */
+  52	    @SuppressWarnings("unchecked")
+  53	    public <T> RpcResult<T> checkAndRecord(String idempotencyKey, String regionCode,
+  54	                                           String requestHash, int ttlDays, String requestId) {
+  55	        if (idempotencyKey == null || idempotencyKey.isEmpty()) {
+  56	            return null;
+  57	        }
+  58	
+  59	        String normalizedRequestHash = sha256Hex(canonicalizeRequestHash(requestHash));
+  60	        IdempotencyRecord existing = idempotencyRecordMapper.selectByKey(idempotencyKey, regionCode);
+  61	        if (existing != null) {
+  62	            if (!normalizedRequestHash.equals(existing.getRequestHash())
+  63	                    && !requestHashEquals(requestHash, existing.getRequestHash())) {
+  64	                return RpcResult.fail(ErrorCode.IDEMPOTENCY_CONFLICT, "Idempotency key conflict", requestId);
+  65	            }
+  66	            if (IdempotencyRecord.STATUS_SUCCESS.equals(existing.getStatus())) {
+  67	                return replayResponse(existing.getResponseJson(), requestId);
+  68	            }
+  69	            return RpcResult.fail(ErrorCode.IDEMPOTENCY_CONFLICT, "Request is already being processed", requestId);
+  70	        }
+  71	
+  72	        IdempotencyRecord record = new IdempotencyRecord();
+  73	        record.setIdempotencyKey(idempotencyKey);
+  74	        record.setRequestHash(normalizedRequestHash);
+  75	        record.setStatus(IdempotencyRecord.STATUS_PROCESSING);
+  76	        record.setRegionCode(regionCode);
+  77	        record.setCreatedAt(System.currentTimeMillis());
+  78	        record.setExpiredAt(System.currentTimeMillis() + (long) ttlDays * 86400000L);
+  79	        idempotencyRecordMapper.insert(record);
+  80	
+  81	        return null;
+  82	    }
+  83	
+  84	    /**
+  85	     * Mark an idempotent record as completed after successful processing.
+  86	     *
+  87	     * @param idempotencyKey the idempotency key
+  88	     * @param regionCode     the region code
+  89	     * @param responseJson   serialized response JSON for replay
+  90	     */
+  91	    public void markCompleted(String idempotencyKey, String regionCode, String responseJson) {
+  92	        if (idempotencyKey == null || idempotencyKey.isEmpty()) {
+  93	            return;
+  94	        }
+  95	        idempotencyRecordMapper.updateStatus(idempotencyKey, regionCode,
+  96	                IdempotencyRecord.STATUS_SUCCESS, responseJson);
+  97	    }
+  98	
+  99	    private boolean requestHashEquals(String requestHash, String existingHash) {
+ 100	        return requestHash == null ? existingHash == null : requestHash.equals(existingHash);
+ 101	    }
+ 102	
+ 103	    private String sha256Hex(String value) {
+ 104	        try {
+ 105	            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+ 106	            byte[] bytes = digest.digest((value == null ? "" : value).getBytes(StandardCharsets.UTF_8));
+ 107	            StringBuilder hex = new StringBuilder(bytes.length * 2);
+ 108	            for (byte b : bytes) {
+ 109	                String part = Integer.toHexString(b & 0xff);
+ 110	                if (part.length() == 1) {
+ 111	                    hex.append('0');
+ 112	                }
+ 113	                hex.append(part);
+ 114	            }
+ 115	            return hex.toString();
+ 116	        } catch (NoSuchAlgorithmException e) {
+ 117	            throw new IllegalStateException("SHA-256 algorithm is not available", e);
+ 118	        }
+ 119	    }
+ 120	
+ 121	    private String canonicalizeRequestHash(String requestHash) {
+ 122	        if (requestHash == null || objectMapper == null) {
+ 123	            return requestHash;
+ 124	        }
+ 125	        try {
+ 126	            JsonNode root = objectMapper.readTree(requestHash);
+ 127	            if (root instanceof ObjectNode) {
+ 128	                ObjectNode objectNode = (ObjectNode) root;
+ 129	                objectNode.remove("requestId");
+ 130	                objectNode.remove("timestampMs");
+ 131	                return objectMapper.writeValueAsString(objectNode);
+ 132	            }
+ 133	        } catch (Exception ignored) {
+ 134	            // Non-JSON callers can still use the raw value as the idempotency fingerprint input.
+ 135	        }
+ 136	        return requestHash;
+ 137	    }
+ 138	
+ 139	    private <T> RpcResult<T> replayResponse(String responseJson, String requestId) {
+ 140	        if (responseJson == null || responseJson.isEmpty() || objectMapper == null) {
+ 141	            return RpcResult.success(null, requestId);
+ 142	        }
+ 143	        try {
+ 144	            JsonNode root = objectMapper.readTree(responseJson);
+ 145	            int code = root.path("code").asInt(ErrorCode.SUCCESS.getCode());
+ 146	            String message = root.path("message").asText(ErrorCode.SUCCESS.getMessage());
+ 147	            JsonNode dataNode = root.get("data");
+ 148	            Object data = dataNode == null || dataNode.isNull() ? null : objectMapper.treeToValue(dataNode, Object.class);
+ 149	            return new RpcResult<>(code, message, requestId, (T) data);
+ 150	        } catch (Exception ignored) {
+ 151	            return RpcResult.success(null, requestId);
+ 152	        }
+ 153	    }
+ 154	}
+ 155	

@@ -1,0 +1,23 @@
+{
+  "categories": [
+    {
+      "category": "success",
+      "patterns": ["BUILD SUCCESS"],
+      "reason": "Maven 输出包含 BUILD SUCCESS。"
+    },
+    {
+      "category": "compile_failure",
+      "patterns": ["Compilation failure", "cannot find symbol", "Failed to execute goal .*compile"],
+      "reason": "Maven 输出包含编译失败信号。"
+    },
+    {
+      "category": "test_failure",
+      "patterns": ["There are test failures", "Failures:\\\\s*[1-9]", "Errors:\\\\s*[1-9]"],
+      "reason": "Maven/Surefire 输出包含测试失败信号。"
+    }
+  ],
+  "default": {
+    "category": "runner_asset_failure",
+    "reason": "未能从 Maven 输出中识别成功、编译失败或测试失败。"
+  }
+}

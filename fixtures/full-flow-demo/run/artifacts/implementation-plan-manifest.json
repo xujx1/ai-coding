@@ -1,0 +1,12 @@
+{
+  "nodeId": "implementation-plan",
+  "prd": "artifacts/prd.md",
+  "projects": [
+    {
+      "project": "project",
+      "artifact": "artifacts/project/tech-design.md",
+      "summary": "project 技术方案 1. 项目根目录 项目根目录：/private/tmp/aicodingrealmarketingconfirmflow4301/runs/XOjoDRmUAx/workspace/project 构建工具：Maven，单模块 Spring Boot 2.7 + MyBatis 工程。 代码分层已成型：api 放 DTO / 枚举 / 统一返回，application 放应用服务与幂等审计，infrastructure 放 Mapper，web 放 Controller。 本期仅处理 project 后端服务，不涉及前端页面、其他仓库或独立中台组件。 2. 影响范围 web/controller：活动管理控...",
+      "riskLevel": "medium"
+    }
+  ]
+}

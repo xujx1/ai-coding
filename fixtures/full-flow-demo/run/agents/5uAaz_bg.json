@@ -1,0 +1,33 @@
+{
+  "agentRunId": "5uAaz_bg",
+  "runId": "XOjoDRmUAx",
+  "nodeId": "testcode-generate",
+  "projectName": "project",
+  "projectRoot": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project",
+  "taskDescription": "写 project 项目文件夹的测试代码",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 12,
+  "tokenUsage": {
+    "input": 399098,
+    "output": 9230
+  },
+  "compactCount": 0,
+  "toolCallCount": 30,
+  "inputArtifacts": [
+    "artifacts/project/openspec-test-task.md",
+    "artifacts/project/code-review.md"
+  ],
+  "outputArtifacts": [
+    "artifacts/project/test-file-list.md",
+    "artifacts/project/testcode-generation-report.md",
+    "artifacts/project/test-code-preview-manifest.json"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1781940598050,
+  "updatedAt": 1781940802174,
+  "completedAt": 1781940802174
+}

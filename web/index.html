@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Coding Pipeline - MRD 到代码工作台</title>
+  <link rel="stylesheet" href="/app.css?v=20260620-retry-trace-1">
+</head>
+<body>
+  <div id="app">
+    <!-- Pipeline bar rendered by JS -->
+    <div class="pipeline-bar" id="pipeline-bar">
+      <div class="logo">
+        <span>AI Coding Pipeline</span>
+        <span class="pipeline-status-badge idle" id="pipeline-status-badge">空闲</span>
+      </div>
+      <div id="pipeline-nodes"></div>
+      <div class="spacer"></div>
+      <div class="subagent-indicator" id="subagent-indicator" style="display:none">
+        <div class="agent-dot"></div>
+        <span id="subagent-name">Agent 执行中...</span>
+      </div>
+      <button class="pipeline-interrupt-btn" id="pipeline-interrupt-btn" onclick="interruptCurrentTask()" style="display:none">中断流程</button>
+      <div class="model-badge" id="model-badge" onclick="showModelSelector()">
+        <span class="model-status-dot unknown" id="model-status-dot"></span>
+        <span>⚙</span>
+        <span id="current-model">设置</span>
+      </div>
+    </div>
+
+    <!-- Main 3-panel layout -->
+    <div class="main-layout" id="main-layout">
+      <!-- Left panel -->
+      <div class="panel-left">
+        <div class="panel-section">
+          <div class="panel-title-row">
+            <h3>会话列表</h3>
+            <button class="sidebar-new-task" onclick="openNewTaskPage()" title="新建运行">+</button>
+          </div>
+          <div class="session-list" id="session-list"></div>
+        </div>
+      </div>
+
+      <!-- Center panel -->
+      <div class="panel-center">
+        <div class="center-task-panel" id="center-task-panel" style="display:none">
+          <div class="active-task-summary">
+            <span class="active-task-dot"></span>
+            <span id="active-task-label">任务执行中</span>
+          </div>
+          <button class="interrupt-task-btn" id="interrupt-task-btn" onclick="interruptCurrentTask()" style="display:none">中断</button>
+        </div>
+        <div class="execution-trace" id="execution-trace">
+          <div class="welcome-screen" id="welcome-screen">
+            <h2>⚡ MRD 到代码流水线</h2>
+            <p>上传 MRD、项目与参考资料，配置任务后启动流水线。系统会编排需求渲染、实施方案、Java 实现、测试运行与归档。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right panel -->
+      <div class="panel-right">
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="artifacts" onclick="switchTab('artifacts')">📁 产物</button>
+          <button class="tab-btn" data-tab="preview" onclick="switchTab('preview')">📄 预览</button>
+          <button class="tab-btn" data-tab="agents" onclick="switchTab('agents')">🤖 Agent</button>
+        </div>
+        <div class="tab-panel active" id="tab-artifacts">
+          <div class="artifact-actions" id="artifact-actions" style="display:none">
+            <button class="btn btn-primary" onclick="downloadProjectFolder()">下载项目文件夹</button>
+          </div>
+          <div class="file-tree" id="artifact-tree"><div style="color:var(--text-muted);font-size:11px;padding:8px">暂无产物</div></div>
+        </div>
+        <div class="tab-panel" id="tab-preview">
+          <div class="file-preview" id="file-preview"><div style="padding:20px;color:var(--text-muted);text-align:center">选择文件查看预览</div></div>
+        </div>
+        <div class="tab-panel" id="tab-agents">
+          <div id="agents-list"><div style="color:var(--text-muted);font-size:11px;padding:8px">暂无 Agent</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation overlay (bottom) -->
+    <div class="confirmation-overlay" id="confirmation-overlay" style="display:none">
+      <div class="confirmation-dialog">
+        <div class="confirmation-header">
+          <h4>⚠️ <span id="confirm-title">需要确认</span></h4>
+          <button class="confirmation-close" onclick="document.getElementById('confirmation-overlay').style.display='none'" title="暂时收起">×</button>
+        </div>
+        <div class="confirmation-content" id="confirm-content"></div>
+        <div class="confirmation-feedback">
+          <label for="confirm-feedback">补充说明</label>
+          <textarea class="feedback-input" id="confirm-feedback" placeholder="可选：填写修改意见..."></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" onclick="resolveConfirmation(false)">驳回并修改</button>
+          <button class="btn btn-success" onclick="resolveConfirmation(true)">确认继续</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permission dialog -->
+    <div id="permission-dialog-container"></div>
+  </div>
+
+  <!-- New Task Page -->
+  <div class="new-task-page" id="new-task-page" style="display:none">
+    <div class="new-task-shell">
+      <div class="new-task-header">
+        <div>
+          <h2>新建运行任务</h2>
+          <p>上传需求文件和项目文件夹后启动 MRD 到代码流水线。</p>
+        </div>
+        <button class="new-task-close" onclick="closeNewTaskPage()">×</button>
+      </div>
+      <div class="task-upload-grid">
+        <div>
+          <div class="mini-label">需求文件上传</div>
+          <div class="file-upload-area compact" id="input-upload-area" onclick="document.getElementById('task-file-input').click()">
+            <div>📄 点击或拖拽上传 MRD / 背景 / 参考资料</div>
+            <div style="font-size:10px;margin-top:4px">支持多需求文件上传</div>
+            <input type="file" id="task-file-input" multiple style="display:none" onchange="handleFileSelect(event, 'input')">
+          </div>
+          <div class="upload-actions single">
+            <button class="btn" onclick="openUploadPicker(event, 'task-file-input')">📄 上传需求文件</button>
+          </div>
+        </div>
+        <div>
+          <div class="mini-label">上传项目文件夹</div>
+          <div class="file-upload-area compact" id="project-upload-area" onclick="document.getElementById('project-folder-input').click()">
+            <div>🗂 点击或拖拽上传项目文件夹</div>
+            <div style="font-size:10px;margin-top:4px">支持多个项目文件夹，落盘到 workspace/project</div>
+          </div>
+          <div class="upload-actions single">
+            <button class="btn" onclick="openUploadPicker(event, 'project-folder-input')">🗂 上传项目文件夹</button>
+            <input type="file" id="project-folder-input" multiple webkitdirectory directory style="display:none" onchange="handleFolderSelect(event, 'project')">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>自定义 Prompt</label>
+        <textarea id="task-custom-prompt" placeholder="可选：补充本次运行的额外要求、偏好、约束或特别关注点..." style="min-height:92px"></textarea>
+      </div>
+      <div class="uploaded-files" id="uploaded-files"></div>
+      <div class="new-task-footer">
+        <button class="btn" onclick="closeNewTaskPage()">取消</button>
+        <button class="btn btn-primary" onclick="startPipeline()" id="start-btn">▶ 启动流水线</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Run Modal -->
+  <div class="modal-overlay" id="new-run-modal" style="display:none">
+    <div class="modal">
+      <h2>新建流水线运行</h2>
+      <div class="form-group">
+        <label>运行名称</label>
+        <input type="text" id="new-run-name" placeholder="例如：订单导出功能实现">
+      </div>
+      <div class="form-group">
+        <label>自定义 Prompt</label>
+        <textarea id="new-run-desc" placeholder="可选：补充本次运行的额外要求、偏好、约束或特别关注点..." style="min-height:120px"></textarea>
+      </div>
+      <div class="form-group">
+        <label>上传需求文件</label>
+        <input type="file" id="new-run-files" multiple>
+      </div>
+      <div class="form-group">
+        <label>上传项目文件夹</label>
+        <input type="file" id="new-run-project-folders" multiple webkitdirectory directory>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeNewRunModal()">取消</button>
+        <button class="btn btn-primary" onclick="createNewRun()">创建运行</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="model-modal" style="display:none">
+    <div class="modal">
+      <h2>设置</h2>
+      <div class="settings-panel">
+        <h3 class="modal-subtitle">本地执行环境</h3>
+        <div class="form-group">
+          <label>JDK 路径</label>
+          <input type="text" id="settings-java-home" placeholder="/Users/xu/Library/Java/JavaVirtualMachines/temurin-8/Contents/Home">
+        </div>
+        <div class="form-group">
+          <label>Maven 路径</label>
+          <input type="text" id="settings-maven-path" placeholder="/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn">
+          <div class="hint">可填写 Maven 安装目录，也可直接填写 mvn 可执行文件路径。</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveRuntimeSettings()">保存执行环境</button>
+          <span id="runtime-settings-status" class="inline-status"></span>
+        </div>
+      </div>
+      <h3 class="modal-subtitle">模型服务</h3>
+      <div class="model-register-panel">
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="custom-api-key" placeholder="只需填这里，服务端会用于拉取模型和调用模型">
+        </div>
+        <div class="form-group">
+          <label>API 请求地址</label>
+          <div class="inline-toggle">
+            <label><input type="checkbox" id="custom-full-url"> 完整 models URL</label>
+          </div>
+          <input type="text" id="custom-base-url" placeholder="https://your-api-endpoint.com/v1">
+          <div class="hint">填写兼容 OpenAI Response/Chat Completions 格式的服务端点地址。</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="testCustomModelApi()">测试 API</button>
+          <button class="btn btn-primary" onclick="registerCustomModelProvider()">注册并拉取模型</button>
+          <span id="custom-model-status" class="inline-status"></span>
+        </div>
+      </div>
+      <h3 class="modal-subtitle">可用模型</h3>
+      <div id="model-list"></div>
+      <div class="modal-footer">
+        <button class="btn" onclick="document.getElementById('model-modal').style.display='none'">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js?v=20260620-retry-trace-1"></script>
+</body>
+</html>

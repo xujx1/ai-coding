@@ -1,0 +1,42 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files.json (lines 1-41 of 41) ---
+   1	{
+   2	  "project": "project",
+   3	  "generatedAt": "2026-06-20T07:28:19.343Z",
+   4	  "changedFiles": [
+   5	    {
+   6	      "path": "src/main/java/com/ump/marketing/api/dto/BaseRequest.java",
+   7	      "status": "modified",
+   8	      "size": 709,
+   9	      "previewArtifact": "artifacts/project/changed-files/BaseRequest.java",
+  10	      "absolutePreviewArtifact": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/BaseRequest.java"
+  11	    },
+  12	    {
+  13	      "path": "src/main/java/com/ump/marketing/api/dto/DeleteActivityRequest.java",
+  14	      "status": "modified",
+  15	      "size": 493,
+  16	      "previewArtifact": "artifacts/project/changed-files/DeleteActivityRequest.java",
+  17	      "absolutePreviewArtifact": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/DeleteActivityRequest.java"
+  18	    },
+  19	    {
+  20	      "path": "src/main/java/com/ump/marketing/application/service/ActivityService.java",
+  21	      "status": "modified",
+  22	      "size": 36175,
+  23	      "previewArtifact": "artifacts/project/changed-files/ActivityService.java",
+  24	      "absolutePreviewArtifact": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/ActivityService.java"
+  25	    },
+  26	    {
+  27	      "path": "src/main/java/com/ump/marketing/web/controller/ActivityController.java",
+  28	      "status": "modified",
+  29	      "size": 2855,
+  30	      "previewArtifact": "artifacts/project/changed-files/ActivityController.java",
+  31	      "absolutePreviewArtifact": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/ActivityController.java"
+  32	    },
+  33	    {
+  34	      "path": "src/main/java/com/ump/marketing/web/controller/GlobalExceptionHandler.java",
+  35	      "status": "added",
+  36	      "size": 2322,
+  37	      "previewArtifact": "artifacts/project/changed-files/GlobalExceptionHandler.java",
+  38	      "absolutePreviewArtifact": "/private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/GlobalExceptionHandler.java"
+  39	    }
+  40	  ]
+  41	}

@@ -1,0 +1,54 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/GlobalExceptionHandler.java (lines 1-53 of 53) ---
+   1	package com.ump.marketing.web.controller;
+   2	
+   3	import com.ump.marketing.api.enums.ErrorCode;
+   4	import com.ump.marketing.api.result.RpcResult;
+   5	import org.springframework.http.converter.HttpMessageNotReadableException;
+   6	import org.springframework.validation.FieldError;
+   7	import org.springframework.web.bind.MethodArgumentNotValidException;
+   8	import org.springframework.web.bind.annotation.ExceptionHandler;
+   9	import org.springframework.web.bind.annotation.RestControllerAdvice;
+  10	
+  11	import javax.servlet.http.HttpServletRequest;
+  12	
+  13	/**
+  14	 * Maps request validation errors to the unified RPC response contract.
+  15	 */
+  16	@RestControllerAdvice
+  17	public class GlobalExceptionHandler {
+  18	
+  19	    /**
+  20	     * Handles bean validation failures raised by {@code @Valid}.
+  21	     */
+  22	    @ExceptionHandler(MethodArgumentNotValidException.class)
+  23	    public RpcResult<Void> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+  24	                                                        HttpServletRequest request) {
+  25	        FieldError fieldError = ex.getBindingResult().getFieldError();
+  26	        String message = fieldError != null ? fieldError.getDefaultMessage() : ErrorCode.INVALID_ARGUMENT.getMessage();
+  27	        return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, message, extractRequestId(request));
+  28	    }
+  29	
+  30	    /**
+  31	     * Handles malformed or missing request bodies.
+  32	     */
+  33	    @ExceptionHandler(HttpMessageNotReadableException.class)
+  34	    public RpcResult<Void> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+  35	                                                        HttpServletRequest request) {
+  36	        return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "request body is required", extractRequestId(request));
+  37	    }
+  38	
+  39	    /**
+  40	     * Handles domain validation exceptions converted from utility validators.
+  41	     */
+  42	    @ExceptionHandler(IllegalArgumentException.class)
+  43	    public RpcResult<Void> handleIllegalArgumentException(IllegalArgumentException ex,
+  44	                                                          HttpServletRequest request) {
+  45	        return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, ex.getMessage(), extractRequestId(request));
+  46	    }
+  47	
+  48	    private String extractRequestId(HttpServletRequest request) {
+  49	        Object value = request.getAttribute("requestId");
+  50	        return value == null ? null : String.valueOf(value);
+  51	    }
+  52	}
+  53	

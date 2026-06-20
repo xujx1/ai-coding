@@ -1,0 +1,204 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/test/java/com/ump/marketing/web/controller/ActivityControllerTest.java (lines 1-203 of 203) ---
+   1	package com.ump.marketing.web.controller;
+   2	
+   3	import com.fasterxml.jackson.databind.ObjectMapper;
+   4	import com.ump.marketing.api.dto.DeleteActivityRequest;
+   5	import com.ump.marketing.api.enums.ErrorCode;
+   6	import com.ump.marketing.api.result.RpcResult;
+   7	import com.ump.marketing.application.service.ActivityService;
+   8	import org.junit.jupiter.api.BeforeEach;
+   9	import org.junit.jupiter.api.DisplayName;
+  10	import org.junit.jupiter.api.Test;
+  11	import org.junit.jupiter.api.extension.ExtendWith;
+  12	import org.mockito.Mock;
+  13	import org.mockito.junit.jupiter.MockitoExtension;
+  14	import org.springframework.http.MediaType;
+  15	import org.springframework.test.web.servlet.MockMvc;
+  16	import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+  17	
+  18	import static org.mockito.ArgumentMatchers.any;
+  19	import static org.mockito.Mockito.never;
+  20	import static org.mockito.Mockito.verify;
+  21	import static org.mockito.Mockito.when;
+  22	import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+  23	import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+  24	import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+  25	
+  26	@ExtendWith(MockitoExtension.class)
+  27	class ActivityControllerTest {
+  28	
+  29	    private final ObjectMapper objectMapper = new ObjectMapper();
+  30	
+  31	    @Mock
+  32	    private ActivityService activityService;
+  33	
+  34	    private MockMvc mockMvc;
+  35	
+  36	    @BeforeEach
+  37	    void setUp() {
+  38	        mockMvc = MockMvcBuilders.standaloneSetup(new ActivityController(activityService)).build();
+  39	    }
+  40	
+  41	    @Test
+  42	    @DisplayName("POST /api/activity/delete returns success payload from service")
+  43	    void deleteSuccess() throws Exception {
+  44	        when(activityService.deleteActivity(any(DeleteActivityRequest.class)))
+  45	                .thenReturn(RpcResult.success(null, "req-success"));
+  46	
+  47	        mockMvc.perform(post("/api/activity/delete")
+  48	                        .contentType(MediaType.APPLICATION_JSON)
+  49	                        .content(validRequestJson()))
+  50	                .andExpect(status().isOk())
+  51	                .andExpect(jsonPath("$.code").value(ErrorCode.SUCCESS.getCode()))
+  52	                .andExpect(jsonPath("$.message").value(ErrorCode.SUCCESS.getMessage()))
+  53	                .andExpect(jsonPath("$.success").value(true))
+  54	                .andExpect(jsonPath("$.requestId").value("req-success"));
+  55	
+  56	        verify(activityService).deleteActivity(any(DeleteActivityRequest.class));
+  57	    }
+  58	
+  59	    @Test
+  60	    @DisplayName("POST /api/activity/delete forwards invalid argument response for missing activityId")
+  61	    void deleteMissingActivityId() throws Exception {
+  62	        when(activityService.deleteActivity(any(DeleteActivityRequest.class)))
+  63	                .thenReturn(RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "activityId is required", "req-missing-activity"));
+  64	
+  65	        mockMvc.perform(post("/api/activity/delete")
+  66	                        .contentType(MediaType.APPLICATION_JSON)
+  67	                        .content("{\"requestId\":\"req-missing-activity\",\"regionCode\":\"CN\",\"idempotencyKey\":\"idem-1\",\"operator\":\"tester\"}"))
+  68	                .andExpect(status().isOk())
+  69	                .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_ARGUMENT.getCode()))
+  70	                .andExpect(jsonPath("$.message").value("activityId is required"))
+  71	                .andExpect(jsonPath("$.success").value(false))
+  72	                .andExpect(jsonPath("$.requestId").value("req-missing-activity"));
+  73	
+  74	        verify(activityService).deleteActivity(any(DeleteActivityRequest.class));
+  75	    }
+  76	
+  77	    @Test
+  78	    @DisplayName("POST /api/activity/delete forwards invalid argument response for missing regionCode")
+  79	    void deleteMissingRegionCode() throws Exception {
+  80	        when(activityService.deleteActivity(any(DeleteActivityRequest.class)))
+  81	                .thenReturn(RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "regionCode is required", "req-missing-region"));
+  82	
+  83	        mockMvc.perform(post("/api/activity/delete")
+  84	                        .contentType(MediaType.APPLICATION_JSON)
+  85	                        .content("{\"requestId\":\"req-missing-region\",\"activityId\":\"act-1\",\"idempotencyKey\":\"idem-1\",\"operator\":\"tester\"}"))
+  86	                .andExpect(status().isOk())
+  87	                .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_ARGUMENT.getCode()))
+  88	                .andExpect(jsonPath("$.message").value("regionCode is required"))
+  89	                .andExpect(jsonPath("$.success").value(false))
+  90	                .andExpect(jsonPath("$.requestId").value("req-missing-region"));
+  91	
+  92	        verify(activityService).deleteActivity(any(DeleteActivityRequest.class));
+  93	    }
+  94	
+  95	    @Test
+  96	    @DisplayName("POST /api/activity/delete forwards invalid argument response for missing idempotencyKey")
+  97	    void deleteMissingIdempotencyKey() throws Exception {
+  98	        when(activityService.deleteActivity(any(DeleteActivityRequest.class)))
+  99	                .thenReturn(RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "idempotencyKey is required", "req-missing-idem"));
+ 100	
+ 101	        mockMvc.perform(post("/api/activity/delete")
+ 102	                        .contentType(MediaType.APPLICATION_JSON)
+ 103	                        .content("{\"requestId\":\"req-missing-idem\",\"activityId\":\"act-1\",\"regionCode\":\"CN\",\"operator\":\"tester\"}"))
+ 104	                .andExpect(status().isOk())
+ 105	                .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_ARGUMENT.getCode()))
+ 106	                .andExpect(jsonPath("$.message").value("idempotencyKey is required"))
+ 107	                .andExpect(jsonPath("$.success").value(false))
+ 108	                .andExpect(jsonPath("$.requestId").value("req-missing-idem"));
+ 109	
+ 110	        verify(activityService).deleteActivity(any(DeleteActivityRequest.class));
+ 111	    }
+ 112	
+ 113	    @Test
+ 114	    @DisplayName("POST /api/activity/delete forwards invalid argument response for missing operator")
+ 115	    void deleteMissingOperator() throws Exception {
+ 116	        when(activityService.deleteActivity(any(DeleteActivityRequest.class)))
+ 117	                .thenReturn(RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "operator is required", "req-missing-operator"));
+ 118	
+ 119	        mockMvc.perform(post("/api/activity/delete")
+ 120	                        .contentType(MediaType.APPLICATION_JSON)
+ 121	                        .content("{\"requestId\":\"req-missing-operator\",\"activityId\":\"act-1\",\"regionCode\":\"CN\",\"idempotencyKey\":\"idem-1\"}"))
+ 122	                .andExpect(status().isOk())
+ 123	                .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_ARGUMENT.getCode()))
+ 124	                .andExpect(jsonPath("$.message").value("operator is required"))
+ 125	                .andExpect(jsonPath("$.success").value(false))
+ 126	                .andExpect(jsonPath("$.requestId").value("req-missing-operator"));
+ 127	
+ 128	        verify(activityService).deleteActivity(any(DeleteActivityRequest.class));
+ 129	    }
+ 130	
+ 131	    @Test
+ 132	    @DisplayName("POST /api/activity/delete forwards illegal state response")
+ 133	    void deleteIllegalState() throws Exception {
+ 134	        when(activityService.deleteActivity(any(DeleteActivityRequest.class)))
+ 135	                .thenReturn(RpcResult.fail(ErrorCode.ILLEGAL_STATE,
+ 136	                        "Only DRAFT, REJECTED or TERMINATED activities can be deleted, current status: ONLINE",
+ 137	                        "req-illegal"));
+ 138	
+ 139	        mockMvc.perform(post("/api/activity/delete")
+ 140	                        .contentType(MediaType.APPLICATION_JSON)
+ 141	                        .content(validRequestJson()))
+ 142	                .andExpect(status().isOk())
+ 143	                .andExpect(jsonPath("$.code").value(ErrorCode.ILLEGAL_STATE.getCode()))
+ 144	                .andExpect(jsonPath("$.message").value("Only DRAFT, REJECTED or TERMINATED activities can be deleted, current status: ONLINE"))
+ 145	                .andExpect(jsonPath("$.success").value(false))
+ 146	                .andExpect(jsonPath("$.requestId").value("req-illegal"));
+ 147	    }
+ 148	
+ 149	    @Test
+ 150	    @DisplayName("POST /api/activity/delete forwards resource not found response")
+ 151	    void deleteNotFound() throws Exception {
+ 152	        when(activityService.deleteActivity(any(DeleteActivityRequest.class)))
+ 153	                .thenReturn(RpcResult.fail(ErrorCode.RESOURCE_NOT_FOUND, "Activity not found", "req-not-found"));
+ 154	
+ 155	        mockMvc.perform(post("/api/activity/delete")
+ 156	                        .contentType(MediaType.APPLICATION_JSON)
+ 157	                        .content(validRequestJson()))
+ 158	                .andExpect(status().isOk())
+ 159	                .andExpect(jsonPath("$.code").value(ErrorCode.RESOURCE_NOT_FOUND.getCode()))
+ 160	                .andExpect(jsonPath("$.message").value("Activity not found"))
+ 161	                .andExpect(jsonPath("$.success").value(false))
+ 162	                .andExpect(jsonPath("$.requestId").value("req-not-found"));
+ 163	    }
+ 164	
+ 165	    @Test
+ 166	    @DisplayName("POST /api/activity/delete forwards idempotency conflict response")
+ 167	    void deleteIdempotencyConflict() throws Exception {
+ 168	        when(activityService.deleteActivity(any(DeleteActivityRequest.class)))
+ 169	                .thenReturn(RpcResult.fail(ErrorCode.IDEMPOTENCY_CONFLICT, "Idempotency key conflict", "req-conflict"));
+ 170	
+ 171	        mockMvc.perform(post("/api/activity/delete")
+ 172	                        .contentType(MediaType.APPLICATION_JSON)
+ 173	                        .content(validRequestJson()))
+ 174	                .andExpect(status().isOk())
+ 175	                .andExpect(jsonPath("$.code").value(ErrorCode.IDEMPOTENCY_CONFLICT.getCode()))
+ 176	                .andExpect(jsonPath("$.message").value("Idempotency key conflict"))
+ 177	                .andExpect(jsonPath("$.success").value(false))
+ 178	                .andExpect(jsonPath("$.requestId").value("req-conflict"));
+ 179	    }
+ 180	
+ 181	    @Test
+ 182	    @DisplayName("POST /api/activity/delete returns bad request when body is missing")
+ 183	    void deleteMissingBody() throws Exception {
+ 184	        mockMvc.perform(post("/api/activity/delete")
+ 185	                        .contentType(MediaType.APPLICATION_JSON))
+ 186	                .andExpect(status().isBadRequest());
+ 187	
+ 188	        verify(activityService, never()).deleteActivity(any(DeleteActivityRequest.class));
+ 189	    }
+ 190	
+ 191	    private String validRequestJson() throws Exception {
+ 192	        DeleteActivityRequest request = new DeleteActivityRequest();
+ 193	        request.setRequestId("req-1");
+ 194	        request.setActivityId("act-1");
+ 195	        request.setRegionCode("CN");
+ 196	        request.setIdempotencyKey("idem-1");
+ 197	        request.setOperator("tester");
+ 198	        request.setCaller("caller");
+ 199	        request.setTimestampMs(1000L);
+ 200	        return objectMapper.writeValueAsString(request);
+ 201	    }
+ 202	}
+ 203	

@@ -1,0 +1,20 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/main/java/com/ump/marketing/api/dto/DeleteActivityRequest.java (lines 1-19 of 19) ---
+   1	package com.ump.marketing.api.dto;
+   2	
+   3	import lombok.Data;
+   4	import lombok.EqualsAndHashCode;
+   5	
+   6	/**
+   7	 * Request payload for soft deleting an activity.
+   8	 */
+   9	@Data
+  10	@EqualsAndHashCode(callSuper = true)
+  11	public class DeleteActivityRequest extends BaseRequest {
+  12	    private static final long serialVersionUID = 1L;
+  13	
+  14	    /**
+  15	     * Activity identifier scoped by region.
+  16	     */
+  17	    private String activityId;
+  18	}
+  19	

@@ -1,0 +1,13 @@
+{
+  "nodeId": "archive",
+  "outputArtifacts": [
+    {
+      "path": "artifacts/project/archive-report.md",
+      "summary": "project Archive Report Requirement Summary Goal: add backendonly activity deletion support without new frontend UI. Behavior: implement soft delete by activityId + regionCode, keep historical data, and make deleted activities invisible to existing query paths. Rules: only DRAFT, REJECTED, and TERMINATED are deletable; PENDINGAPPROVAL, APPROVED, ONLINE, and PAUSED must be rejected with ILLEGALSTATE including the current status. Idempotency: idempotencyKey must replay the first result for identica...",
+      "size": 11946
+    }
+  ],
+  "importantDecisions": [],
+  "riskNotes": [],
+  "nextNodeInputs": []
+}

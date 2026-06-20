@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ump.marketing.infrastructure.mapper.OrderOccupyMapper">
+
+    <resultMap id="OrderOccupyResultMap" type="com.ump.marketing.domain.model.OrderOccupy">
+        <id column="id" property="id"/>
+        <result column="order_id" property="orderId"/>
+        <result column="user_id" property="userId"/>
+        <result column="activity_id" property="activityId"/>
+        <result column="region_code" property="regionCode"/>
+        <result column="status" property="status"/>
+        <result column="quantity" property="quantity"/>
+        <result column="released_at" property="releasedAt"/>
+        <result column="confirmed_at" property="confirmedAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ump.marketing.domain.model.OrderOccupy">
+        INSERT INTO t_order_occur_${tableSuffix}
+        (id, order_id, user_id, activity_id, region_code, status, quantity, created_at, updated_at)
+        VALUES
+        (#{record.id}, #{record.orderId}, #{record.userId}, #{record.activityId}, #{record.regionCode}, #{record.status}, #{record.quantity}, #{record.createdAt}, #{record.updatedAt})
+    </insert>
+
+    <select id="selectByUkOrder" resultMap="OrderOccupyResultMap">
+        SELECT * FROM t_order_occur_${tableSuffix}
+        WHERE region_code = #{regionCode}
+          AND order_id = #{orderId}
+          AND user_id = #{userId}
+          AND activity_id = #{activityId}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE t_order_occur_${tableSuffix}
+        SET status = #{newStatus},
+            quantity = #{quantity},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND region_code = #{regionCode}
+          AND status = #{oldStatus}
+    </update>
+
+</mapper>

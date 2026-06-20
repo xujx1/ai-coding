@@ -1,0 +1,51 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/main/java/com/ump/marketing/api/result/RpcResult.java (lines 1-50 of 50) ---
+   1	package com.ump.marketing.api.result;
+   2	
+   3	import com.fasterxml.jackson.annotation.JsonProperty;
+   4	import com.ump.marketing.api.enums.ErrorCode;
+   5	import lombok.AllArgsConstructor;
+   6	import lombok.Data;
+   7	import lombok.NoArgsConstructor;
+   8	
+   9	import java.io.Serializable;
+  10	
+  11	/**
+  12	 * Unified RPC response wrapper.
+  13	 */
+  14	@Data
+  15	@NoArgsConstructor
+  16	@AllArgsConstructor
+  17	public class RpcResult<T> implements Serializable {
+  18	    private static final long serialVersionUID = 1L;
+  19	
+  20	    private int code;
+  21	    private String message;
+  22	    private String requestId;
+  23	    private T data;
+  24	
+  25	    public static <T> RpcResult<T> success(T data, String requestId) {
+  26	        return new RpcResult<>(ErrorCode.SUCCESS.getCode(), ErrorCode.SUCCESS.getMessage(), requestId, data);
+  27	    }
+  28	
+  29	    public static <T> RpcResult<T> success(T data) {
+  30	        return success(data, null);
+  31	    }
+  32	
+  33	    public static <T> RpcResult<T> fail(ErrorCode errorCode, String requestId) {
+  34	        return new RpcResult<>(errorCode.getCode(), errorCode.getMessage(), requestId, null);
+  35	    }
+  36	
+  37	    public static <T> RpcResult<T> fail(ErrorCode errorCode, String message, String requestId) {
+  38	        return new RpcResult<>(errorCode.getCode(), message, requestId, null);
+  39	    }
+  40	
+  41	    public static <T> RpcResult<T> fail(int code, String message, String requestId) {
+  42	        return new RpcResult<>(code, message, requestId, null);
+  43	    }
+  44	
+  45	    @JsonProperty("success")
+  46	    public boolean isSuccess() {
+  47	        return code == ErrorCode.SUCCESS.getCode();
+  48	    }
+  49	}
+  50	

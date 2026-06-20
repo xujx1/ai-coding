@@ -1,0 +1,15 @@
+node_modules/
+dist/
+runtime-projects/
+.ai-coding/
+
+.DS_Store
+.idea/
+*.iml
+
+.env
+.env.*
+!.env.example
+
+npm-debug.log*
+tsconfig.tsbuildinfo

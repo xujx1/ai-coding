@@ -1,0 +1,81 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/changed-files/ActivityController.java (lines 1-80 of 80) ---
+   1	package com.ump.marketing.web.controller;
+   2	
+   3	import com.ump.marketing.api.dto.ActivityDTO;
+   4	import com.ump.marketing.api.dto.ApproveActivityRequest;
+   5	import com.ump.marketing.api.dto.CreateActivityRequest;
+   6	import com.ump.marketing.api.dto.DeleteActivityRequest;
+   7	import com.ump.marketing.api.dto.ForceOfflineRequest;
+   8	import com.ump.marketing.api.dto.OnlineActivityRequest;
+   9	import com.ump.marketing.api.dto.PauseActivityRequest;
+  10	import com.ump.marketing.api.dto.RejectActivityRequest;
+  11	import com.ump.marketing.api.dto.SubmitApprovalRequest;
+  12	import com.ump.marketing.api.dto.UpdateActivityRequest;
+  13	import com.ump.marketing.api.result.RpcResult;
+  14	import com.ump.marketing.application.service.ActivityService;
+  15	import org.springframework.web.bind.annotation.PostMapping;
+  16	import org.springframework.web.bind.annotation.RequestBody;
+  17	import org.springframework.web.bind.annotation.RequestMapping;
+  18	import org.springframework.web.bind.annotation.RestController;
+  19	
+  20	import javax.validation.Valid;
+  21	
+  22	/**
+  23	 * REST endpoints for activity lifecycle operations.
+  24	 */
+  25	@RestController
+  26	@RequestMapping("/api/activity")
+  27	public class ActivityController {
+  28	
+  29	    private final ActivityService activityService;
+  30	
+  31	    public ActivityController(ActivityService activityService) {
+  32	        this.activityService = activityService;
+  33	    }
+  34	
+  35	    @PostMapping("/create")
+  36	    public RpcResult<ActivityDTO> create(@RequestBody CreateActivityRequest req) {
+  37	        return activityService.createActivity(req);
+  38	    }
+  39	
+  40	    @PostMapping("/update")
+  41	    public RpcResult<ActivityDTO> update(@RequestBody UpdateActivityRequest req) {
+  42	        return activityService.updateActivity(req);
+  43	    }
+  44	
+  45	    @PostMapping("/submitApproval")
+  46	    public RpcResult<ActivityDTO> submitApproval(@RequestBody SubmitApprovalRequest req) {
+  47	        return activityService.submitForApproval(req);
+  48	    }
+  49	
+  50	    @PostMapping("/approve")
+  51	    public RpcResult<ActivityDTO> approve(@RequestBody ApproveActivityRequest req) {
+  52	        return activityService.approveActivity(req);
+  53	    }
+  54	
+  55	    @PostMapping("/reject")
+  56	    public RpcResult<ActivityDTO> reject(@RequestBody RejectActivityRequest req) {
+  57	        return activityService.rejectActivity(req);
+  58	    }
+  59	
+  60	    @PostMapping("/online")
+  61	    public RpcResult<ActivityDTO> online(@RequestBody OnlineActivityRequest req) {
+  62	        return activityService.onlineActivity(req);
+  63	    }
+  64	
+  65	    @PostMapping("/pause")
+  66	    public RpcResult<ActivityDTO> pause(@RequestBody PauseActivityRequest req) {
+  67	        return activityService.pauseActivity(req);
+  68	    }
+  69	
+  70	    @PostMapping("/forceOffline")
+  71	    public RpcResult<Void> forceOffline(@RequestBody ForceOfflineRequest req) {
+  72	        return activityService.forceOfflineActivity(req);
+  73	    }
+  74	
+  75	    @PostMapping("/delete")
+  76	    public RpcResult<Void> delete(@Valid @RequestBody DeleteActivityRequest req) {
+  77	        return activityService.deleteActivity(req);
+  78	    }
+  79	}
+  80	

@@ -1,0 +1,50 @@
+{
+  "nodeId": "java-impl",
+  "outputArtifacts": [
+    {
+      "path": "artifacts/project/changed-files/BaseRequest.java",
+      "summary": "package com.ump.marketing.api.dto; import lombok.Data; import javax.validation.constraints.NotBlank; import java.io.Serializable; / Common fields for all requests. / @Data public class BaseRequest implements Serializable { private static final long serialVersionUID = 1L; @NotBlank(message = \"requestId is required\") private String requestId; private String caller; @NotBlank(message = \"operator is required\") private String operator; @NotBlank(message = \"regionCode is required\") private String regi...",
+      "size": 709
+    },
+    {
+      "path": "artifacts/project/changed-files.json",
+      "summary": "{ \"project\": \"project\", \"generatedAt\": \"20260620T07:28:19.343Z\", \"changedFiles\": [ { \"path\": \"src/main/java/com/ump/marketing/api/dto/BaseRequest.java\", \"status\": \"modified\", \"size\": 709, \"previewArtifact\": \"artifacts/project/changedfiles/BaseRequest.java\", \"absolutePreviewArtifact\": \"/private/tmp/aicodingrealmarketingconfirmflow4301/runs/XOjoDRmUAx/artifacts/project/changedfiles/BaseRequest.java\" }, { \"path\": \"src/main/java/com/ump/marketing/api/dto/DeleteActivityRequest.java\", \"status\": \"modif...",
+      "size": 2053
+    },
+    {
+      "path": "artifacts/project/changed-files/DeleteActivityRequest.java",
+      "summary": "package com.ump.marketing.api.dto; import lombok.Data; import lombok.EqualsAndHashCode; import javax.validation.constraints.NotBlank; / Request payload for soft deleting an activity. / @Data @EqualsAndHashCode(callSuper = true) public class DeleteActivityRequest extends BaseRequest { private static final long serialVersionUID = 1L; / Activity identifier scoped by region. / @NotBlank(message = \"activityId is required\") private String activityId; }",
+      "size": 493
+    },
+    {
+      "path": "artifacts/project/changed-files/ActivityController.java",
+      "summary": "package com.ump.marketing.web.controller; import com.ump.marketing.api.dto.ActivityDTO; import com.ump.marketing.api.dto.ApproveActivityRequest; import com.ump.marketing.api.dto.CreateActivityRequest; import com.ump.marketing.api.dto.DeleteActivityRequest; import com.ump.marketing.api.dto.ForceOfflineRequest; import com.ump.marketing.api.dto.OnlineActivityRequest; import com.ump.marketing.api.dto.PauseActivityRequest; import com.ump.marketing.api.dto.RejectActivityRequest; import com.ump.marketi...",
+      "size": 2855
+    },
+    {
+      "path": "artifacts/project/changed-files/GlobalExceptionHandler.java",
+      "summary": "package com.ump.marketing.web.controller; import com.ump.marketing.api.enums.ErrorCode; import com.ump.marketing.api.result.RpcResult; import org.springframework.http.converter.HttpMessageNotReadableException; import org.springframework.validation.FieldError; import org.springframework.web.bind.MethodArgumentNotValidException; import org.springframework.web.bind.annotation.ExceptionHandler; import org.springframework.web.bind.annotation.RestControllerAdvice; import javax.servlet.http.HttpServlet...",
+      "size": 2322
+    },
+    {
+      "path": "artifacts/project/changed-files/ActivityService.java",
+      "summary": "package com.ump.marketing.application.service; import com.fasterxml.jackson.databind.ObjectMapper; import com.ump.marketing.api.dto.ActivityDTO; import com.ump.marketing.api.dto.ApproveActivityRequest; import com.ump.marketing.api.dto.CreateActivityRequest; import com.ump.marketing.api.dto.DeleteActivityRequest; import com.ump.marketing.api.dto.ForceOfflineRequest; import com.ump.marketing.api.dto.OnlineActivityRequest; import com.ump.marketing.api.dto.PauseActivityRequest; import com.ump.market...",
+      "size": 36175
+    }
+  ],
+  "importantDecisions": [],
+  "riskNotes": [],
+  "nextNodeInputs": [
+    "artifacts/prd.md",
+    "artifacts/project/tech-design.md",
+    "artifacts/project/openspec-task.md",
+    "artifacts/project/openspec-test-task.md",
+    "artifacts/project/changed-files/BaseRequest.java",
+    "artifacts/project/changed-files.json",
+    "artifacts/project/changed-files/DeleteActivityRequest.java",
+    "artifacts/project/changed-files/ActivityController.java",
+    "artifacts/project/changed-files/GlobalExceptionHandler.java",
+    "artifacts/project/changed-files/ActivityService.java",
+    "artifacts/project-manifest.json"
+  ]
+}

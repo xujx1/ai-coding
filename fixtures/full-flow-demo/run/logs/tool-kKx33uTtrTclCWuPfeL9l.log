@@ -1,0 +1,43 @@
+--- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/workspace/project/src/main/java/com/ump/marketing/domain/model/Activity.java (lines 1-42 of 42) ---
+   1	package com.ump.marketing.domain.model;
+   2	
+   3	import lombok.Data;
+   4	
+   5	import java.math.BigDecimal;
+   6	
+   7	@Data
+   8	public class Activity {
+   9	
+  10	    private Long id;
+  11	    private String activityId;
+  12	    private String tenantId;
+  13	    private String activityName;
+  14	    private String toolId;
+  15	    private String toolType;
+  16	    private BigDecimal thresholdAmount;
+  17	    private BigDecimal discountAmount;
+  18	    private BigDecimal discountRate;
+  19	    private BigDecimal maxDiscount;
+  20	    private String couponTemplateId;
+  21	    private String status;
+  22	    private Long startTime;
+  23	    private Long endTime;
+  24	    private String scopeType;
+  25	    private String scopeRefs;
+  26	    private Boolean isPurchaseLimited = false;
+  27	    private Integer purchaseLimitPerUser;
+  28	    private String approvalStatus = "NONE";
+  29	    private String approverId;
+  30	    private Long approvalTime;
+  31	    private Long onlineTime;
+  32	    private String rejectReason;
+  33	    private String forceOfflineReason;
+  34	    private Boolean isDeleted = false;
+  35	    private Integer version = 0;
+  36	    private String regionCode;
+  37	    private Long createdAt;
+  38	    private Long updatedAt;
+  39	    private String createdBy;
+  40	    private String updatedBy;
+  41	}
+  42	

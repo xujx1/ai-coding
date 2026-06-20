@@ -1,0 +1,2 @@
+$ "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn" compile -B -q -DskipTests=true test-compile
+(cwd: workspace/project)

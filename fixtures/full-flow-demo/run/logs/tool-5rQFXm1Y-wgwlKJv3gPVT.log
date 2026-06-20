@@ -1,0 +1,11 @@
+Found 10 files matching "project/*":
+  project/changed-files.json
+  project/code-preview-manifest.json
+  project/code-review.md
+  project/openspec-task.md
+  project/openspec-test-task.md
+  project/review-findings.json
+  project/tech-design.md
+  project/test-code-preview-manifest.json
+  project/test-file-list.md
+  project/testcode-generation-report.md
