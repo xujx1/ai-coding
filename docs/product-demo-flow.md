@@ -1,5 +1,7 @@
 # 产品演示流程
 
+相关文档：[README](../README.md) ｜ [架构设计](architecture.md) ｜ [节点设计](node-design.md) ｜ [节点流转设计](node-transition.md) ｜ [上下文压缩设计](context-compression.md)
+
 本文档用于演示 AI Coding Pipeline 的完整产品链路。演示数据来自真实跑通的“营销活动软删除”需求，服务启动后默认显示为 `完整流程演示 Demo`。
 
 ## 1. 打开首页

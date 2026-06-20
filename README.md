@@ -6,6 +6,14 @@
 
 ![完整流程](docs/png/完整的任务流程.png)
 
+## 文档导航
+
+- [产品演示流程](docs/product-demo-flow.md)：面向演示和讲解，按截图串起完整产品链路。
+- [架构设计](docs/architecture.md)：说明前端、服务端、流水线、Agent、工具和运行态存储的整体关系。
+- [节点设计](docs/node-design.md)：说明每个固定节点的输入、执行方式、确认门和产物契约。
+- [节点流转设计](docs/node-transition.md)：说明启动、确认、重跑、回退、自动重试和中断的状态流转。
+- [上下文压缩设计](docs/context-compression.md)：说明 Agent 内部压缩和跨节点瘦上下文的边界。
+
 ## 核心能力
 
 - 需求上传：支持上传 MRD/需求文件和项目源码目录。
