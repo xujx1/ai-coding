@@ -17,6 +17,10 @@ Generate or update unit test code for the current project.
 
 {{openspec_test_task}}
 
+### OpenSpec Change Artifacts
+
+{{openspec_change_context}}
+
 ### Production Changed Files
 
 {{changed_files}}
@@ -43,4 +47,4 @@ Generate or update unit test code for the current project.
 
 ## Required Work
 
-Use read/search tools to locate real classes and test patterns. Write tests under `src/test/java` for this project only. Prefer JUnit 5 and Mockito when the project supports them. Run `maven_compile` before finishing when Maven is available. Final response must list test files changed and verification result.
+Use read/search tools to locate real classes and test patterns. Treat the OpenSpec change `tasks.md` test section as the execution checklist, and keep tests aligned with `proposal.md`, `design.md`, and `spec.md`. Write tests under `src/test/java` for this project only. Prefer JUnit 5 and Mockito when the project supports them. Run `maven_compile` before finishing when Maven is available. Final response must list test files changed and verification result.

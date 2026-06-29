@@ -37,6 +37,11 @@ export type EventType =
   | 'node_rollback_requested'
   | 'node_rollback_started'
   | 'node_retry_scheduled'
+  | 'fanout_decision'
+  | 'branch_transition'
+  | 'join_state_updated'
+  | 'branch_rerun_scheduled'
+  | 'branch_cancelled'
   // Confirmation events
   | 'confirmation_waiting'
   | 'confirmation_resolved'

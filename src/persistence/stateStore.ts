@@ -5,6 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getRunPaths, ensureRunDirectories, RunPaths } from '../runtime/paths.js';
+import type { SessionWorkflowInstance } from '../workflows/sessionInstance.js';
 
 // ── Pipeline node status ───────────────────────────────────────────────────
 
@@ -165,6 +166,7 @@ export interface ExecutionState {
   projects?: ProjectState[];
   rollback?: RollbackState;
   contextManifests?: Record<string, ContextManifest>;
+  workflowInstance?: SessionWorkflowInstance;
 }
 
 // ── Session state ──────────────────────────────────────────────────────────

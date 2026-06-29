@@ -277,14 +277,32 @@ export function buildImplementationBoundaries(
   });
 }
 
-export function buildClarifyQuestionsArtifact(clarified: string): string {
+export function buildClarifyQuestionsArtifact(
+  clarified: string,
+  manifest?: ProjectManifest,
+  existingQuestions?: string
+): string {
+  const rawQuestions = stripClarifyQuestionHeader(existingQuestions || extractSection(clarified, '## Clarification Questions') || '无需澄清。');
   const questions = limitClarificationQuestions(
-    extractSection(clarified, '## Clarification Questions') || '无需澄清。',
+    rawQuestions,
     3
   );
+  const boundaryConfirmation = buildRequirementBoundaryConfirmation(clarified, manifest);
   return renderTemplate(loadTemplate('mrd-clarify-questions.md'), {
+    boundary_confirmation: boundaryConfirmation,
     questions: questions.trim(),
   });
+}
+
+function stripClarifyQuestionHeader(content: string): string {
+  let text = content.replace(/^#\s+MRD Clarify Questions\s*/i, '').trim();
+  const otherQuestionsMarker = '## 其他待澄清问题';
+  if (text.includes(otherQuestionsMarker)) {
+    text = text.slice(text.indexOf(otherQuestionsMarker) + otherQuestionsMarker.length);
+  }
+  const boundaryMarker = '## 需求-应用实现边界确认';
+  if (text.startsWith(boundaryMarker)) return '无需澄清。';
+  return text.trim();
 }
 
 export function hasClarificationQuestions(questions: string): boolean {
@@ -298,6 +316,46 @@ export function hasClarificationQuestions(questions: string): boolean {
     .replace(/无待澄清[。.]?/g, '')
     .trim();
   return /[?？]/.test(stripped) || /(^|\n)\s*(?:[-*]|\d+[.)、])\s+\S+/.test(stripped);
+}
+
+export function buildRequirementBoundaryConfirmation(
+  clarified: string,
+  manifest?: ProjectManifest
+): string {
+  const projectLines = manifest?.projects?.length
+    ? manifest.projects.map(project => `- ${project.name}: ${project.root}`).join('\n')
+    : '- 未检测到上传项目；需要确认业务系统和实际代码项目映射。';
+  const featureInventory = extractSection(clarified, '## Feature Inventory') || '未能稳定提取功能清单。';
+  const projectOwnership = extractSection(clarified, '## Project Ownership') || '未能稳定提取项目归属。';
+  const implementationBoundaries = extractSection(clarified, '## Implementation Boundaries') || '未能稳定提取实施边界。';
+
+  return [
+    '## 需求-应用实现边界确认',
+    '',
+    '请确认下面的需求清单、应用归属和实现边界是否正确。若某个需求项应由其他应用实现，或某个应用只透传/不改代码，请在反馈中直接改正。',
+    '',
+    '### 上传应用候选',
+    '',
+    projectLines,
+    '',
+    '### 功能清单',
+    '',
+    featureInventory.trim(),
+    '',
+    '### 应用归属',
+    '',
+    projectOwnership.trim(),
+    '',
+    '### 实施边界',
+    '',
+    implementationBoundaries.trim(),
+    '',
+    '### 必须确认的问题',
+    '',
+    '1. 上述每个需求项分别由哪个应用实现？请确认 crowd、abtest、cc 或其他应用的归属。',
+    '2. 哪些应用需要改代码，哪些应用只负责字段透传、日志记录或不改动？',
+    '3. 是否存在 MRD 提到但未上传的应用/仓库？如果存在，请指出应用名和阻断原因。',
+  ].join('\n');
 }
 
 export function appendClarificationAnswers(draft: string, answers: string, modelOutput?: string): string {

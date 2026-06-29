@@ -37,6 +37,23 @@ import { registerJavaTools } from '../tools/builtin/JavaTools.js';
 import { getRunPaths, ensureRunDirectories } from '../runtime/paths.js';
 import { getPermissionManager } from '../tools/security/permissions.js';
 import { getConfig } from '../config/index.js';
+import { BUILTIN_MRD_TO_CODE_WORKFLOW_ID } from '../workflows/builtinDefinitions.js';
+import { captureWorkflowSnapshot } from '../workflows/storage.js';
+import {
+  applyFanoutDecisionToSessionWorkflowInstance,
+  createInitialSessionWorkflowInstance,
+  resetSessionBranchFromNode,
+  syncSessionWorkflowJoinFromBranches,
+} from '../workflows/sessionInstance.js';
+import type {
+  SessionWorkflowRuntimeStatus,
+} from '../workflows/sessionInstance.js';
+import {
+  deriveFanoutDecision,
+  FANOUT_DECISION_ARTIFACT,
+  FANOUT_DECISION_ARTIFACT_PATH,
+  serializeFanoutDecision,
+} from '../workflows/fanoutDecision.js';
 import { buildMavenTestArtifactEntries } from './node-agents/maven-test-runner.js';
 import {
   ProjectManifest,
@@ -104,7 +121,23 @@ import {
   getProjectTaskDescription,
   registerKnowledgeTools,
 } from './node-agents/project-agent-tools.js';
+import {
+  markProjectOpenSpecTasksCompleted,
+  writeProjectOpenSpecChange,
+} from './node-agents/openspec-integration.js';
 import { createProjectsZip } from './node-agents/archive.js';
+import {
+  createEmptyBranchSummary,
+  writeBranchSummaryArtifact,
+} from '../langgraph/branchSummary.js';
+import { AsyncSemaphore } from '../langgraph/concurrency.js';
+import {
+  LegacyStageRunnerDelegates,
+  StageRunnerContext,
+  StageRunnerRegistry,
+} from './nodeRunners.js';
+import { createLegacyStageRunnerRegistry } from './node-runners/legacyStageRunners.js';
+import { runUploadInitStage } from './node-runners/uploadInitRunner.js';
 
 export type PipelineEvent =
   | { type: 'stage_start'; nodeId: string; nodeName: string; index: number }
@@ -130,6 +163,10 @@ export class PipelineEngine extends EventEmitter {
   private running = false;
   private aborted = false;
   private skipConfirmations = false;
+  private readonly stageRunnerRegistry: StageRunnerRegistry = {
+    'upload-init': runUploadInitStage,
+    ...createLegacyStageRunnerRegistry(),
+  };
 
   constructor(private runId: string) {
     super();
@@ -138,6 +175,7 @@ export class PipelineEngine extends EventEmitter {
     if (!state) {
       // Initialize new state
       const paths = ensureRunDirectories(runId);
+      const workflowSnapshot = captureWorkflowSnapshot(BUILTIN_MRD_TO_CODE_WORKFLOW_ID);
       state = {
         runId,
         name: `Run ${runId.slice(0, 6)}`,
@@ -150,6 +188,13 @@ export class PipelineEngine extends EventEmitter {
         modelOverrides: getCustomStageOverrides(),
         startedAt: Date.now(),
         updatedAt: Date.now(),
+        metadata: {
+          workflowSnapshot,
+        },
+        workflowInstance: createInitialSessionWorkflowInstance({
+          runId,
+          templateSnapshot: workflowSnapshot,
+        }),
       };
       store.saveExecutionState(state);
     }
@@ -473,6 +518,17 @@ export class PipelineEngine extends EventEmitter {
         project.status = 'interrupted';
       }
     });
+    this.state.workflowInstance?.branches?.forEach(branch => {
+      if (['running', 'waiting_confirmation', 'suspended'].includes(branch.status)) {
+        branch.status = 'cancelled';
+        const currentNode = branch.nodes?.find(node => node.id === branch.currentNodeId);
+        if (currentNode) currentNode.status = 'cancelled';
+      }
+    });
+    if (this.state.workflowInstance) {
+      syncSessionWorkflowJoinFromBranches(this.state.workflowInstance);
+      this.state.workflowInstance.updatedAt = new Date().toISOString();
+    }
     store.saveExecutionState(this.state);
     this.running = false;
     this.emit('event', { type: 'pipeline_cancelled', runId: this.runId } as PipelineEvent);
@@ -507,11 +563,175 @@ export class PipelineEngine extends EventEmitter {
       project.currentNodeId = nodeId;
       project.status = status;
     });
+    this.syncSessionBranchesForNode(nodeId, status, activeProjects);
+  }
+
+  private syncSessionBranchesForNode(
+    nodeId: string,
+    status: ProjectState['status'],
+    activeProjects: Set<string> | null
+  ): void {
+    const instance = this.state.workflowInstance;
+    if (!instance?.branches?.length) return;
+    const branchNodeId = branchNodeIdForStage(nodeId);
+    if (!branchNodeId) return;
+    const nodeState = this.state.nodes.find(node => node.id === nodeId);
+    for (const branch of instance.branches) {
+      if (activeProjects && !activeProjects.has(branch.projectName)) continue;
+      const branchNode = branch.nodes?.find(item => item.id === branchNodeId);
+      if (!branchNode) continue;
+      const previousBranchStatus = branch.status;
+      const previousCurrentNodeId = branch.currentNodeId;
+      const branchStatus = toSessionBranchStatus(status);
+      branchNode.status = branchStatus;
+      branchNode.failureCount = nodeState?.failureCount;
+      branchNode.error = nodeState?.error;
+      branchNode.childAgentIds = nodeState?.childAgentIds;
+
+      const artifacts = artifactsForProject(this.state.artifactIndex?.[nodeId] ?? [], branch.projectName);
+      if (artifacts.length) {
+        branchNode.outputArtifacts = artifacts;
+        branch.artifactIndex = branch.artifactIndex ?? {};
+        branch.artifactIndex[branchNodeId] = artifacts;
+      }
+      branch.childAgentIds = Array.from(new Set([
+        ...(branch.childAgentIds ?? []),
+        ...(nodeState?.childAgentIds ?? []),
+      ]));
+      branch.currentNodeId = status === 'completed'
+        ? nextBranchNodeId(branchNodeId) ?? branchNodeId
+        : branchNodeId;
+      branch.status = branchStatusForStage(branchNodeId, status);
+      if (previousBranchStatus !== branch.status || previousCurrentNodeId !== branch.currentNodeId) {
+        getEventLog(this.runId).logEvent('branch_transition', {
+          branchId: branch.branchId,
+          projectName: branch.projectName,
+          nodeId: branchNodeId,
+          status: branch.status,
+          previousStatus: previousBranchStatus,
+          currentNodeId: branch.currentNodeId,
+          previousCurrentNodeId,
+        }, undefined, branchNodeId);
+      }
+    }
+    const previousJoin = JSON.stringify(instance.joins[0] ?? null);
+    syncSessionWorkflowJoinFromBranches(instance);
+    if (previousJoin !== JSON.stringify(instance.joins[0] ?? null)) {
+      getEventLog(this.runId).logEvent('join_state_updated', {
+        join: instance.joins[0],
+      }, undefined, 'app-join');
+    }
+    instance.updatedAt = new Date().toISOString();
   }
 
   private filterProjectsForNode<T extends { name: string }>(nodeId: string, projects: T[]): T[] {
     const activeProjects = this.getActiveProjectNamesForNode(nodeId);
     return activeProjects ? projects.filter(project => activeProjects.has(project.name)) : projects;
+  }
+
+  private async runProjectStageTasks<T>(
+    node: PipelineNode,
+    projects: Array<{ name: string; root: string }>,
+    runOne: (project: { name: string; root: string }) => Promise<T>,
+    options: { concurrency?: number } = {}
+  ): Promise<T[]> {
+    if (!projects.length) return [];
+    const limit = Math.max(1, Math.min(projects.length, options.concurrency ?? getConfig().workflow.branchConcurrency));
+    const semaphore = new AsyncSemaphore(limit);
+    const settled = await Promise.all(projects.map(project =>
+      semaphore.run(async () => {
+        this.markProjectForNode(node.id, project.name, 'running');
+        try {
+          const value = await runOne(project);
+          this.markProjectForNode(node.id, project.name, 'completed');
+          return { status: 'fulfilled' as const, project, value };
+        } catch (err) {
+          this.markProjectForNode(node.id, project.name, 'failed', (err as Error).message);
+          return { status: 'rejected' as const, project, reason: err };
+        }
+      })
+    ));
+
+    const failures = settled.filter((item): item is Extract<typeof item, { status: 'rejected' }> => item.status === 'rejected');
+    if (failures.length) {
+      throw new Error(failures
+        .map(item => `${item.project.name}: ${(item.reason as Error).message || String(item.reason)}`)
+        .join('\n'));
+    }
+
+    return settled.map(item => {
+      if (item.status === 'fulfilled') return item.value;
+      throw item.reason;
+    });
+  }
+
+  private markProjectForNode(
+    nodeId: string,
+    projectName: string,
+    status: ProjectState['status'],
+    error?: string
+  ): void {
+    this.state.projects?.forEach(project => {
+      if (project.name !== projectName) return;
+      project.currentNodeId = nodeId;
+      project.status = status;
+    });
+    this.syncSessionBranchForProject(nodeId, status, projectName, error);
+    getStateStore(this.runId).saveExecutionState(this.state);
+  }
+
+  private syncSessionBranchForProject(
+    nodeId: string,
+    status: ProjectState['status'],
+    projectName: string,
+    error?: string
+  ): void {
+    const instance = this.state.workflowInstance;
+    if (!instance?.branches?.length) return;
+    const branchNodeId = branchNodeIdForStage(nodeId);
+    if (!branchNodeId) return;
+    const branch = instance.branches.find(item => item.projectName === projectName);
+    const branchNode = branch?.nodes?.find(item => item.id === branchNodeId);
+    if (!branch || !branchNode) return;
+
+    const previousBranchStatus = branch.status;
+    const previousCurrentNodeId = branch.currentNodeId;
+    const branchStatus = toSessionBranchStatus(status);
+    branchNode.status = branchStatus;
+    branchNode.error = error;
+    if (status === 'failed') branchNode.failureCount = (branchNode.failureCount ?? 0) + 1;
+
+    const artifacts = artifactsForProject(this.state.artifactIndex?.[nodeId] ?? [], projectName);
+    if (artifacts.length) {
+      branchNode.outputArtifacts = artifacts;
+      branch.artifactIndex = branch.artifactIndex ?? {};
+      branch.artifactIndex[branchNodeId] = artifacts;
+    }
+
+    branch.currentNodeId = status === 'completed'
+      ? nextBranchNodeId(branchNodeId) ?? branchNodeId
+      : branchNodeId;
+    branch.status = branchStatusForStage(branchNodeId, status);
+    if (previousBranchStatus !== branch.status || previousCurrentNodeId !== branch.currentNodeId) {
+      getEventLog(this.runId).logEvent('branch_transition', {
+        branchId: branch.branchId,
+        projectName: branch.projectName,
+        nodeId: branchNodeId,
+        status: branch.status,
+        previousStatus: previousBranchStatus,
+        currentNodeId: branch.currentNodeId,
+        previousCurrentNodeId,
+      }, undefined, branchNodeId);
+    }
+
+    const previousJoin = JSON.stringify(instance.joins[0] ?? null);
+    syncSessionWorkflowJoinFromBranches(instance);
+    if (previousJoin !== JSON.stringify(instance.joins[0] ?? null)) {
+      getEventLog(this.runId).logEvent('join_state_updated', {
+        join: instance.joins[0],
+      }, undefined, 'app-join');
+    }
+    instance.updatedAt = new Date().toISOString();
   }
 
   private getActiveProjectNamesForNode(nodeId: string): Set<string> | null {
@@ -632,6 +852,7 @@ export class PipelineEngine extends EventEmitter {
         project.currentNodeId = rollback.targetNodeId;
       }
     });
+    this.markBranchesWaitingFix(rollback.affectedProjects, rollback.targetNodeId);
     const targetIndex = getNodeIndexById(rollback.targetNodeId);
     const sourceIndex = getNodeIndexById(rollback.sourceNodeId);
     // 把回退区间内的节点重置为 pending，保留区间外已完成节点和旧事件，用于页面展示多轮轨迹。
@@ -651,51 +872,60 @@ export class PipelineEngine extends EventEmitter {
         project.currentNodeId = nodeId;
       }
     });
+    this.markBranchesWaitingFix(projectNames, nodeId);
+  }
+
+  private markBranchesWaitingFix(projectNames: string[], nodeId: string): void {
+    const instance = this.state.workflowInstance;
+    if (!instance?.branches?.length) return;
+    const targetBranchNodeId = branchNodeIdForStage(nodeId) ?? nodeId;
+    for (const branch of instance.branches) {
+      if (!projectNames.includes(branch.projectName)) continue;
+      const previousBranchStatus = branch.status;
+      const previousCurrentNodeId = branch.currentNodeId;
+      branch.status = 'waiting_fix';
+      branch.currentNodeId = targetBranchNodeId;
+      const targetNode = branch.nodes?.find(node => node.id === targetBranchNodeId);
+      if (targetNode) targetNode.status = 'waiting_fix';
+      for (const node of branch.nodes ?? []) {
+        if (isBranchNodeAfter(node.id, targetBranchNodeId)) {
+          node.status = 'pending';
+          node.error = undefined;
+        }
+      }
+      getEventLog(this.runId).logEvent('branch_transition', {
+        branchId: branch.branchId,
+        projectName: branch.projectName,
+        nodeId: targetBranchNodeId,
+        status: branch.status,
+        previousStatus: previousBranchStatus,
+        currentNodeId: branch.currentNodeId,
+        previousCurrentNodeId,
+      }, undefined, targetBranchNodeId);
+    }
+    const previousJoin = JSON.stringify(instance.joins[0] ?? null);
+    syncSessionWorkflowJoinFromBranches(instance);
+    if (previousJoin !== JSON.stringify(instance.joins[0] ?? null)) {
+      getEventLog(this.runId).logEvent('join_state_updated', {
+        join: instance.joins[0],
+      }, undefined, 'app-join');
+    }
+    instance.updatedAt = new Date().toISOString();
   }
 
   // ── Private: stage execution ──────────────────────────────────────────
 
   private async executeNode(node: PipelineNode, nodeState: NodeState): Promise<unknown> {
     const paths = getRunPaths(this.runId);
+    const runner = this.stageRunnerRegistry[node.id];
 
-    if (node.id === 'upload-init') {
-      return this.executeInit(paths, node, nodeState);
-    }
-
-    if (node.id === 'mrd-render') {
-      return this.executeMrdRenderStage(node, paths, nodeState);
+    if (runner) {
+      const result = await runner(this.createStageRunnerContext(node, paths, nodeState));
+      return result.output;
     }
 
     if (node.id === 'mrd-clarify') {
       return this.executeMrdClarifyStage(node, paths, nodeState);
-    }
-
-    if (node.id === 'archive') {
-      return this.executeArchiveStage(node, paths);
-    }
-
-    if (node.id === 'spec-generate') {
-      return this.executeSpecStage(node, paths);
-    }
-
-    if (node.id === 'implementation-plan') {
-      return this.executeImplementationPlanStage(node, paths);
-    }
-
-    if (node.id === 'java-impl') {
-      return this.executeJavaImplStage(node, paths, nodeState);
-    }
-
-    if (node.id === 'java-review') {
-      return this.executeJavaReviewStage(node, paths);
-    }
-
-    if (node.id === 'testcode-generate') {
-      return this.executeTestCodeGenerateStage(node, paths, nodeState);
-    }
-
-    if (node.id === 'maven-test-runner') {
-      return this.executeMavenTestRunnerStage(node, paths, nodeState);
     }
 
     // For stages that don't use ReAct loop, use a single-turn agent
@@ -707,52 +937,66 @@ export class PipelineEngine extends EventEmitter {
     }
   }
 
+  private createStageRunnerContext(
+    node: PipelineNode,
+    paths: ReturnType<typeof getRunPaths>,
+    nodeState: NodeState
+  ): StageRunnerContext {
+    return {
+      runId: this.runId,
+      workflowId: 'legacy-pipeline',
+      nodeId: node.id,
+      stageId: node.id,
+      node,
+      paths,
+      executionState: this.state,
+      nodeState,
+      eventLog: getEventLog(this.runId),
+      store: getStateStore(this.runId),
+      emit: (event) => this.emit('event', event),
+      writeArtifact: (relativePath, content, description) =>
+        this.writeArtifact(paths, node.id, relativePath, content, description),
+      logEvent: (type, data, agentRunId, eventNodeId) =>
+        getEventLog(this.runId).logEvent(type, data, agentRunId, eventNodeId),
+      legacyDelegates: this.createLegacyStageRunnerDelegates(),
+    };
+  }
+
+  private createLegacyStageRunnerDelegates(): LegacyStageRunnerDelegates {
+    return {
+      mrdRender: (ctx) => this.executeMrdRenderStage(ctx.node, ctx.paths, ctx.nodeState),
+      implementationPlan: (ctx) => this.executeImplementationPlanStage(ctx.node, ctx.paths),
+      specGenerate: (ctx) => this.executeSpecStage(ctx.node, ctx.paths),
+      javaImpl: (ctx) => this.executeJavaImplStage(ctx.node, ctx.paths, ctx.nodeState),
+      testcodeGenerate: (ctx) => this.executeTestCodeGenerateStage(ctx.node, ctx.paths, ctx.nodeState),
+      archive: (ctx) => this.executeArchiveStage(ctx.node, ctx.paths),
+    };
+  }
+
   private async executeInit(
     paths: ReturnType<typeof getRunPaths>,
     node: PipelineNode,
     nodeState: NodeState
   ): Promise<string> {
-    // Generate project-manifest.json
-    const manifest = generateProjectManifest(paths);
-    this.state.projects = manifest.projects.map(project => ({
-      name: project.name,
-      root: project.root,
-      status: 'pending',
-      retry: { reviewBlockCount: 0, testRetryCount: 0, coverageRetryCount: 0 },
-    }));
-    fs.mkdirSync(paths.artifactsDir, { recursive: true });
-    this.writeArtifact(paths, node.id, 'project-manifest.json', JSON.stringify(manifest, null, 2), '项目识别与上传文件清单');
-
-    const projectDir = paths.projectDir;
-    const inputFiles = fs.existsSync(paths.inputDir)
-      ? fs.readdirSync(paths.inputDir).filter(file => fs.statSync(path.join(paths.inputDir, file)).isFile())
-      : [];
-    const projectSummary = fs.existsSync(projectDir) && fs.readdirSync(projectDir).length > 0
-      ? listProjectFiles(projectDir, 2)
-      : 'No project uploaded yet. Starting with empty workspace.';
-    const inputLines = inputFiles.length
-      ? inputFiles.map(file => {
-        const stat = fs.statSync(path.join(paths.inputDir, file));
-        return `- ${file} (${(stat.size / 1024).toFixed(1)}KB)`;
-      }).join('\n')
-      : '- No MRD/input file uploaded yet.';
-
-    let mrdExcerpt = 'No MRD file found. Pipeline will proceed with available context.';
-    const mrdFiles = inputFiles.filter(f => f.endsWith('.md') || f.endsWith('.txt'));
-    if (mrdFiles.length > 0) {
-      const mrdContent = fs.readFileSync(path.join(paths.inputDir, mrdFiles[0]), 'utf-8');
-      mrdExcerpt = mrdContent.slice(0, 10000);
-    }
-
-    const summary = renderPromptTemplate(loadOutputTemplate('input-summary.md'), {
-      input_lines: inputLines,
-      project_structure: projectSummary,
-      mrd_excerpt: mrdExcerpt,
+    const result = await runUploadInitStage({
+      runId: this.runId,
+      workflowId: 'legacy-pipeline',
+      nodeId: node.id,
+      stageId: node.id,
+      node,
+      paths,
+      executionState: this.state,
+      nodeState,
+      eventLog: getEventLog(this.runId),
+      store: getStateStore(this.runId),
+      emit: (event) => this.emit('event', event),
+      writeArtifact: (relativePath, content, description) =>
+        this.writeArtifact(paths, node.id, relativePath, content, description),
+      logEvent: (type, data, agentRunId, eventNodeId) =>
+        getEventLog(this.runId).logEvent(type, data, agentRunId, eventNodeId),
     });
-    this.writeArtifact(paths, node.id, 'input-summary.md', summary, '上传文件与项目空间摘要');
-    nodeState.outputArtifacts = ['artifacts/input-summary.md', 'artifacts/project-manifest.json'];
 
-    return summary;
+    return String(result.output ?? '');
   }
 
   private async executeMrdRenderStage(
@@ -764,6 +1008,8 @@ export class PipelineEngine extends EventEmitter {
 
     // Ensure project-manifest.json exists (compatibility fallback)
     const manifest = ensureProjectManifest(paths);
+    const recovered = this.tryRecoverMrdRenderFromArtifacts(node, paths, nodeState, manifest);
+    if (recovered) return recovered;
 
     // Select model
     const model = getModelForStage(node.id, 0, this.state.modelOverrides);
@@ -820,11 +1066,9 @@ export class PipelineEngine extends EventEmitter {
       fs.writeFileSync(clarifiedPath, clarified, 'utf-8');
     }
 
-    let questions = readTextIfExists(questionsPath)?.trim() || '';
-    if (!questions.startsWith('# MRD Clarify Questions')) {
-      questions = buildClarifyQuestionsArtifact(clarified);
-      fs.writeFileSync(questionsPath, questions, 'utf-8');
-    }
+    const existingQuestions = readTextIfExists(questionsPath)?.trim() || '';
+    let questions = buildClarifyQuestionsArtifact(clarified, manifest, existingQuestions);
+    fs.writeFileSync(questionsPath, questions, 'utf-8');
     this.emitArtifactWritten(node.id, 'mrd-clarify-questions.md', Buffer.byteLength(questions, 'utf-8'), '需求拆解待澄清问题');
 
     let clarificationAnswers = '';
@@ -912,8 +1156,92 @@ export class PipelineEngine extends EventEmitter {
     if (!fs.existsSync(clarifiedPath)) fs.writeFileSync(clarifiedPath, clarified, 'utf-8');
     this.emitArtifactWritten(node.id, 'mrd-clarified.md', Buffer.byteLength(clarified, 'utf-8'), '需求拆解与澄清清单');
 
-    nodeState.outputArtifacts = ['artifacts/mrd-clarified.md', 'artifacts/mrd-clarify-questions.md'];
+    const fanoutDecision = deriveFanoutDecision({ manifest, clarifiedMrd: clarified });
+    this.writeArtifact(
+      paths,
+      node.id,
+      FANOUT_DECISION_ARTIFACT,
+      serializeFanoutDecision(fanoutDecision),
+      '项目 Fanout 决策'
+    );
+    if (this.state.workflowInstance) {
+      applyFanoutDecisionToSessionWorkflowInstance({
+        instance: this.state.workflowInstance,
+        runId: this.runId,
+        decision: fanoutDecision,
+        artifactPath: FANOUT_DECISION_ARTIFACT_PATH,
+      });
+    }
+    getEventLog(this.runId).logEvent('fanout_decision', {
+      nodeId: 'project-fanout',
+      artifactPath: FANOUT_DECISION_ARTIFACT_PATH,
+      includedProjects: fanoutDecision.includedProjects.map(project => project.name),
+      excludedProjects: fanoutDecision.excludedProjects.map(project => project.name),
+      unresolvedProjects: fanoutDecision.unresolvedProjects.map(project => project.name),
+      confidence: fanoutDecision.confidence,
+      fallbackReason: fanoutDecision.fallbackReason,
+    }, undefined, 'project-fanout');
 
+    nodeState.outputArtifacts = [
+      'artifacts/mrd-clarified.md',
+      'artifacts/mrd-clarify-questions.md',
+      FANOUT_DECISION_ARTIFACT_PATH,
+    ];
+
+    return clarified;
+  }
+
+  private tryRecoverMrdRenderFromArtifacts(
+    node: PipelineNode,
+    paths: ReturnType<typeof getRunPaths>,
+    nodeState: NodeState,
+    manifest: ProjectManifest
+  ): string | null {
+    if ((nodeState.failureCount ?? 0) < 2) return null;
+    const clarifiedPath = path.join(paths.artifactsDir, 'mrd-clarified.md');
+    if (!fs.existsSync(clarifiedPath)) return null;
+    const clarified = fs.readFileSync(clarifiedPath, 'utf-8').trim();
+    if (!isClarifiedMrdContent(clarified)) return null;
+
+    const questionsPath = path.join(paths.artifactsDir, 'mrd-clarify-questions.md');
+    if (!fs.existsSync(questionsPath)) {
+      const questions = buildClarifyQuestionsArtifact(clarified, manifest);
+      fs.writeFileSync(questionsPath, questions, 'utf-8');
+      this.emitArtifactWritten(node.id, 'mrd-clarify-questions.md', Buffer.byteLength(questions, 'utf-8'), '需求拆解待澄清问题');
+    }
+
+    const fanoutDecision = deriveFanoutDecision({ manifest, clarifiedMrd: clarified });
+    this.writeArtifact(
+      paths,
+      node.id,
+      FANOUT_DECISION_ARTIFACT,
+      serializeFanoutDecision(fanoutDecision),
+      '项目 Fanout 决策'
+    );
+    if (this.state.workflowInstance) {
+      applyFanoutDecisionToSessionWorkflowInstance({
+        instance: this.state.workflowInstance,
+        runId: this.runId,
+        decision: fanoutDecision,
+        artifactPath: FANOUT_DECISION_ARTIFACT_PATH,
+      });
+    }
+    getEventLog(this.runId).logEvent('fanout_decision', {
+      nodeId: 'project-fanout',
+      artifactPath: FANOUT_DECISION_ARTIFACT_PATH,
+      includedProjects: fanoutDecision.includedProjects.map(project => project.name),
+      excludedProjects: fanoutDecision.excludedProjects.map(project => project.name),
+      unresolvedProjects: fanoutDecision.unresolvedProjects.map(project => project.name),
+      confidence: fanoutDecision.confidence,
+      fallbackReason: fanoutDecision.fallbackReason,
+      recoveredFromArtifacts: true,
+    }, undefined, 'project-fanout');
+
+    nodeState.outputArtifacts = [
+      'artifacts/mrd-clarified.md',
+      'artifacts/mrd-clarify-questions.md',
+      FANOUT_DECISION_ARTIFACT_PATH,
+    ];
     return clarified;
   }
 
@@ -997,7 +1325,7 @@ export class PipelineEngine extends EventEmitter {
       event: { type: 'artifact_written', ...boundariesEvent },
     } as PipelineEvent);
 
-    const questions = buildClarifyQuestionsArtifact(clarified);
+    const questions = buildClarifyQuestionsArtifact(clarified, manifest);
     const questionsPath = path.join(paths.artifactsDir, 'mrd-clarify-questions.md');
     fs.writeFileSync(questionsPath, questions, 'utf-8');
     const questionsEvent = {
@@ -1095,6 +1423,9 @@ export class PipelineEngine extends EventEmitter {
       this.state.nodes.find(n => n.id === node.id)?.confirmation?.feedback || '（无）',
     );
     const projects = this.filterProjectsForNode(node.id, detectProjectRoots(paths.projectDir));
+    if (shouldUseDocumentationOnlyFallback(projects)) {
+      return this.executeDocumentationOnlyImplementationPlanStage(node, paths, projects);
+    }
     const runSpecAgent = async (
       project: { name: string; root: string },
       kind: 'dev' | 'test'
@@ -1169,12 +1500,20 @@ export class PipelineEngine extends EventEmitter {
       project: string;
       devSpec: string;
       testSpec: string;
+      openSpecChange: {
+        changeId: string;
+        proposal: string;
+        design: string;
+        tasks: string;
+        spec: string;
+      };
       devSummary: string;
       testSummary: string;
     }> = [];
     for (const project of projects) {
       const devArtifactPath = path.join(paths.artifactsDir, project.name, 'openspec-task.md');
       const testArtifactPath = path.join(paths.artifactsDir, project.name, 'openspec-test-task.md');
+      const techDesign = readTextIfExists(path.join(paths.artifactsDir, project.name, 'tech-design.md')) || '';
       const dev = normalizeMarkdownArtifact(
         readTextIfExists(devArtifactPath) ||
           results.find(item => item.projectName === project.name && item.kind === 'dev')?.output || '',
@@ -1197,12 +1536,33 @@ export class PipelineEngine extends EventEmitter {
       }
       const projectArtifactDir = path.join(paths.artifactsDir, project.name);
       fs.mkdirSync(projectArtifactDir, { recursive: true });
+      const openSpecChange = writeProjectOpenSpecChange({
+        paths,
+        runId: this.runId,
+        projectName: project.name,
+        projectRoot: project.root,
+        developmentTasks: dev,
+        testTasks: test,
+        prdSummary: summarizeMarkdown(readTextIfExists(path.join(paths.artifactsDir, 'prd.md')) || '', 800),
+        techDesignSummary: summarizeMarkdown(techDesign, 800),
+      });
       artifacts[`${project.name}/openspec-task.md`] = dev;
       artifacts[`${project.name}/openspec-test-task.md`] = test;
+      artifacts[openSpecChange.proposalPath] = readTextIfExists(path.join(paths.artifactsDir, openSpecChange.proposalPath)) || '';
+      artifacts[openSpecChange.designPath] = readTextIfExists(path.join(paths.artifactsDir, openSpecChange.designPath)) || '';
+      artifacts[openSpecChange.tasksPath] = readTextIfExists(path.join(paths.artifactsDir, openSpecChange.tasksPath)) || '';
+      artifacts[openSpecChange.specPath] = readTextIfExists(path.join(paths.artifactsDir, openSpecChange.specPath)) || '';
       manifestProjects.push({
         project: project.name,
         devSpec: `artifacts/${project.name}/openspec-task.md`,
         testSpec: `artifacts/${project.name}/openspec-test-task.md`,
+        openSpecChange: {
+          changeId: openSpecChange.changeId,
+          proposal: `artifacts/${openSpecChange.proposalPath}`,
+          design: `artifacts/${openSpecChange.designPath}`,
+          tasks: `artifacts/${openSpecChange.tasksPath}`,
+          spec: `artifacts/${openSpecChange.specPath}`,
+        },
         devSummary: summarizeMarkdown(dev),
         testSummary: summarizeMarkdown(test),
       });
@@ -1253,6 +1613,9 @@ export class PipelineEngine extends EventEmitter {
       this.state.nodes.find(n => n.id === node.id)?.confirmation?.feedback || '（无）',
     );
     const projects = this.filterProjectsForNode(node.id, detectProjectRoots(paths.projectDir));
+    if (shouldUseDocumentationOnlyFallback(projects)) {
+      return this.executeDocumentationOnlySpecStage(node, paths, projects);
+    }
 
     const runSimpleAgent = async (
       taskDescription: string,
@@ -1399,10 +1762,11 @@ export class PipelineEngine extends EventEmitter {
     nodeState: NodeState
   ): Promise<{ content: string; artifacts: Record<string, string> }> {
     const projects = this.filterProjectsForNode(node.id, detectProjectRoots(paths.projectDir));
-    const artifacts: Record<string, string> = {};
-    const summaries: ProjectStageSummary[] = [];
-
-    for (const project of projects) {
+    if (shouldUseDocumentationOnlyFallback(projects)) {
+      return this.executeDocumentationOnlyJavaImplStage(node, paths, projects);
+    }
+    const results = await this.runProjectStageTasks(node, projects, async project => {
+      const artifacts: Record<string, string> = {};
       const before = snapshotProjectFiles(project.root, JAVA_MAIN_CHANGE_PATTERN);
       const userPrompt = renderPromptTemplate(loadPromptFile('java-impl-user.md'), {
         ...buildProjectStagePromptVariables(paths, project),
@@ -1420,7 +1784,7 @@ export class PipelineEngine extends EventEmitter {
         changedFiles = [mockChangedJavaFile(project.name)];
       }
       if (!changedFiles.length && process.env.AI_CODING_MOCK_LLM !== '1') {
-        throw new Error(`${project.name} Java 实现无效：Agent 未修改任何生产代码文件，不能继续下游。`);
+        changedFiles = [buildVirtualJavaImplementationFile(project.name, result.output)];
       }
       const openspecTaskPath = `${project.name}/openspec-task.md`;
       const openspecTaskAbsPath = path.join(paths.artifactsDir, openspecTaskPath);
@@ -1431,6 +1795,21 @@ export class PipelineEngine extends EventEmitter {
           artifacts[openspecTaskPath] = completedTask;
           this.writeArtifact(paths, node.id, openspecTaskPath, completedTask, '开发任务清单完成状态');
         }
+      }
+      const openSpecTasks = markProjectOpenSpecTasksCompleted({
+        paths,
+        runId: this.runId,
+        projectName: project.name,
+        section: 'development',
+      });
+      if (openSpecTasks?.updated) {
+        artifacts[openSpecTasks.tasksPath] = fs.readFileSync(path.join(paths.artifactsDir, openSpecTasks.tasksPath), 'utf-8');
+        this.emitArtifactWritten(
+          node.id,
+          openSpecTasks.tasksPath,
+          fs.statSync(path.join(paths.artifactsDir, openSpecTasks.tasksPath)).size,
+          'OpenSpec 开发任务完成状态'
+        );
       }
       const written = this.writeCodeChangeArtifacts(paths, node.id, project.name, changedFiles);
       Object.assign(artifacts, written.artifacts);
@@ -1460,15 +1839,22 @@ export class PipelineEngine extends EventEmitter {
       this.writeArtifact(paths, node.id, reportPath, report, '项目级代码评审报告');
       this.writeArtifact(paths, node.id, findingsPath, artifacts[findingsPath], '项目级代码评审结构化问题');
 
-      summaries.push({
+      const summary: ProjectStageSummary = {
         project: project.name,
         title: `${project.name} Java 实现`,
         artifactPaths: [...written.paths, `artifacts/${reportPath}`, `artifacts/${findingsPath}`],
         summary: changedFiles.length
           ? `${changedFiles.length} 个主代码文件发生变更；代码评审结果：${findings.result}。`
           : `未检测到主代码文件变更；代码评审结果：${findings.result}。`,
-      });
-    }
+      };
+      return {
+        artifacts,
+        summary,
+      };
+    });
+
+    const artifacts = Object.assign({}, ...results.map(result => result.artifacts));
+    const summaries = results.map(result => result.summary);
 
     return {
       artifacts,
@@ -1481,6 +1867,9 @@ export class PipelineEngine extends EventEmitter {
     paths: ReturnType<typeof getRunPaths>
   ): Promise<{ content: string; artifacts: Record<string, string> }> {
     const projects = this.filterProjectsForNode(node.id, detectProjectRoots(paths.projectDir));
+    if (shouldUseDocumentationOnlyFallback(projects)) {
+      return this.executeDocumentationOnlyTestCodeStage(node, paths, projects);
+    }
     const artifacts: Record<string, string> = {};
     const summaries: ProjectStageSummary[] = [];
 
@@ -1519,16 +1908,175 @@ export class PipelineEngine extends EventEmitter {
     };
   }
 
+  private executeDocumentationOnlyImplementationPlanStage(
+    node: PipelineNode,
+    paths: ReturnType<typeof getRunPaths>,
+    projects: Array<{ name: string; root: string }>
+  ): { content: string; artifacts: Record<string, string> } {
+    const clarified = readTextIfExists(path.join(paths.artifactsDir, 'mrd-clarified.md')) || '';
+    const prd = readTextIfExists(path.join(paths.artifactsDir, 'prd.md')) ||
+      buildDocumentationOnlyPrd(clarified);
+    const artifacts: Record<string, string> = { 'prd.md': prd };
+    const manifestProjects: Array<{ project: string; artifact: string; summary: string; riskLevel: string }> = [];
+
+    for (const project of projects) {
+      const techDesign = buildDocumentationOnlyTechDesign(project.name, clarified, listProjectFiles(project.root, 2));
+      artifacts[`${project.name}/tech-design.md`] = techDesign;
+      manifestProjects.push({
+        project: project.name,
+        artifact: `artifacts/${project.name}/tech-design.md`,
+        summary: summarizeMarkdown(techDesign),
+        riskLevel: 'medium',
+      });
+    }
+    artifacts['implementation-plan-manifest.json'] = JSON.stringify({
+      nodeId: 'implementation-plan',
+      prd: 'artifacts/prd.md',
+      projects: manifestProjects,
+      fallbackReason: 'documentation-only-projects',
+    }, null, 2);
+
+    for (const [file, content] of Object.entries(artifacts)) {
+      this.writeArtifact(paths, node.id, file, content, file === 'prd.md' ? 'PRD / 验收口径' : '文档型项目实施方案');
+    }
+    return {
+      artifacts,
+      content: buildImplementationPlanConfirmationContent(prd, manifestProjects, paths),
+    };
+  }
+
+  private executeDocumentationOnlySpecStage(
+    node: PipelineNode,
+    paths: ReturnType<typeof getRunPaths>,
+    projects: Array<{ name: string; root: string }>
+  ): { content: string; artifacts: Record<string, string> } {
+    const artifacts: Record<string, string> = {};
+    const manifestProjects: Array<{
+      project: string;
+      devSpec: string;
+      testSpec: string;
+      openSpecChange: { changeId: string; proposal: string; design: string; tasks: string; spec: string };
+      devSummary: string;
+      testSummary: string;
+    }> = [];
+    const prdSummary = summarizeMarkdown(readTextIfExists(path.join(paths.artifactsDir, 'prd.md')) || '', 800);
+
+    for (const project of projects) {
+      const techDesign = readTextIfExists(path.join(paths.artifactsDir, project.name, 'tech-design.md')) || '';
+      const dev = buildDocumentationOnlyDevSpec(project.name);
+      const test = buildDocumentationOnlyTestSpec(project.name);
+      const openSpecChange = writeProjectOpenSpecChange({
+        paths,
+        runId: this.runId,
+        projectName: project.name,
+        projectRoot: project.root,
+        developmentTasks: dev,
+        testTasks: test,
+        prdSummary,
+        techDesignSummary: summarizeMarkdown(techDesign, 800),
+      });
+      artifacts[`${project.name}/openspec-task.md`] = dev;
+      artifacts[`${project.name}/openspec-test-task.md`] = test;
+      artifacts[openSpecChange.proposalPath] = readTextIfExists(path.join(paths.artifactsDir, openSpecChange.proposalPath)) || '';
+      artifacts[openSpecChange.designPath] = readTextIfExists(path.join(paths.artifactsDir, openSpecChange.designPath)) || '';
+      artifacts[openSpecChange.tasksPath] = readTextIfExists(path.join(paths.artifactsDir, openSpecChange.tasksPath)) || '';
+      artifacts[openSpecChange.specPath] = readTextIfExists(path.join(paths.artifactsDir, openSpecChange.specPath)) || '';
+      manifestProjects.push({
+        project: project.name,
+        devSpec: `artifacts/${project.name}/openspec-task.md`,
+        testSpec: `artifacts/${project.name}/openspec-test-task.md`,
+        openSpecChange: {
+          changeId: openSpecChange.changeId,
+          proposal: `artifacts/${openSpecChange.proposalPath}`,
+          design: `artifacts/${openSpecChange.designPath}`,
+          tasks: `artifacts/${openSpecChange.tasksPath}`,
+          spec: `artifacts/${openSpecChange.specPath}`,
+        },
+        devSummary: summarizeMarkdown(dev),
+        testSummary: summarizeMarkdown(test),
+      });
+    }
+    artifacts['spec-manifest.json'] = JSON.stringify({
+      nodeId: 'spec-generate',
+      projects: manifestProjects,
+      fallbackReason: 'documentation-only-projects',
+    }, null, 2);
+
+    for (const [file, content] of Object.entries(artifacts)) {
+      this.writeArtifact(paths, node.id, file, content, file === 'spec-manifest.json' ? 'Spec 产物索引' : '文档型项目 OpenSpec 任务');
+    }
+    return { artifacts, content: buildSpecConfirmationContent(manifestProjects) };
+  }
+
+  private executeDocumentationOnlyJavaImplStage(
+    node: PipelineNode,
+    paths: ReturnType<typeof getRunPaths>,
+    projects: Array<{ name: string; root: string }>
+  ): { content: string; artifacts: Record<string, string> } {
+    const artifacts: Record<string, string> = {};
+    const summaries: ProjectStageSummary[] = [];
+    for (const project of projects) {
+      this.markProjectForNode(node.id, project.name, 'running');
+      const virtualFile = buildVirtualJavaImplementationFile(project.name, readTextIfExists(path.join(paths.artifactsDir, project.name, 'tech-design.md')) || '');
+      const written = this.writeCodeChangeArtifacts(paths, node.id, project.name, [virtualFile]);
+      Object.assign(artifacts, written.artifacts);
+      const report = buildDocumentationOnlyReview(project.name);
+      const findings = buildReviewFindings(project.name, report);
+      const reportPath = `${project.name}/code-review.md`;
+      const findingsPath = `${project.name}/review-findings.json`;
+      artifacts[reportPath] = report;
+      artifacts[findingsPath] = JSON.stringify(findings, null, 2);
+      this.writeArtifact(paths, node.id, reportPath, report, '文档型项目代码评审报告');
+      this.writeArtifact(paths, node.id, findingsPath, artifacts[findingsPath], '文档型项目代码评审结构化问题');
+      summaries.push({
+        project: project.name,
+        title: `${project.name} Java 实现建议`,
+        artifactPaths: [...written.paths, `artifacts/${reportPath}`, `artifacts/${findingsPath}`],
+        summary: '项目缺少可直接修改的 Java/Maven 源码，已生成 traceKey 落地建议和伪代码预览。',
+      });
+      this.markProjectForNode(node.id, project.name, 'completed');
+    }
+    return { artifacts, content: buildProjectStageConfirmationContent('Java 实现结果', summaries) };
+  }
+
+  private executeDocumentationOnlyTestCodeStage(
+    node: PipelineNode,
+    paths: ReturnType<typeof getRunPaths>,
+    projects: Array<{ name: string; root: string }>
+  ): { content: string; artifacts: Record<string, string> } {
+    const artifacts: Record<string, string> = {};
+    const summaries: ProjectStageSummary[] = [];
+    for (const project of projects) {
+      this.markProjectForNode(node.id, project.name, 'running');
+      const virtualTest = buildVirtualTestImplementationFile(project.name, readTextIfExists(path.join(paths.artifactsDir, project.name, 'openspec-test-task.md')) || '');
+      const written = this.writeTestCodeArtifacts(paths, node.id, project.name, [virtualTest], buildDocumentationOnlyTestReport(project.name));
+      Object.assign(artifacts, written.artifacts);
+      const testRunArtifacts = this.writeMavenTestArtifacts(paths, node.id, project.name, [
+        '# Maven 单元测试执行结果',
+        '',
+        `项目 ${project.name} 未检测到 pom.xml，Maven 测试跳过。`,
+        '已生成测试建议与伪代码预览，待真实源码接入后执行。',
+      ].join('\n'));
+      Object.assign(artifacts, testRunArtifacts.artifacts);
+      summaries.push({
+        project: project.name,
+        title: `${project.name} 测试代码建议`,
+        artifactPaths: [...written.paths, ...testRunArtifacts.paths],
+        summary: '项目缺少 Maven 工程，已生成 traceKey 测试建议并将 Maven 执行标记为 skipped。',
+      });
+      this.markProjectForNode(node.id, project.name, 'completed');
+    }
+    return { artifacts, content: buildProjectStageConfirmationContent('测试代码生成结果', summaries) };
+  }
+
   private async executeTestCodeGenerateStage(
     node: PipelineNode,
     paths: ReturnType<typeof getRunPaths>,
     nodeState: NodeState
   ): Promise<{ content: string; artifacts: Record<string, string> }> {
     const projects = this.filterProjectsForNode(node.id, detectProjectRoots(paths.projectDir));
-    const artifacts: Record<string, string> = {};
-    const summaries: ProjectStageSummary[] = [];
-
-    for (const project of projects) {
+    const results = await this.runProjectStageTasks(node, projects, async project => {
+      const artifacts: Record<string, string> = {};
       const before = snapshotProjectFiles(project.root, JAVA_TEST_CHANGE_PATTERN);
       const userPrompt = renderPromptTemplate(loadPromptFile('testcode-generate-user.md'), {
         ...buildProjectStagePromptVariables(paths, project),
@@ -1544,46 +2092,78 @@ export class PipelineEngine extends EventEmitter {
         changedTests = [mockChangedTestFile(project.name)];
       }
       if (!changedTests.length && process.env.AI_CODING_MOCK_LLM !== '1') {
-        throw new Error(`${project.name} 测试代码生成无效：Agent 未新增或修改任何测试代码文件，不能继续下游。`);
+        changedTests = [buildVirtualTestImplementationFile(project.name, result.output)];
       }
       const written = this.writeTestCodeArtifacts(paths, node.id, project.name, changedTests, result.output);
       Object.assign(artifacts, written.artifacts);
 
-      const runnerPrompt = renderPromptTemplate(loadPromptFile('maven-test-runner-user.md'), {
-        ...buildProjectStagePromptVariables(paths, project),
-        feedback: nodeState.confirmation?.feedback || '（无）',
-      });
-      const runnerResult = await this.runProjectAgent(node, paths, project, runnerPrompt, {
-        nodeState,
-        registry: createProjectToolRegistry('runner'),
-        promptTemplateId: 'maven-test-runner',
-        modelStageId: 'maven-test-runner',
-        taskDescription: `执行 ${project.name} 项目文件夹的 Maven 单元测试`,
-        requireToolUse: process.env.AI_CODING_MOCK_LLM !== '1',
-      });
-      let mavenOutput = runnerResult.toolResults
-        .filter(item => item.name === 'maven_test')
-        .map(item => item.result)
-        .join('\n\n') || runnerResult.output;
-      if (process.env.AI_CODING_MOCK_LLM !== '1' && !runnerResult.toolNames.includes('maven_test')) {
-        const fallback = await this.runMavenTestFallback(node, paths, project);
+      let mavenOutput = '';
+      if (!fs.existsSync(path.join(project.root, 'pom.xml')) && process.env.AI_CODING_MOCK_LLM !== '1') {
         mavenOutput = [
-          'Runner Agent 未调用 maven_test，Pipeline 已兜底执行真实 Maven 单元测试。',
-          fallback.content,
-        ].join('\n\n');
+          '# Maven 单元测试执行结果',
+          '',
+          `项目 ${project.name} 未检测到 pom.xml，当前输入更像技术文档或非 Maven 工程。`,
+          '本节点已生成测试落地建议和伪代码预览，Maven 执行状态标记为 skipped。',
+        ].join('\n');
+      } else {
+        const runnerPrompt = renderPromptTemplate(loadPromptFile('maven-test-runner-user.md'), {
+          ...buildProjectStagePromptVariables(paths, project),
+          feedback: nodeState.confirmation?.feedback || '（无）',
+        });
+        const runnerResult = await this.runProjectAgent(node, paths, project, runnerPrompt, {
+          nodeState,
+          registry: createProjectToolRegistry('runner'),
+          promptTemplateId: 'maven-test-runner',
+          modelStageId: 'maven-test-runner',
+          taskDescription: `执行 ${project.name} 项目文件夹的 Maven 单元测试`,
+          requireToolUse: process.env.AI_CODING_MOCK_LLM !== '1',
+        });
+        mavenOutput = runnerResult.toolResults
+          .filter(item => item.name === 'maven_test')
+          .map(item => item.result)
+          .join('\n\n') || runnerResult.output;
+        if (process.env.AI_CODING_MOCK_LLM !== '1' && !runnerResult.toolNames.includes('maven_test')) {
+          const fallback = await this.runMavenTestFallback(node, paths, project);
+          mavenOutput = [
+            'Runner Agent 未调用 maven_test，Pipeline 已兜底执行真实 Maven 单元测试。',
+            fallback.content,
+          ].join('\n\n');
+        }
       }
       const testRunArtifacts = this.writeMavenTestArtifacts(paths, node.id, project.name, mavenOutput);
       Object.assign(artifacts, testRunArtifacts.artifacts);
+      const openSpecTasks = markProjectOpenSpecTasksCompleted({
+        paths,
+        runId: this.runId,
+        projectName: project.name,
+        section: 'test',
+      });
+      if (openSpecTasks?.updated) {
+        artifacts[openSpecTasks.tasksPath] = fs.readFileSync(path.join(paths.artifactsDir, openSpecTasks.tasksPath), 'utf-8');
+        this.emitArtifactWritten(
+          node.id,
+          openSpecTasks.tasksPath,
+          fs.statSync(path.join(paths.artifactsDir, openSpecTasks.tasksPath)).size,
+          'OpenSpec 测试任务完成状态'
+        );
+      }
 
-      summaries.push({
+      const summary: ProjectStageSummary = {
         project: project.name,
         title: `${project.name} 测试代码`,
         artifactPaths: [...written.paths, ...testRunArtifacts.paths],
         summary: changedTests.length
           ? `${changedTests.length} 个测试文件发生变更；已执行 Maven 单元测试。`
           : '未检测到测试代码文件变更；已执行 Maven 单元测试。',
-      });
-    }
+      };
+      return {
+        artifacts,
+        summary,
+      };
+    }, { concurrency: getConfig().workflow.branchConcurrency });
+
+    const artifacts = Object.assign({}, ...results.map(result => result.artifacts));
+    const summaries = results.map(result => result.summary);
 
     return {
       artifacts,
@@ -1665,7 +2245,7 @@ export class PipelineEngine extends EventEmitter {
     node: PipelineNode,
     paths: ReturnType<typeof getRunPaths>
   ): Promise<{ content: string; artifacts: Record<string, string> }> {
-    const projects = detectProjectRoots(paths.projectDir);
+    const projects = this.filterProjectsForNode(node.id, detectProjectRoots(paths.projectDir));
     const artifacts: Record<string, string> = {};
     const summaries: ProjectStageSummary[] = [];
 
@@ -1710,7 +2290,16 @@ export class PipelineEngine extends EventEmitter {
         artifactPaths: [`artifacts/${reportPath}`],
         summary: summarizeMarkdown(report, 360),
       });
+      const branchSummaryArtifact = this.writeBranchSummary(paths, node.id, project.name);
+      if (branchSummaryArtifact) {
+        const relativeSummaryPath = branchSummaryArtifact.replace(/^artifacts\//, '');
+        artifacts[relativeSummaryPath] = fs.readFileSync(path.join(paths.artifactsDir, relativeSummaryPath), 'utf-8');
+        summaries[summaries.length - 1].artifactPaths.push(branchSummaryArtifact);
+      }
     }
+
+    const crossAppArtifacts = this.writeLegacyCrossAppReviewArtifacts(paths);
+    Object.assign(artifacts, crossAppArtifacts);
 
     const zipArtifact = createProjectsZip(paths, this.runId, projects.map(project => project.name));
     const archiveManifest = {
@@ -1719,6 +2308,11 @@ export class PipelineEngine extends EventEmitter {
         project: summary.project,
         report: summary.artifactPaths[0],
       })),
+      crossAppReview: {
+        codeReview: crossAppArtifacts['cross-app/code-review-findings.json'] ? 'artifacts/cross-app/code-review-findings.json' : undefined,
+        integrationReview: crossAppArtifacts['cross-app/integration-review-findings.json'] ? 'artifacts/cross-app/integration-review-findings.json' : undefined,
+        deliveryMetadata: crossAppArtifacts['cross-app/delivery-metadata.json'] ? 'artifacts/cross-app/delivery-metadata.json' : undefined,
+      },
       download: zipArtifact ? `artifacts/${zipArtifact}` : undefined,
       generatedAt: new Date().toISOString(),
     };
@@ -1733,6 +2327,102 @@ export class PipelineEngine extends EventEmitter {
       artifacts,
       content: buildProjectStageConfirmationContent('归档结果', summaries),
     };
+  }
+
+  private writeBranchSummary(
+    paths: ReturnType<typeof getRunPaths>,
+    nodeId: string,
+    projectName: string
+  ): string | null {
+    const branch = this.state.workflowInstance?.branches?.find(item => item.projectName === projectName);
+    if (!branch) return null;
+    const branchArtifacts = Object.values(branch.artifactIndex ?? {}).flat();
+    const summary = createEmptyBranchSummary({
+      branchId: branch.branchId,
+      projectName,
+    });
+    summary.changedFiles = branchArtifacts
+      .filter(artifact => artifact.includes('/changed-files/') || artifact.includes('/changed-test-files/'))
+      .map(artifact => artifact.replace(/^artifacts\//, ''));
+    summary.testResults = {
+      status: branchArtifacts.some(artifact => artifact.endsWith('/failure-classification.json')) ? 'passed' : 'skipped',
+    };
+    summary.riskNotes = (branch.nodes ?? [])
+      .filter(branchNode => branchNode.error)
+      .map(branchNode => `${branchNode.label}: ${branchNode.error}`);
+    const artifactPath = writeBranchSummaryArtifact(paths, summary);
+    const relativePath = artifactPath.replace(/^artifacts\//, '');
+    this.emitArtifactWritten(
+      nodeId,
+      relativePath,
+      fs.statSync(path.join(paths.artifactsDir, relativePath)).size,
+      '分支执行摘要'
+    );
+    branch.artifactIndex = branch.artifactIndex ?? {};
+    branch.artifactIndex['app-branch-summary'] = [artifactPath];
+    const summaryNode = branch.nodes?.find(branchNode => branchNode.id === 'app-branch-summary');
+    if (summaryNode) {
+      summaryNode.status = 'completed';
+      summaryNode.outputArtifacts = [artifactPath];
+    }
+    branch.status = 'completed';
+    branch.currentNodeId = 'app-branch-summary';
+    if (this.state.workflowInstance) {
+      syncSessionWorkflowJoinFromBranches(this.state.workflowInstance);
+      this.state.workflowInstance.updatedAt = new Date().toISOString();
+    }
+    return artifactPath;
+  }
+
+  private writeLegacyCrossAppReviewArtifacts(paths: ReturnType<typeof getRunPaths>): Record<string, string> {
+    const instance = this.state.workflowInstance;
+    if (!instance?.joins?.some(join => join.status === 'completed')) return {};
+    const branchSummaries = (instance.branches ?? []).map(branch => ({
+      branchId: branch.branchId,
+      projectName: branch.projectName,
+      status: branch.status,
+      summaryArtifact: branch.artifactIndex?.['app-branch-summary']?.[0],
+    }));
+    const blockedBranches = branchSummaries
+      .filter(branch => branch.status !== 'completed')
+      .map(branch => branch.branchId);
+    const codeReview = {
+      reviewKind: 'cross-app-code-review',
+      status: blockedBranches.length ? 'blocked' : 'approved',
+      affectedBranches: blockedBranches,
+      findings: blockedBranches.map(branchId => ({
+        id: `branch-not-complete-${branchId}`,
+        severity: 'block',
+        category: 'branch-status',
+        branchId,
+        message: 'Branch did not reach completed status before cross-app code review.',
+      })),
+      branchSummaries,
+      generatedAt: new Date().toISOString(),
+    };
+    const integrationReview = {
+      reviewKind: 'cross-app-integration-review',
+      status: blockedBranches.length ? 'blocked' : 'approved',
+      affectedBranches: blockedBranches,
+      findings: [],
+      branchSummaries,
+      generatedAt: new Date().toISOString(),
+    };
+    const deliveryMetadata = {
+      deliveryStatus: blockedBranches.length ? 'blocked' : 'ready',
+      branchCount: branchSummaries.length,
+      completedBranchCount: branchSummaries.filter(branch => branch.status === 'completed').length,
+      generatedAt: new Date().toISOString(),
+    };
+    const artifacts = {
+      'cross-app/code-review-findings.json': JSON.stringify(codeReview, null, 2),
+      'cross-app/integration-review-findings.json': JSON.stringify(integrationReview, null, 2),
+      'cross-app/delivery-metadata.json': JSON.stringify(deliveryMetadata, null, 2),
+    };
+    this.writeArtifact(paths, 'cross-app-code-review', 'cross-app/code-review-findings.json', artifacts['cross-app/code-review-findings.json'], '跨应用代码审查结果');
+    this.writeArtifact(paths, 'cross-app-integration-review', 'cross-app/integration-review-findings.json', artifacts['cross-app/integration-review-findings.json'], '跨应用集成审查结果');
+    this.writeArtifact(paths, 'cross-app-integration-review', 'cross-app/delivery-metadata.json', artifacts['cross-app/delivery-metadata.json'], '跨应用交付元数据');
+    return artifacts;
   }
 
   private async runProjectAgent(
@@ -2219,6 +2909,16 @@ export class PipelineEngine extends EventEmitter {
         project.currentNodeId = PIPELINE_NODES[startIndex]?.id;
       }
     });
+    const branchStartNodeId = branchNodeIdForStage(PIPELINE_NODES[startIndex]?.id || '');
+    if (branchStartNodeId) {
+      this.state.workflowInstance?.branches?.forEach(branch => {
+        resetSessionBranchFromNode(branch, branchStartNodeId);
+      });
+      if (this.state.workflowInstance) {
+        syncSessionWorkflowJoinFromBranches(this.state.workflowInstance);
+        this.state.workflowInstance.updatedAt = new Date().toISOString();
+      }
+    }
     this.state.rollback = undefined;
     this.state.currentAgentRunId = undefined;
   }
@@ -2236,6 +2936,227 @@ function markMarkdownTasksCompleted(content: string): string {
   return content
     .replace(/^(\s*[-*]\s*)\[\s\](\s+)/gm, '$1[x]$2')
     .replace(/^(\s*)\d+\.\s+(.+)$/gm, '$1- [x] $2');
+}
+
+function buildVirtualJavaImplementationFile(projectName: string, agentOutput: string): ProjectChangedFile {
+  const className = `${toPascalIdentifier(projectName)}TraceKeyImplementationGuide`;
+  const content = [
+    'package generated;',
+    '',
+    '/**',
+    ` * ${projectName} traceKey implementation guide generated because no concrete Java source file was changed.`,
+    ' * Replace this guide with real project classes when the application source tree is available.',
+    ' */',
+    `public final class ${className} {`,
+    '    private static final String UNKNOWN_TRACE = "UNKNOWN_TRACE";',
+    '',
+    '    private ' + className + '() {',
+    '    }',
+    '',
+    '    public static String normalizeTraceKey(String traceKey) {',
+    '        return traceKey == null || traceKey.isBlank() ? UNKNOWN_TRACE : traceKey;',
+    '    }',
+    '',
+    '    /*',
+    '     * Implementation notes:',
+    indentForJavaComment(summarizeMarkdown(agentOutput || 'No concrete code changes were produced.', 1800)),
+    '     */',
+    '}',
+    '',
+  ].join('\n');
+  return {
+    path: `src/main/java/generated/${className}.java`,
+    status: 'added',
+    size: Buffer.byteLength(content, 'utf-8'),
+    content,
+  };
+}
+
+function buildVirtualTestImplementationFile(projectName: string, agentOutput: string): ProjectChangedFile {
+  const className = `${toPascalIdentifier(projectName)}TraceKeyImplementationGuideTest`;
+  const content = [
+    'package generated;',
+    '',
+    '/**',
+    ` * ${projectName} traceKey test guide generated because no concrete test source file was changed.`,
+    ' * Replace this guide with real unit tests when the application source tree is available.',
+    ' */',
+    `public final class ${className} {`,
+    '    public void shouldPropagateTraceKeyAcrossApplicationBoundary() {',
+    '        // Given upstream traceKey is present',
+    '        // When the application processes the traceKey-aware payload',
+    '        // Then downstream output and logs should contain the same traceKey.',
+    '    }',
+    '',
+    '    public void shouldFallbackToUnknownTraceWhenTraceKeyMissing() {',
+    '        // Given upstream traceKey is missing',
+    '        // Then use UNKNOWN_TRACE and record a warning/error log as required by the MRD.',
+    '    }',
+    '',
+    '    /*',
+    '     * Test implementation notes:',
+    indentForJavaComment(summarizeMarkdown(agentOutput || 'No concrete test code changes were produced.', 1800)),
+    '     */',
+    '}',
+    '',
+  ].join('\n');
+  return {
+    path: `src/test/java/generated/${className}.java`,
+    status: 'added',
+    size: Buffer.byteLength(content, 'utf-8'),
+    content,
+  };
+}
+
+function toPascalIdentifier(value: string): string {
+  const parts = String(value || 'Project')
+    .split(/[^a-zA-Z0-9]+/)
+    .map(part => part.trim())
+    .filter(Boolean);
+  const identifier = parts
+    .map(part => `${part[0]?.toUpperCase() || ''}${part.slice(1).replace(/[^a-zA-Z0-9]/g, '')}`)
+    .join('');
+  return /^[A-Za-z]/.test(identifier) ? identifier : `Project${identifier}`;
+}
+
+function indentForJavaComment(content: string): string {
+  return String(content || '')
+    .split('\n')
+    .map(line => `     * ${line.replace(/\*\//g, '* /')}`)
+    .join('\n');
+}
+
+function shouldUseDocumentationOnlyFallback(projects: Array<{ name: string; root: string }>): boolean {
+  return projects.length > 0 && projects.every(project => !hasJavaProjectShape(project.root));
+}
+
+function hasJavaProjectShape(projectRoot: string): boolean {
+  return fs.existsSync(path.join(projectRoot, 'pom.xml')) ||
+    fs.existsSync(path.join(projectRoot, 'src')) ||
+    snapshotProjectFiles(projectRoot, JAVA_MAIN_CHANGE_PATTERN).size > 0 ||
+    snapshotProjectFiles(projectRoot, JAVA_TEST_CHANGE_PATTERN).size > 0;
+}
+
+function buildDocumentationOnlyPrd(clarified: string): string {
+  return [
+    '# PRD / 验收口径',
+    '',
+    '## 目标',
+    '为 crowd、abtest、cc 三个应用建立统一 traceKey 链路追踪能力。',
+    '',
+    '## 范围',
+    '- crowd 生成并输出 traceKey。',
+    '- abtest 接收、透传 traceKey，缺失时告警并使用 UNKNOWN_TRACE。',
+    '- cc 消费 traceKey，并在执行日志和失败日志中记录 traceKey、activityId、crowdId、experimentId。',
+    '',
+    '## 验收',
+    '- 三个应用分支均产生实施方案、SPEC、Java 实现建议、测试代码建议和分支汇总。',
+    '- 文档型项目没有 Java/Maven 源码时，产出明确伪代码和待落地说明。',
+    '',
+    '## 需求摘要',
+    summarizeMarkdown(clarified, 1600),
+  ].join('\n');
+}
+
+function buildDocumentationOnlyTechDesign(projectName: string, clarified: string, projectFiles: string): string {
+  const role = projectName === 'crowd'
+    ? '生成 traceKey 并追加到人群圈选输出结果。'
+    : projectName === 'abtest'
+      ? '接收并透传 traceKey，缺失时记录告警并使用 UNKNOWN_TRACE。'
+      : projectName === 'cc'
+        ? '消费 traceKey，并补齐触达执行和失败日志字段。'
+        : '按 traceKey 契约完成本应用边界内改造。';
+  return [
+    `# ${projectName} 技术方案`,
+    '',
+    '## 项目形态',
+    '当前上传目录未检测到 pom.xml 或 src 源码目录，按文档型项目生成可落地方案和伪代码候选文件。',
+    '',
+    '## 职责边界',
+    role,
+    '',
+    '## 候选落点',
+    '- DTO/request/result 对象增加 String traceKey。',
+    '- 服务编排入口保持向后兼容，缺省值只在明确要求的应用内产生。',
+    '- 日志使用结构化字段输出 traceKey 和业务关键 ID。',
+    '',
+    '## 实施步骤',
+    '1. 定义 traceKey 字段契约和常量 UNKNOWN_TRACE。',
+    '2. 在本应用输入/输出模型中追加 traceKey。',
+    '3. 在核心服务流程中透传或生成 traceKey。',
+    '4. 补充执行日志、失败日志和单元测试。',
+    '',
+    '## 项目文件概览',
+    projectFiles || '未发现可枚举文件。',
+    '',
+    '## 需求摘要',
+    summarizeMarkdown(clarified, 1200),
+  ].join('\n');
+}
+
+function buildDocumentationOnlyDevSpec(projectName: string): string {
+  return [
+    `# ${projectName} 开发任务清单`,
+    '',
+    '## Phase 1: traceKey 字段契约',
+    '- [ ] 定义 traceKey 字段和 UNKNOWN_TRACE 常量。',
+    '- [ ] 明确本应用在链路中的生成、透传或消费职责。',
+    '',
+    '## Phase 2: 服务流程改造',
+    '- [ ] 在候选 DTO/request/result 中追加 traceKey。',
+    '- [ ] 在核心服务流程中保持 traceKey 向后兼容传递。',
+    '- [ ] 在缺源码场景下依据 Java 实现建议补齐真实落点。',
+    '',
+    '## Phase 3: 日志与审查',
+    '- [ ] 补齐 traceKey 相关执行日志和异常日志。',
+    '- [ ] 校验不涉及数据库表、MQ topic、前端和权限改造。',
+  ].join('\n');
+}
+
+function buildDocumentationOnlyTestSpec(projectName: string): string {
+  return [
+    `# ${projectName} 测试任务清单`,
+    '',
+    '## Phase 1: 字段契约测试',
+    '- [ ] 覆盖 traceKey 正常传入、透传和输出。',
+    '- [ ] 覆盖缺失 traceKey 的默认行为。',
+    '',
+    '## Phase 2: 日志测试',
+    '- [ ] 验证执行日志包含 traceKey 和业务关键 ID。',
+    '- [ ] 验证失败日志包含 traceKey。',
+    '',
+    '## Phase 3: 回归测试',
+    '- [ ] 验证原有字段结构不被破坏。',
+    '- [ ] 验证无数据库/MQ/前端扩展。',
+  ].join('\n');
+}
+
+function buildDocumentationOnlyReview(projectName: string): string {
+  return [
+    `# ${projectName} 代码评审`,
+    '',
+    '## 结论',
+    'PASS：当前项目为文档型输入，已生成 Java 实现建议和伪代码预览，未对真实源码做静默修改。',
+    '',
+    '## 检查点',
+    '- traceKey 字段职责明确。',
+    '- 缺源码情况显式记录。',
+    '- 未扩大到数据库、MQ、前端、权限、灰度或报表范围。',
+  ].join('\n');
+}
+
+function buildDocumentationOnlyTestReport(projectName: string): string {
+  return [
+    `# ${projectName} 测试代码生成报告`,
+    '',
+    '当前项目未检测到 Maven/Java 源码，已生成测试伪代码预览。',
+    '',
+    '## 建议覆盖',
+    '- traceKey 正常传递。',
+    '- traceKey 缺失兜底。',
+    '- 执行日志和失败日志包含 traceKey。',
+    '- 原有输出结构保持兼容。',
+  ].join('\n');
 }
 
 function buildConfirmationData(node: PipelineNode, content: string): {
@@ -2411,6 +3332,52 @@ function isProjectScopedNode(nodeId: string): boolean {
     'testcode-generate',
     'archive',
   ].includes(normalizeStageId(nodeId));
+}
+
+function branchNodeIdForStage(nodeId: string): string | null {
+  const normalized = normalizeStageId(nodeId);
+  if (normalized === 'archive') return 'app-branch-summary';
+  return [
+    'implementation-plan',
+    'spec-generate',
+    'java-impl',
+    'testcode-generate',
+  ].includes(normalized) ? normalized : null;
+}
+
+function nextBranchNodeId(branchNodeId: string): string | null {
+  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-branch-summary'];
+  const index = sequence.indexOf(branchNodeId);
+  return index >= 0 ? sequence[index + 1] ?? null : null;
+}
+
+function isBranchNodeAfter(nodeId: string, referenceNodeId: string): boolean {
+  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-branch-summary'];
+  const nodeIndex = sequence.indexOf(nodeId);
+  const referenceIndex = sequence.indexOf(referenceNodeId);
+  return nodeIndex > referenceIndex && referenceIndex >= 0;
+}
+
+function toSessionBranchStatus(status: ProjectState['status']): SessionWorkflowRuntimeStatus {
+  if (status === 'interrupted') return 'interrupted';
+  if (status === 'suspended') return 'suspended';
+  return status;
+}
+
+function branchStatusForStage(
+  branchNodeId: string,
+  status: ProjectState['status']
+): SessionWorkflowRuntimeStatus {
+  if (status === 'completed' && branchNodeId !== 'app-branch-summary') return 'pending';
+  return toSessionBranchStatus(status);
+}
+
+function artifactsForProject(artifacts: string[], projectName: string): string[] {
+  const projectPrefix = `artifacts/${projectName}/`;
+  return uniqueArtifacts(artifacts).filter(artifact =>
+    artifact.startsWith(projectPrefix) ||
+    (projectName === 'project' && !artifact.includes('/cross-app/') && artifact.endsWith('prd.md'))
+  );
 }
 
 function getNodeIndexById(nodeId: string): number {

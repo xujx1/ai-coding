@@ -50,6 +50,12 @@ export function detectProjectRoots(projectDir: string): Array<{ name: string; ro
     if (roots.length) {
       return roots;
     }
+    if (!looksLikeSingleProjectDirectory(projectDir) && entries.length > 1) {
+      return entries.map(entry => ({
+        name: safeProjectArtifactName(entry.name),
+        root: path.join(projectDir, entry.name),
+      }));
+    }
     if (entries.length > 0) {
       return [{ name: 'project', root: projectDir }];
     }
@@ -120,6 +126,14 @@ function isProjectRoot(dir: string): boolean {
   return fs.existsSync(path.join(dir, 'pom.xml')) ||
     fs.existsSync(path.join(dir, 'build.gradle')) ||
     fs.existsSync(path.join(dir, 'build.gradle.kts'));
+}
+
+function looksLikeSingleProjectDirectory(dir: string): boolean {
+  return fs.existsSync(path.join(dir, 'src')) ||
+    fs.existsSync(path.join(dir, 'package.json')) ||
+    fs.existsSync(path.join(dir, 'settings.gradle')) ||
+    fs.existsSync(path.join(dir, 'settings.gradle.kts')) ||
+    fs.existsSync(path.join(dir, 'README.md'));
 }
 
 function safeProjectArtifactName(name: string): string {

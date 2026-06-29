@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#101820"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/>
+    </marker>
+    <marker id="arrowMuted" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6e7681"/>
+    </marker>
+    <style>
+      text {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      .title { fill: #e6edf3; font-size: 34px; font-weight: 800; }
+      .subtitle { fill: #8b949e; font-size: 18px; font-weight: 600; }
+      .node-title { fill: #e6edf3; font-size: 20px; font-weight: 800; }
+      .node-sub { fill: #8b949e; font-size: 13px; font-weight: 600; }
+      .stage { fill: #e6edf3; font-size: 16px; font-weight: 760; }
+      .app { fill: #e6edf3; font-size: 21px; font-weight: 850; }
+      .label { fill: #8b949e; font-size: 14px; font-weight: 650; }
+      .box { fill: #161b22; stroke: #30363d; stroke-width: 2; rx: 10; filter: url(#shadow); }
+      .box-blue { fill: #0f2235; stroke: #1f6feb; stroke-width: 2; rx: 10; filter: url(#shadow); }
+      .box-green { fill: #11261b; stroke: #238636; stroke-width: 2; rx: 10; filter: url(#shadow); }
+      .box-review { fill: #1a1f2b; stroke: #bc8cff; stroke-width: 2; rx: 10; filter: url(#shadow); }
+      .lane { fill: #0d1117; stroke: #30363d; stroke-width: 2; rx: 14; }
+      .chip { fill: #161b22; stroke: #3b434d; stroke-width: 1.5; rx: 8; }
+      .chip-current { fill: #0f2235; stroke: #58a6ff; stroke-width: 2; rx: 8; }
+      .line { stroke: #58a6ff; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .line-muted { stroke: #6e7681; stroke-width: 2.5; fill: none; marker-end: url(#arrowMuted); }
+      .line-join { stroke: #3fb950; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="980" fill="url(#bg)"/>
+  <text x="72" y="72" class="title">多应用动态 Workflow 草图</text>
+  <text x="72" y="106" class="subtitle">顶层看 orchestration，Fanout 后按应用泳道并行执行，Join 后做跨应用审查</text>
+
+  <rect x="80" y="160" width="210" height="86" class="box-blue"/>
+  <text x="185" y="196" text-anchor="middle" class="node-title">应用 Fanout</text>
+  <text x="185" y="224" text-anchor="middle" class="node-sub">按需求边界生成分支</text>
+
+  <path d="M290 203 C330 203 348 203 382 203" class="line"/>
+  <path d="M382 203 C410 203 410 278 438 278" class="line-muted"/>
+  <path d="M382 203 C410 203 410 408 438 408" class="line-muted"/>
+  <path d="M382 203 C410 203 410 538 438 538" class="line-muted"/>
+
+  <g transform="translate(430 230)">
+    <rect width="980" height="96" class="lane"/>
+    <text x="28" y="59" class="app">crowd</text>
+    <g transform="translate(145 22)">
+      <rect width="136" height="52" class="chip-current"/>
+      <text x="68" y="34" text-anchor="middle" class="stage">实施方案</text>
+    </g>
+    <path d="M286 48 H332" class="line-muted"/>
+    <g transform="translate(340 22)">
+      <rect width="112" height="52" class="chip"/>
+      <text x="56" y="34" text-anchor="middle" class="stage">SPEC</text>
+    </g>
+    <path d="M457 48 H503" class="line-muted"/>
+    <g transform="translate(510 22)">
+      <rect width="136" height="52" class="chip"/>
+      <text x="68" y="34" text-anchor="middle" class="stage">Java 实现</text>
+    </g>
+    <path d="M651 48 H697" class="line-muted"/>
+    <g transform="translate(704 22)">
+      <rect width="136" height="52" class="chip"/>
+      <text x="68" y="34" text-anchor="middle" class="stage">测试代码</text>
+    </g>
+    <path d="M845 48 H891" class="line-muted"/>
+    <g transform="translate(898 22)">
+      <rect width="64" height="52" class="chip"/>
+      <text x="32" y="34" text-anchor="middle" class="stage">自检</text>
+    </g>
+  </g>
+
+  <g transform="translate(430 360)">
+    <rect width="980" height="96" class="lane"/>
+    <text x="28" y="59" class="app">abtest</text>
+    <g transform="translate(145 22)">
+      <rect width="136" height="52" class="chip-current"/>
+      <text x="68" y="34" text-anchor="middle" class="stage">实施方案</text>
+    </g>
+    <path d="M286 48 H332" class="line-muted"/>
+    <g transform="translate(340 22)">
+      <rect width="112" height="52" class="chip"/>
+      <text x="56" y="34" text-anchor="middle" class="stage">SPEC</text>
+    </g>
+    <path d="M457 48 H503" class="line-muted"/>
+    <g transform="translate(510 22)">
+      <rect width="136" height="52" class="chip"/>
+      <text x="68" y="34" text-anchor="middle" class="stage">Java 实现</text>
+    </g>
+    <path d="M651 48 H697" class="line-muted"/>
+    <g transform="translate(704 22)">
+      <rect width="136" height="52" class="chip"/>
+      <text x="68" y="34" text-anchor="middle" class="stage">测试代码</text>
+    </g>
+    <path d="M845 48 H891" class="line-muted"/>
+    <g transform="translate(898 22)">
+      <rect width="64" height="52" class="chip"/>
+      <text x="32" y="34" text-anchor="middle" class="stage">自检</text>
+    </g>
+  </g>
+
+  <g transform="translate(430 490)">
+    <rect width="980" height="96" class="lane"/>
+    <text x="28" y="59" class="app">cc</text>
+    <g transform="translate(145 22)">
+      <rect width="136" height="52" class="chip-current"/>
+      <text x="68" y="34" text-anchor="middle" class="stage">实施方案</text>
+    </g>
+    <path d="M286 48 H332" class="line-muted"/>
+    <g transform="translate(340 22)">
+      <rect width="112" height="52" class="chip"/>
+      <text x="56" y="34" text-anchor="middle" class="stage">SPEC</text>
+    </g>
+    <path d="M457 48 H503" class="line-muted"/>
+    <g transform="translate(510 22)">
+      <rect width="136" height="52" class="chip"/>
+      <text x="68" y="34" text-anchor="middle" class="stage">Java 实现</text>
+    </g>
+    <path d="M651 48 H697" class="line-muted"/>
+    <g transform="translate(704 22)">
+      <rect width="136" height="52" class="chip"/>
+      <text x="68" y="34" text-anchor="middle" class="stage">测试代码</text>
+    </g>
+    <path d="M845 48 H891" class="line-muted"/>
+    <g transform="translate(898 22)">
+      <rect width="64" height="52" class="chip"/>
+      <text x="32" y="34" text-anchor="middle" class="stage">自检</text>
+    </g>
+  </g>
+
+  <path d="M1395 278 C1490 278 1490 642 1220 642" class="line-join"/>
+  <path d="M1395 408 C1490 408 1490 642 1220 642" class="line-join"/>
+  <path d="M1395 538 C1490 538 1490 642 1220 642" class="line-join"/>
+
+  <rect x="1050" y="612" width="170" height="68" class="box-green"/>
+  <text x="1135" y="653" text-anchor="middle" class="node-title">Join</text>
+  <text x="1135" y="674" text-anchor="middle" class="node-sub">等待分支全部终态</text>
+
+  <path d="M1135 680 V724" class="line"/>
+  <rect x="960" y="724" width="350" height="70" class="box-review"/>
+  <text x="1135" y="765" text-anchor="middle" class="node-title">跨应用代码审查</text>
+  <text x="1135" y="786" text-anchor="middle" class="node-sub">字段、接口、边界、重复实现</text>
+
+  <path d="M1135 794 V836" class="line"/>
+  <rect x="960" y="836" width="350" height="70" class="box-review"/>
+  <text x="1135" y="877" text-anchor="middle" class="node-title">跨应用集成审查</text>
+  <text x="1135" y="898" text-anchor="middle" class="node-sub">端到端链路和兼容性</text>
+
+  <path d="M960 872 H836" class="line"/>
+  <rect x="660" y="836" width="176" height="70" class="box-green"/>
+  <text x="748" y="877" text-anchor="middle" class="node-title">归档</text>
+  <text x="748" y="898" text-anchor="middle" class="node-sub">分支报告 + 总交付</text>
+
+  <rect x="80" y="800" width="430" height="96" class="box"/>
+  <text x="108" y="836" class="node-title">阅读规则</text>
+  <text x="108" y="864" class="label">横向：单个应用从实施方案跑到分支自检</text>
+  <text x="108" y="890" class="label">纵向：所有应用完成后汇合做跨应用审查</text>
+</svg>

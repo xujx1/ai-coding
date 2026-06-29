@@ -33,6 +33,10 @@ Implement the current project's production Java changes.
 
 {{openspec_task}}
 
+### OpenSpec Change Artifacts
+
+{{openspec_change_context}}
+
 ### Test OpenSpec Task List
 
 {{openspec_test_task}}
@@ -47,6 +51,6 @@ Implement the current project's production Java changes.
 
 ## Required Work
 
-Use read/search tools first, then edit or write production code under this project only. Run `maven_compile` before finishing when the project is Maven based. Final response must summarize changed production files and verification result.
+Use read/search tools first, then edit or write production code under this project only. Treat the OpenSpec change `tasks.md` development section as the execution checklist, and keep implementation aligned with `proposal.md`, `design.md`, and `spec.md`. Run `maven_compile` before finishing when the project is Maven based. Final response must summarize changed production files and verification result.
 
 Do not stop after saying what you will do. This node is successful only if production files under `src/main` or `pom.xml` are actually changed and compilation is verified. If you believe no change is needed, prove it with tool reads and compilation; otherwise implement the requested behavior now.

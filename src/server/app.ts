@@ -30,6 +30,18 @@ import { processUploads } from '../runtime/uploads.js';
 import { getPermissionManager, PermissionMode } from '../tools/security/permissions.js';
 import { getWebSocketHub } from './ws.js';
 import { PIPELINE_NODES } from '../pipeline/definition.js';
+import { BUILTIN_MRD_TO_CODE_WORKFLOW_ID } from '../workflows/builtinDefinitions.js';
+import {
+  getDefaultWorkflowDefinition,
+  listWorkflowDefinitions,
+  updateDefaultWorkflowConfig,
+  WorkflowConfigPatch,
+} from '../workflows/storage.js';
+import { validateWorkflowDefinition } from '../workflows/validation.js';
+import {
+  getLangGraphRuntime,
+  shouldUseLangGraphRuntime,
+} from '../langgraph/runtime.js';
 
 interface UploadedFilePayload {
   name: string;
@@ -234,6 +246,37 @@ app.patch('/api/settings', async (c) => {
   });
 });
 
+// ── API: Workflows ────────────────────────────────────────────────────────
+app.get('/api/workflows', (c) => {
+  return c.json({ workflows: listWorkflowDefinitions() });
+});
+
+app.get('/api/workflows/default-mrd-to-code', (c) => {
+  return c.json({ workflow: getDefaultWorkflowDefinition() });
+});
+
+app.get('/api/workflows/:workflowId/validate', (c) => {
+  const workflowId = c.req.param('workflowId');
+  if (workflowId !== BUILTIN_MRD_TO_CODE_WORKFLOW_ID) {
+    return c.json({ error: `Workflow '${workflowId}' not found` }, 404);
+  }
+  const workflow = getDefaultWorkflowDefinition();
+  return c.json({ validation: validateWorkflowDefinition(workflow) });
+});
+
+app.put('/api/workflows/default-mrd-to-code/config', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  try {
+    const workflow = updateDefaultWorkflowConfig({
+      globalConfig: isRecord(body.globalConfig) ? body.globalConfig : undefined,
+      nodes: isRecord(body.nodes) ? normalizeWorkflowNodePatch(body.nodes) : undefined,
+    });
+    return c.json({ workflow });
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 400);
+  }
+});
+
 // ── API: Sessions / Runs ──────────────────────────────────────────────────
 app.get('/api/sessions', (c) => {
   const sessions = sessionManager.listSessions();
@@ -280,12 +323,33 @@ app.post('/api/sessions/:runId/suspend', (c) => {
   return c.json({ suspended: ok });
 });
 
-app.post('/api/sessions/:runId/cancel', (c) => {
+app.post('/api/sessions/:runId/cancel', async (c) => {
   const runId = c.req.param('runId');
+  if (shouldUseLangGraphRuntime()) {
+    await getLangGraphRuntime().cancel(runId);
+    return c.json({ cancelled: true });
+  }
   const ok = sessionManager.cancelSession(runId);
   const pipeline = getPipeline(runId);
   if (pipeline) pipeline.abort();
   return c.json({ cancelled: ok });
+});
+
+app.post('/api/sessions/:runId/branches/:branchId/rerun', async (c) => {
+  const runId = c.req.param('runId');
+  const branchId = c.req.param('branchId');
+  const body = await c.req.json().catch(() => ({}));
+  const state = sessionManager.rerunBranch(runId, branchId, body.fromNodeId);
+  if (!state) return c.json({ error: 'Branch not found' }, 404);
+  return c.json({ state });
+});
+
+app.post('/api/sessions/:runId/branches/:branchId/cancel', (c) => {
+  const runId = c.req.param('runId');
+  const branchId = c.req.param('branchId');
+  const state = sessionManager.cancelBranch(runId, branchId);
+  if (!state) return c.json({ error: 'Branch not found' }, 404);
+  return c.json({ state });
 });
 
 app.delete('/api/sessions/:runId', (c) => {
@@ -337,6 +401,18 @@ app.post('/api/sessions/:runId/pipeline/start', async (c) => {
   const runId = c.req.param('runId');
   const body = await c.req.json().catch(() => ({}));
 
+  if (shouldUseLangGraphRuntime()) {
+    wsHub.subscribeEventLog(runId);
+    getLangGraphRuntime().start(runId, {
+      workflowId: BUILTIN_MRD_TO_CODE_WORKFLOW_ID,
+    }).catch(err => {
+      const eventLog = getEventLog(runId);
+      eventLog.logEvent('error', { message: err.message });
+      wsHub.broadcast(runId, { type: 'pipeline_failed', runId, error: err.message });
+    });
+    return c.json({ started: true, runId, runtime: 'langgraph' });
+  }
+
   const pipeline = getPipeline(runId);
   wsHub.subscribePipeline(runId, pipeline);
 
@@ -360,26 +436,39 @@ app.post('/api/sessions/:runId/pipeline/confirm', async (c) => {
   const approved = body.approved !== false;
   const feedback = body.feedback as string | undefined;
 
+  if (shouldUseLangGraphRuntime()) {
+    await getLangGraphRuntime().resume(runId, { approved, feedback });
+    return c.json({ confirmed: approved, runtime: 'langgraph' });
+  }
+
   const pipeline = getPipeline(runId);
   pipeline.resolveConfirmation(nodeId, approved, feedback);
 
   return c.json({ confirmed: approved });
 });
 
-app.post('/api/sessions/:runId/pipeline/cancel', (c) => {
+app.post('/api/sessions/:runId/pipeline/cancel', async (c) => {
   const runId = c.req.param('runId');
   const session = sessionManager.getSession(runId);
   if (!session.state) return c.json({ error: 'Session not found' }, 404);
+  if (shouldUseLangGraphRuntime()) {
+    await getLangGraphRuntime().cancel(runId);
+    return c.json({ cancelled: true, runtime: 'langgraph' });
+  }
   const pipeline = getPipeline(runId);
   pipeline.abort();
   sessionManager.cancelSession(runId);
   return c.json({ cancelled: true });
 });
 
-app.post('/api/sessions/:runId/pipeline/interrupt', (c) => {
+app.post('/api/sessions/:runId/pipeline/interrupt', async (c) => {
   const runId = c.req.param('runId');
   const session = sessionManager.getSession(runId);
   if (!session.state) return c.json({ error: 'Session not found' }, 404);
+  if (shouldUseLangGraphRuntime()) {
+    await getLangGraphRuntime().cancel(runId);
+    return c.json({ interrupted: true, runId, runtime: 'langgraph' });
+  }
   const pipeline = getPipeline(runId);
   pipeline.abort();
   sessionManager.cancelSession(runId);
@@ -723,6 +812,22 @@ function extractModelIds(payload: unknown): string[] {
 function firstString(value: unknown): string | undefined {
   const first = Array.isArray(value) ? value[0] : value;
   return typeof first === 'string' ? first : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeWorkflowNodePatch(
+  nodes: Record<string, unknown>
+): WorkflowConfigPatch['nodes'] {
+  const normalized: WorkflowConfigPatch['nodes'] = {};
+  for (const [nodeId, patch] of Object.entries(nodes)) {
+    if (isRecord(patch)) {
+      normalized[nodeId] = patch;
+    }
+  }
+  return normalized;
 }
 
 async function collectUploadedFiles(formData: Record<string, unknown>): Promise<{

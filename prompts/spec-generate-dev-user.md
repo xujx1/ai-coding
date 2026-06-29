@@ -30,6 +30,7 @@
 - 每条任务尽量包含目标文件、类名、方法名、接口路径、SQL/Mapper 或 Maven 命令。
 - 不能用 `1.`/`2.` 编号任务。
 - 后续 Java 实现节点会在这份文件上把完成项从 `[ ]` 改为 `[x]`，所以不要省略 checkbox。
+- Pipeline 会将这份任务清单同步生成到 `artifacts/{{project_name}}/openspec/changes/.../tasks.md` 的 Development 部分，所以每条任务必须是 OpenSpec 可执行任务。
 - 不要输出测试代码。
 
 推荐结构：

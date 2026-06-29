@@ -5,6 +5,8 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
 import { PipelineEngine } from '../pipeline/engine.js';
+import { getEventLog } from '../events/EventLog.js';
+import { PipelineEvent as LoggedPipelineEvent } from '../events/types.js';
 
 interface ClientSubscription {
   ws: WebSocket;
@@ -14,6 +16,7 @@ interface ClientSubscription {
 export class WebSocketHub {
   private clients = new Map<string, Set<WebSocket>>();
   private wss: WebSocketServer | null = null;
+  private eventLogSubscriptions = new Set<string>();
 
   attach(server: any): void {
     this.wss = new WebSocketServer({ server, path: '/api/ws' });
@@ -100,6 +103,84 @@ export class WebSocketHub {
     engine.on('event', (event: unknown) => {
       this.broadcast(runId, event);
     });
+  }
+
+  /** Connect EventLog entries to the legacy WebSocket message shapes. */
+  subscribeEventLog(runId: string): void {
+    if (this.eventLogSubscriptions.has(runId)) return;
+    this.eventLogSubscriptions.add(runId);
+    getEventLog(runId).on('event', (event: LoggedPipelineEvent) => {
+      const mapped = mapLoggedEventToWebSocketMessage(event);
+      if (mapped) this.broadcast(runId, mapped);
+    });
+  }
+}
+
+function mapLoggedEventToWebSocketMessage(event: LoggedPipelineEvent): unknown | null {
+  switch (event.type) {
+    case 'pipeline_node_start':
+      return {
+        type: 'stage_start',
+        nodeId: event.nodeId ?? event.data?.nodeId,
+        nodeName: event.data?.nodeName,
+      };
+    case 'pipeline_node_end':
+      return {
+        type: 'stage_end',
+        nodeId: event.nodeId ?? event.data?.nodeId,
+        success: event.data?.success !== false,
+        output: event.data?.error,
+      };
+    case 'confirmation_waiting':
+      return {
+        type: 'confirmation_required',
+        nodeId: event.nodeId ?? event.data?.nodeId,
+        title: event.data?.title,
+        content: event.data?.content,
+        artifactPath: event.data?.artifactPath,
+        confirmationKind: event.data?.confirmationKind,
+      };
+    case 'confirmation_resolved':
+      return {
+        type: 'confirmation_resolved',
+        nodeId: event.nodeId ?? event.data?.nodeId,
+        approved: event.data?.approved,
+        feedback: event.data?.feedback,
+      };
+    case 'artifact_written':
+      return {
+        type: 'stage_progress',
+        nodeId: event.nodeId ?? event.data?.nodeId,
+        event: {
+          type: 'artifact_written',
+          ...event.data,
+        },
+      };
+    case 'fanout_decision':
+    case 'branch_transition':
+    case 'join_state_updated':
+    case 'branch_rerun_scheduled':
+    case 'branch_cancelled':
+    case 'node_rollback_requested':
+    case 'node_rollback_started':
+      return {
+        type: 'stage_progress',
+        nodeId: event.nodeId ?? event.data?.nodeId,
+        event: {
+          type: event.type,
+          ...event.data,
+        },
+      };
+    case 'pipeline_completed':
+      return { type: 'pipeline_complete', runId: event.runId };
+    case 'pipeline_failed':
+      return { type: 'pipeline_failed', runId: event.runId, error: event.data?.error ?? event.data?.message };
+    case 'pipeline_cancelled':
+      return { type: 'pipeline_cancelled', runId: event.runId };
+    case 'error':
+      return { type: 'pipeline_failed', runId: event.runId, error: event.data?.message };
+    default:
+      return null;
   }
 }
 

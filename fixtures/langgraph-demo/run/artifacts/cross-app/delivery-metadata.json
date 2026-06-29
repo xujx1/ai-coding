@@ -1,0 +1,19 @@
+{
+  "runId": "langgraph-demo-run",
+  "generatedAt": 1782639000300,
+  "branches": [
+    {
+      "branchId": "langgraph-demo-run-project",
+      "projectName": "project",
+      "status": "completed",
+      "summaryPath": "artifacts/project/branch-summary.json",
+      "changedFiles": [
+        "src/main/java/demo/DemoService.java"
+      ],
+      "testStatus": "passed"
+    }
+  ],
+  "reviews": {},
+  "deliveryStatus": "ready",
+  "blockingFindings": []
+}

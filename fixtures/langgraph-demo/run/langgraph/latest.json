@@ -1,0 +1,85 @@
+{
+  "id": "checkpoint-langgraph-demo",
+  "runId": "langgraph-demo-run",
+  "threadId": "langgraph-demo-run",
+  "state": {
+    "runId": "langgraph-demo-run",
+    "workflowId": "default-mrd-to-code",
+    "workflowVersion": 1,
+    "status": "completed",
+    "currentNodeId": "archive",
+    "nodes": {
+      "upload-init": {
+        "id": "upload-init",
+        "status": "completed",
+        "failureCount": 0
+      },
+      "app-fanout": {
+        "id": "app-fanout",
+        "status": "completed",
+        "outputArtifacts": [
+          "artifacts/project/branch-summary.json"
+        ],
+        "failureCount": 0
+      },
+      "archive": {
+        "id": "archive",
+        "status": "completed",
+        "failureCount": 0
+      }
+    },
+    "projects": [],
+    "branches": {
+      "langgraph-demo-run-project": {
+        "branchId": "langgraph-demo-run-project",
+        "workflowId": "mrd-to-code-app-branch",
+        "projectName": "project",
+        "projectRoot": "workspace/project",
+        "status": "completed",
+        "nodes": {},
+        "artifactIndex": {
+          "app-branch-summary": [
+            "artifacts/project/branch-summary.json"
+          ]
+        },
+        "contextManifests": {},
+        "childAgentIds": [],
+        "retry": {
+          "reviewBlockCount": 0,
+          "testRetryCount": 0,
+          "coverageRetryCount": 0,
+          "integrationRetryCount": 0,
+          "crossAppReviewBlockCount": 0
+        }
+      }
+    },
+    "branchOrder": [
+      "langgraph-demo-run-project"
+    ],
+    "joins": {},
+    "artifactIndex": {
+      "app-fanout": [
+        "artifacts/project/branch-summary.json"
+      ]
+    },
+    "contextManifests": {},
+    "modelOverrides": {},
+    "permissionMode": "default",
+    "retry": {
+      "reviewBlockCount": 0,
+      "testRetryCount": 0,
+      "coverageRetryCount": 0,
+      "integrationRetryCount": 0,
+      "crossAppReviewBlockCount": 0
+    },
+    "startedAt": 1782639000000,
+    "updatedAt": 1782639000300,
+    "completedAt": 1782639000300
+  },
+  "metadata": {
+    "workflowId": "default-mrd-to-code",
+    "workflowVersion": 1,
+    "createdAt": 1782639000300,
+    "reason": "demo"
+  }
+}

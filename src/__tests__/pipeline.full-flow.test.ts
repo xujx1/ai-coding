@@ -37,8 +37,24 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
   assert.equal(finalState?.nodes.every(node => node.status === 'completed'), true);
   assert.ok(finalState?.projects?.some(project => project.name === 'project'), 'execution state should track project states');
   assert.ok(finalState?.artifactIndex?.['upload-init']?.includes('artifacts/project-manifest.json'), 'artifact index should include init manifest');
+  assert.ok(finalState?.artifactIndex?.['mrd-render']?.includes('artifacts/fanout-decision.json'), 'artifact index should include fanout decision');
   assert.ok(finalState?.artifactIndex?.['implementation-plan']?.includes('artifacts/prd.md'), 'artifact index should include PRD');
   assert.ok(finalState?.artifactIndex?.['java-impl']?.includes('artifacts/project/review-findings.json'), 'artifact index should include review findings under Java Impl');
+  assert.ok(finalState?.artifactIndex?.['cross-app-code-review']?.includes('artifacts/cross-app/code-review-findings.json'), 'artifact index should include cross-app code review');
+  assert.ok(finalState?.artifactIndex?.['cross-app-integration-review']?.includes('artifacts/cross-app/integration-review-findings.json'), 'artifact index should include cross-app integration review');
+  assert.equal(finalState?.workflowInstance?.fanoutDecisionArtifact, 'artifacts/fanout-decision.json');
+  assert.ok(finalState?.workflowInstance?.branches?.some(branch => branch.projectName === 'project'), 'workflow instance should include runtime branch refs');
+  const projectBranch = finalState?.workflowInstance?.branches?.find(branch => branch.projectName === 'project');
+  assert.equal(projectBranch?.status, 'completed', 'project branch should complete after archive');
+  assert.ok(
+    projectBranch?.nodes?.some(node => node.id === 'java-impl' && node.status === 'completed'),
+    'branch-local java node should be completed'
+  );
+  assert.ok(
+    projectBranch?.artifactIndex?.['app-branch-summary']?.includes('artifacts/project/branch-summary.json'),
+    'branch summary should be indexed on branch-local state'
+  );
+  assert.equal(finalState?.workflowInstance?.joins?.[0]?.status, 'completed', 'join should complete when branch completes');
   assert.ok(finalState?.contextManifests?.['implementation-plan'], 'context manifest should be indexed in execution state');
   assert.ok(
     finalState?.nodes.some(node => node.id === 'spec-generate' && (node.childAgentIds?.length ?? 0) >= 2),
@@ -61,6 +77,7 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
   for (const artifact of [
     'mrd-clarified.md',
     'mrd-clarify-questions.md',
+    'fanout-decision.json',
     'prd.md',
     'implementation-plan-manifest.json',
     'project/tech-design.md',
@@ -78,6 +95,10 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
     'project/failure-classification.json',
     'project/autofix-history.md',
     'project/archive-report.md',
+    'project/branch-summary.json',
+    'cross-app/code-review-findings.json',
+    'cross-app/integration-review-findings.json',
+    'cross-app/delivery-metadata.json',
     'archive-manifest.json',
   ]) {
     const artifactPath = path.join(paths.artifactsDir, artifact);
@@ -94,6 +115,8 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
   );
   const questionContent = fs.readFileSync(path.join(paths.artifactsDir, 'mrd-clarify-questions.md'), 'utf-8');
   assert.ok(questionContent.includes('MRD Clarify Questions'), 'mrd-clarify-questions.md should contain question header');
+  assert.ok(questionContent.includes('需求-应用实现边界确认'), 'question list should include requirement-to-application boundary confirmation');
+  assert.ok(questionContent.includes('应用归属'), 'question list should include project ownership confirmation');
 
   const implementationManifest = JSON.parse(
     fs.readFileSync(path.join(paths.artifactsDir, 'implementation-plan-manifest.json'), 'utf-8')
@@ -104,6 +127,31 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
   assert.ok(
     implementationManifest.projects.some((project: { artifact?: string }) => project.artifact === 'artifacts/project/tech-design.md'),
     'implementation manifest should reference project tech design'
+  );
+  const specManifest = JSON.parse(
+    fs.readFileSync(path.join(paths.artifactsDir, 'spec-manifest.json'), 'utf-8')
+  );
+  const projectSpecEntry = specManifest.projects.find((project: { project?: string }) => project.project === 'project');
+  assert.ok(projectSpecEntry?.openSpecChange, 'spec manifest should reference project OpenSpec change artifacts');
+  const openSpecTasksPath = path.join(
+    paths.artifactsDir,
+    'project',
+    'openspec',
+    'changes',
+    `run-${session.runId.toLowerCase()}-project`,
+    'tasks.md',
+  );
+  assert.equal(fs.existsSync(openSpecTasksPath), true, 'project OpenSpec tasks.md should exist');
+  const openSpecTasks = fs.readFileSync(openSpecTasksPath, 'utf-8');
+  assert.match(openSpecTasks, /^## Development$/m, 'OpenSpec tasks should contain Development section');
+  assert.match(openSpecTasks, /^## Test$/m, 'OpenSpec tasks should contain Test section');
+  assert.ok(
+    openSpecTasks.split(/^## Test$/m)[0].includes('- [x] '),
+    'java-impl should mark OpenSpec development tasks complete'
+  );
+  assert.ok(
+    openSpecTasks.split(/^## Test$/m)[1].includes('- [x] '),
+    'testcode-generate should mark OpenSpec test tasks complete'
   );
 
   const devTaskList = fs.readFileSync(path.join(paths.artifactsDir, 'project/openspec-task.md'), 'utf-8');
@@ -129,6 +177,9 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
   assert.ok(eventTypes.includes('model_selected'), 'model selection events should be logged');
   assert.ok(eventTypes.includes('artifact_written'), 'artifact_written events should be logged');
   assert.ok(eventTypes.includes('context_compacted'), 'context_compacted events should be logged');
+  assert.ok(eventTypes.includes('fanout_decision'), 'fanout decision event should be logged');
+  assert.ok(eventTypes.includes('branch_transition'), 'branch transition events should be logged');
+  assert.ok(eventTypes.includes('join_state_updated'), 'join update events should be logged');
 
   // artifact_written events should include both requirement decomposition files
   const artifactEvents = allEvents.filter(e => e.type === 'artifact_written');
@@ -228,7 +279,10 @@ test('requirement decomposition handles multiple requirement files and produces 
   assert.ok(mrdContent.includes('Project Ownership'), 'mrd-clarified.md should contain project ownership');
   const questionsPath = path.join(paths.artifactsDir, 'mrd-clarify-questions.md');
   assert.equal(fs.existsSync(questionsPath), true, 'mrd-clarify-questions.md should exist');
-  assert.ok(fs.readFileSync(questionsPath, 'utf-8').length > 0, 'mrd-clarify-questions.md should not be empty');
+  const questionContent = fs.readFileSync(questionsPath, 'utf-8');
+  assert.ok(questionContent.length > 0, 'mrd-clarify-questions.md should not be empty');
+  assert.ok(questionContent.includes('需求-应用实现边界确认'), 'mrd clarify questions should require boundary confirmation');
+  assert.ok(questionContent.includes('需要改代码'), 'mrd clarify questions should ask which applications need code changes');
 
   // Check project-manifest.json lists all input files
   const manifestPath = path.join(paths.artifactsDir, 'project-manifest.json');

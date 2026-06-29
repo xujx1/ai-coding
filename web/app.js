@@ -11,6 +11,7 @@ const state = {
   events: [],
   agents: [],
   selectedNodeId: null,
+  selectedBranchNode: null,
   currentModel: 'claude-sonnet-4-6',
   models: [],
   dynamicModels: [],
@@ -27,6 +28,13 @@ const state = {
   pendingDeleteRunId: null,
   deleteConfirmTimer: null,
   expandedTools: new Set(),
+  expandedBranchIds: new Set(),
+  showWorkflowView: false,
+  workflowDefinition: null,
+  workflowLoadError: '',
+  workflowConfigDraft: {},
+  selectedWorkflowNodeId: null,
+  savingWorkflowConfig: false,
   activeTab: 'artifacts',
   fileTreeCache: {},
   lastEventTimestamp: 0,
@@ -43,6 +51,7 @@ const PIPELINE_STAGES = [
 ];
 
 const STAGE_NAMES = Object.fromEntries(PIPELINE_STAGES.map(s => [s.id, s.name]));
+STAGE_NAMES['mrd-clarify'] = '需求澄清';
 const STATUS_LABELS = {
   idle: '空闲',
   pending: '待处理',
@@ -52,6 +61,7 @@ const STATUS_LABELS = {
   failed: '失败',
   suspended: '已暂停',
   cancelled: '已取消',
+  waiting_fix: '待修复',
   skipped: '已跳过',
   created: '已创建',
   waking: '唤醒中',
@@ -160,39 +170,171 @@ function setModelApiStatus(status, message = '') {
 
 // ── Pipeline Bar ────────────────────────────────────────────────────────
 function renderPipelineBar() {
+  const bar = document.getElementById('pipeline-bar');
   const container = document.getElementById('pipeline-nodes');
-  const nodes = state.pipeline?.nodes || state.pipelineNodes || PIPELINE_STAGES;
+  const nodes = getPipelineBarNodes();
   const pipelineStatus = state.pipeline?.status || 'idle';
   const statusBadge = document.getElementById('pipeline-status-badge');
+  const title = document.getElementById('session-header-title');
+  const summary = document.getElementById('session-workflow-summary');
+  const workflowToggle = document.getElementById('workflow-toggle-btn');
+  if (!bar || !container) return;
+  bar.classList.toggle('hidden', !state.pipeline);
+  bar.classList.toggle('workflow-mode', Boolean(state.showWorkflowView));
   if (statusBadge) {
     statusBadge.className = `pipeline-status-badge ${pipelineStatus}`;
     statusBadge.textContent = statusLabel(pipelineStatus);
   }
+  if (title) {
+    title.textContent = state.pipeline?.name || '当前会话';
+  }
+  if (summary) {
+    summary.innerHTML = state.pipeline
+      ? renderSessionWorkflowSummary(nodes)
+      : '上传项目和 MRD 后，将按本次 session 生成动态 workflow。';
+  }
+  if (workflowToggle) {
+    workflowToggle.classList.toggle('active', state.showWorkflowView);
+    workflowToggle.style.display = canDisplaySessionWorkflow() ? 'inline-flex' : 'none';
+  }
   renderInterruptButton();
   renderProjectDownloadButton();
+  container.innerHTML = '';
+}
 
-  let html = '';
-  nodes.forEach((node, i) => {
-    const status = getNodeStatus(node.id);
-    const displayName = stageName(node.id, node.name);
-    const retryButton = canRerunFromNode(node)
-      ? `<button class="node-rerun-btn" type="button" title="从此节点重跑" onclick="retryPipelineFromNode('${escAttr(node.id)}', event)">↻</button>`
-      : '';
-    html += `<div class="pipeline-node ${status} ${state.selectedNodeId === node.id ? 'selected' : ''}" data-node="${node.id}" title="${esc(displayName)}" onclick="openPipelineNode('${node.id}')">
-      ${retryButton}
-      <div class="node-icon">${statusIcon(status)}</div>
-      <span>${esc(displayName)}</span>
-      <small>${statusLabel(status)}</small>
-    </div>`;
-    if (i < nodes.length - 1) {
-      html += `<span class="pipeline-arrow">→</span>`;
+function getPipelineBarNodes() {
+  if (!state.pipeline) return [];
+  const instanceNodes = state.pipeline?.workflowInstance?.nodes;
+  if (Array.isArray(instanceNodes) && instanceNodes.length) {
+    return withClarifyNode(instanceNodes).map(node => ({
+      id: node.id,
+      name: node.label || node.id,
+      sourceNodeId: node.sourceNodeId,
+      kind: node.kind,
+      status: node.id === 'mrd-clarify' ? getClarifyNodeStatus() : getSessionWorkflowNodeStatus(node),
+      error: node.error,
+    }));
+  }
+  return state.pipeline?.nodes || [];
+}
+
+function withClarifyNode(nodes) {
+  if (!Array.isArray(nodes) || nodes.some(node => node.id === 'mrd-clarify')) return nodes;
+  const result = [];
+  for (const node of nodes) {
+    if (node.id === 'mrd-render') {
+      result.push({
+        id: 'mrd-clarify',
+        label: '需求澄清',
+        kind: 'stage',
+        sourceNodeId: 'mrd-render',
+        artifactHints: ['artifacts/mrd-clarify-questions.md', 'artifacts/implementation-boundaries.md'],
+      });
     }
-  });
-  container.innerHTML = html;
+    result.push(node);
+  }
+  return result;
+}
+
+function renderSessionWorkflowSummary(nodes) {
+  const instance = state.pipeline?.workflowInstance;
+  const branches = instance?.branches || [];
+  const current = getCurrentSessionWorkflowNode(nodes);
+  const branchStage = getCurrentBranchStageSummary();
+  const parts = [];
+  if (!canDisplaySessionWorkflow()) {
+    parts.push('需求拆解确认前隐藏 workflow');
+  } else if (instance) {
+    parts.push(instance.layout === 'legacy-fixed' ? '历史固定节点视图' : '当前 session 动态 workflow');
+  } else {
+    parts.push('兼容旧会话节点视图');
+  }
+  if (nodes.length) parts.push(`${nodes.length} 个顶层节点`);
+  if (branches.length) {
+    const completed = branches.filter(branch => branch.status === 'completed').length;
+    const running = branches.filter(branch => ['running', 'waiting_confirmation'].includes(branch.status)).length;
+    const failed = branches.filter(branch => ['failed', 'waiting_fix', 'cancelled'].includes(branch.status)).length;
+    parts.push(`${branches.length} 个项目分支：${completed} 完成 · ${running} 运行中 · ${failed} 异常/待修复`);
+  }
+  if (branchStage) {
+    parts.push(`当前：${branchStage.label} · ${statusLabel(branchStage.status)}`);
+  } else if (current) {
+    parts.push(`当前：${stageName(current.id, current.name)} · ${statusLabel(getNodeStatus(current.id))}`);
+  }
+  return parts.map(part => `<span>${esc(part)}</span>`).join('<span class="summary-separator">/</span>');
+}
+
+function getCurrentBranchStageSummary() {
+  const stageId = state.pipeline?.currentNodeId;
+  if (!isBranchStageNode(stageId)) return null;
+  const branches = state.pipeline?.workflowInstance?.branches || [];
+  const activeBranches = branches.filter(branch =>
+    branch.currentNodeId === stageId || ['running', 'waiting_confirmation'].includes(branch.status || '')
+  );
+  const status = activeBranches.some(branch => branch.status === 'waiting_confirmation')
+    ? 'waiting_confirmation'
+    : activeBranches.some(branch => branch.status === 'running')
+      ? 'running'
+      : getRunNodeById(stageId)?.status || 'pending';
+  return {
+    id: stageId,
+    label: stageName(stageId, stageId),
+    status,
+  };
+}
+
+function isBranchStageNode(nodeId) {
+  return [
+    'implementation-plan',
+    'spec-generate',
+    'java-impl',
+    'testcode-generate',
+    'app-branch-summary',
+  ].includes(nodeId);
+}
+
+function getCurrentSessionWorkflowNode(nodes) {
+  if (!Array.isArray(nodes) || !nodes.length) return null;
+  const currentId = state.pipeline?.currentNodeId;
+  if (currentId) {
+    if (currentId === 'mrd-render' && getClarifyNodeStatus() === 'waiting_confirmation') {
+      const clarify = nodes.find(node => node.id === 'mrd-clarify');
+      if (clarify) return clarify;
+    }
+    const exact = nodes.find(node => node.id === currentId);
+    if (exact) return exact;
+    const sourceMatch = nodes.find(node => node.sourceNodeId === currentId);
+    if (sourceMatch) return sourceMatch;
+  }
+  const active = nodes.find(node => ['running', 'waiting_confirmation'].includes(getNodeStatus(node.id)));
+  if (active) return active;
+  const selected = nodes.find(node => node.id === state.selectedNodeId);
+  if (selected) return selected;
+  const lastCompleted = [...nodes].reverse().find(node => getNodeStatus(node.id) === 'completed');
+  return lastCompleted || nodes[0];
+}
+
+function canDisplaySessionWorkflow() {
+  if (!state.pipeline) return false;
+  const mrdNode = getRunNodeById('mrd-render');
+  if (mrdNode && mrdNode.status !== 'completed') return false;
+  const instance = state.pipeline.workflowInstance;
+  return Boolean(
+    instance?.fanoutDecision ||
+    instance?.fanoutDecisionArtifact ||
+    (Array.isArray(instance?.branches) && instance.branches.length) ||
+    (Array.isArray(state.pipeline.projects) && state.pipeline.projects.length)
+  );
+}
+
+function getRunNodeById(nodeId) {
+  return (state.pipeline?.nodes || []).find(node => node.id === nodeId);
 }
 
 function openPipelineNode(nodeId) {
   state.selectedNodeId = nodeId;
+  state.selectedBranchNode = null;
+  state.showWorkflowView = false;
   renderPipelineBar();
   renderExecutionTrace();
   loadFileTree('artifacts');
@@ -220,14 +362,64 @@ function statusIcon(status) {
     waiting_confirmation: '⚠',
     completed: '✓',
     failed: '✕',
+    waiting_fix: '!',
+    cancelled: '⊘',
     skipped: '⊘',
   }[status] || '○';
 }
 
 function getNodeStatus(nodeId) {
   if (!state.pipeline) return 'pending';
+  if (nodeId === 'mrd-clarify') return getClarifyNodeStatus();
+  const instanceNode = state.pipeline.workflowInstance?.nodes?.find(node => node.id === nodeId);
+  if (instanceNode) return getSessionWorkflowNodeStatus(instanceNode);
   const node = state.pipeline.nodes?.find(n => n.id === nodeId);
   return node?.status || 'pending';
+}
+
+function getClarifyNodeStatus() {
+  const mrd = getRunNodeById('mrd-render');
+  if (!mrd) return 'pending';
+  if (mrd.status === 'waiting_confirmation') return 'waiting_confirmation';
+  if (mrd.status === 'completed') return 'completed';
+  if (mrd.status === 'failed') return 'failed';
+  const hasQuestions = Boolean(state.pipeline?.artifactIndex?.['mrd-render']?.some(path => String(path).includes('mrd-clarify-questions')));
+  if (hasQuestions && mrd.status === 'running') return 'running';
+  return mrd.status === 'running' ? 'running' : 'pending';
+}
+
+function getSessionWorkflowNodeStatus(instanceNode) {
+  if (!state.pipeline || !instanceNode) return 'pending';
+  if (instanceNode.sourceNodeId) {
+    const source = state.pipeline.nodes?.find(node => node.id === instanceNode.sourceNodeId);
+    if (instanceNode.id === 'mrd-render' && source?.status === 'waiting_confirmation') return 'pending';
+    if (source?.status) return source.status;
+  }
+  if (instanceNode.kind === 'fanout') {
+    const branches = state.pipeline.workflowInstance?.branches || [];
+    const currentId = state.pipeline.currentNodeId;
+    if (branches.length && (isBranchStageNode(currentId) || ['app-join', 'cross-app-code-review', 'cross-app-integration-review', 'archive'].includes(currentId))) {
+      return 'completed';
+    }
+    if (instanceNode.status && instanceNode.status !== 'waiting_confirmation') return instanceNode.status;
+    if (state.pipeline.workflowInstance?.fanoutDecisionArtifact) {
+      return branches.length > 0 ? 'completed' : 'failed';
+    }
+    const mrd = state.pipeline.nodes?.find(node => node.id === 'mrd-render');
+    return mrd?.status === 'completed' ? 'running' : 'pending';
+  }
+  if (instanceNode.kind === 'join') {
+    const join = state.pipeline.workflowInstance?.joins?.find(item => item.joinId === instanceNode.joinId);
+    if (join?.status === 'completed') return 'completed';
+    if (join?.status === 'failed') return 'failed';
+    if (join?.status === 'waiting') return 'running';
+    return 'pending';
+  }
+  if (instanceNode.kind === 'aggregate_review') {
+    const artifacts = normalizeArtifactPaths(Object.values(state.pipeline.artifactIndex || {}).flat());
+    if ((instanceNode.artifactHints || []).some(hint => artifacts.includes(hint))) return 'completed';
+  }
+  return instanceNode.status || 'pending';
 }
 
 function isActivePipelineStatus(status = state.pipeline?.status) {
@@ -347,6 +539,7 @@ async function deleteSession(runId) {
     state.events = [];
     state.agents = [];
     state.selectedNodeId = null;
+    state.selectedBranchNode = null;
     state.lastEventTimestamp = 0;
     renderPipelineBar();
     renderExecutionTraceEmpty();
@@ -395,6 +588,8 @@ async function loadSession(runId) {
   state.pipeline = data.state;
   if (switchingRun) {
     state.selectedNodeId = null;
+    state.selectedBranchNode = null;
+    state.showWorkflowView = false;
     state.pendingConfirmation = null;
     state.confirmationWizard = null;
     state.confirmationWizardKey = '';
@@ -726,6 +921,7 @@ async function retryPipelineFromNode(nodeId, event) {
   const confirmed = window.confirm(`从「${label}」开始重跑？该节点及后续节点会重新执行。`);
   if (!confirmed) return;
   state.selectedNodeId = nodeId;
+  state.selectedBranchNode = null;
   await fetch(`/api/sessions/${state.runId}/pipeline/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -766,9 +962,17 @@ async function refreshCurrentRunView() {
 }
 
 function ensureSelectedNode() {
-  const nodes = state.pipeline?.nodes || [];
+  const nodes = getPipelineBarNodes();
   if (!nodes.length) return;
   if (state.selectedNodeId && nodes.some(node => node.id === state.selectedNodeId)) return;
+  if (state.pipeline?.currentNodeId === 'mrd-render' && getClarifyNodeStatus() === 'waiting_confirmation') {
+    state.selectedNodeId = 'mrd-clarify';
+    return;
+  }
+  if (isBranchStageNode(state.pipeline?.currentNodeId) && canDisplaySessionWorkflow()) {
+    state.selectedNodeId = 'project-fanout';
+    return;
+  }
   state.selectedNodeId = state.pipeline?.currentNodeId ||
     nodes[state.pipeline?.currentNodeIndex]?.id ||
     nodes.find(node => node.status === 'running' || node.status === 'waiting_confirmation')?.id ||
@@ -881,13 +1085,16 @@ async function resolveConfirmation(approved) {
   if (!state.runId || !currentConfirmNode) return;
   saveCurrentConfirmWizardPage();
   let feedback = document.getElementById('confirm-feedback').value;
-  if (state.pendingConfirmation?.confirmationKind === 'mrd-clarify' ||
+  if (state.pendingConfirmation?.confirmationKind === 'mrd-render' ||
+      state.pendingConfirmation?.confirmationKind === 'mrd-clarify' ||
       state.pendingConfirmation?.confirmationKind === 'mrd-clarify-questions') {
     const wizardFeedback = buildConfirmWizardFeedback();
     const selected = document.querySelector('input[name="mrd-clarify-option"]:checked');
     const option = selected?.value || 'default';
     const optionLabel = selected?.dataset?.label || option;
-    const label = state.pendingConfirmation?.confirmationKind === 'mrd-clarify-questions'
+    const label = state.pendingConfirmation?.confirmationKind === 'mrd-render'
+      ? '需求拆解确认'
+      : state.pendingConfirmation?.confirmationKind === 'mrd-clarify-questions'
       ? '需求拆解问题确认'
       : 'MRD 澄清选择';
     feedback = wizardFeedback || [
@@ -930,12 +1137,510 @@ function renderExecutionTrace() {
   if (welcome) welcome.style.display = 'none';
 
   ensureSelectedNode();
+  if (state.showWorkflowView && !canDisplaySessionWorkflow()) {
+    state.showWorkflowView = false;
+  }
+  if (state.showWorkflowView) {
+    container.innerHTML = renderWorkflowView();
+    renderPipelineBar();
+    return;
+  }
   container.innerHTML = renderSelectedNodeExecution();
   renderDeferredToolResults();
 }
 
+async function toggleWorkflowView() {
+  if (!canDisplaySessionWorkflow()) {
+    state.showWorkflowView = false;
+    renderPipelineBar();
+    renderExecutionTrace();
+    return;
+  }
+  state.showWorkflowView = !state.showWorkflowView;
+  renderPipelineBar();
+  if (state.showWorkflowView && !getWorkflowForView() && !state.workflowLoadError) {
+    const container = document.getElementById('execution-trace');
+    if (container) container.innerHTML = '<div class="workflow-loading">正在加载工作流定义...</div>';
+    await loadWorkflowDefinition();
+  }
+  renderExecutionTrace();
+}
+
+async function loadWorkflowDefinition() {
+  try {
+    const res = await fetch('/api/workflows/default-mrd-to-code');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'workflow api failed');
+    state.workflowDefinition = data.workflow;
+    state.workflowLoadError = '';
+    if (!state.selectedWorkflowNodeId) {
+      state.selectedWorkflowNodeId = data.workflow?.nodes?.[0]?.id || null;
+    }
+    resetWorkflowConfigDraft();
+  } catch (err) {
+    state.workflowLoadError = err.message || String(err);
+  }
+}
+
+function resetWorkflowConfigDraft() {
+  const workflow = getWorkflowForView();
+  state.workflowConfigDraft = {};
+  for (const node of workflow?.nodes || []) {
+    state.workflowConfigDraft[node.id] = workflowNodeToDraft(node);
+  }
+}
+
+function getWorkflowForView() {
+  const instance = state.pipeline?.workflowInstance;
+  if (instance) return sessionWorkflowInstanceToWorkflow(instance);
+  const snapshot =
+    state.pipeline?.workflowSnapshot?.definition ||
+    state.pipeline?.workflow_snapshot?.definition ||
+    state.pipeline?.metadata?.workflowSnapshot?.definition ||
+    state.pipeline?.metadata?.workflow_snapshot?.definition;
+  return snapshot || state.workflowDefinition;
+}
+
+function sessionWorkflowInstanceToWorkflow(instance) {
+  return {
+    id: instance.id,
+    name: instance.layout === 'legacy-fixed' ? 'Legacy Session Workflow' : 'Session Workflow',
+    version: instance.version || 1,
+    locked: true,
+    globalConfig: { runtime: state.pipeline?.metadata?.runtime || 'legacy' },
+    createdAt: instance.createdAt,
+    updatedAt: instance.updatedAt,
+    sessionWorkflowInstance: instance,
+    nodes: (instance.nodes || []).map((node, index) => ({
+      id: node.id,
+      type: workflowNodeTypeFromSessionKind(node.kind),
+      position: { x: index * 220, y: 80 },
+      data: {
+        label: node.label || node.id,
+        stageId: node.sourceNodeId,
+        runner: node.sourceNodeId || node.id,
+        artifactOutputs: node.artifactHints || [],
+        sessionKind: node.kind,
+        joinId: node.joinId,
+        branchIds: node.branchIds || [],
+      },
+    })),
+    edges: (instance.edges || []).map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      kind: edge.kind === 'legacy' ? 'normal' : edge.kind === 'fanout' ? 'conditional' : 'normal',
+    })),
+  };
+}
+
+function workflowNodeTypeFromSessionKind(kind) {
+  return {
+    fanout: 'fanout',
+    join: 'join',
+    aggregate_review: 'aggregate_review',
+    archive: 'stage',
+    legacy_stage: 'stage',
+  }[kind] || 'stage';
+}
+
+function workflowNodeToDraft(node) {
+  const data = node?.data || {};
+  return {
+    modelOverrideKey: data.modelOverrideKey || '',
+    maxTurns: data.maxTurns ?? '',
+    promptTemplateId: data.promptTemplateId || '',
+    systemPrompt: data.systemPrompt || '',
+    enabledBuiltins: (data.enabledBuiltins || []).join(', '),
+    enabledMcpTools: (data.enabledMcpTools || []).join(', '),
+    enabledSkills: (data.enabledSkills || []).join(', '),
+    hasConfirmationGate: Boolean(data.hasConfirmationGate),
+  };
+}
+
+function renderWorkflowView() {
+  const workflow = getWorkflowForView();
+  if (state.workflowLoadError) {
+    return `<div class="workflow-error">工作流定义加载失败：${esc(state.workflowLoadError)}</div>`;
+  }
+  if (!workflow) {
+    return '<div class="workflow-loading">正在加载工作流定义...</div>';
+  }
+  if (!state.selectedWorkflowNodeId || !workflow.nodes.some(node => node.id === state.selectedWorkflowNodeId)) {
+    state.selectedWorkflowNodeId = workflow.nodes[0]?.id || null;
+  }
+  const hasSessionInstance = Boolean(state.pipeline?.workflowInstance);
+  const hasSnapshot = Boolean(
+    hasSessionInstance ||
+    state.pipeline?.workflowSnapshot ||
+    state.pipeline?.workflow_snapshot ||
+    state.pipeline?.metadata?.workflowSnapshot ||
+    state.pipeline?.metadata?.workflow_snapshot
+  );
+  const selectedNode = workflow.nodes.find(node => node.id === state.selectedWorkflowNodeId) || workflow.nodes[0];
+  const workflowSourceLabel = hasSessionInstance ? '当前 session workflow instance' : hasSnapshot ? '使用运行快照' : '历史/默认定义回退';
+  return `
+    <div class="workflow-view">
+      <div class="workflow-toolbar">
+        <div>
+          <div class="workflow-title">${esc(workflow.name || 'MRD-to-Code Workflow')}</div>
+          <div class="workflow-subtitle">
+            v${esc(workflow.version || 1)} · ${workflow.locked ? '锁定结构' : '可编辑结构'} · ${workflow.globalConfig?.runtime || 'legacy'}
+            · ${workflowSourceLabel}
+          </div>
+        </div>
+        <button class="workflow-close-btn" type="button" onclick="toggleWorkflowView()">返回节点执行</button>
+      </div>
+      ${!hasSnapshot ? `
+        <div class="workflow-history-note">当前运行没有 workflow snapshot，已按兼容的内置 MRD-to-Code 工作流派生视图；运行状态仍来自 execution-state.json。</div>
+      ` : ''}
+      <div class="workflow-layout">
+        <div class="workflow-canvas" aria-label="MRD-to-Code workflow">
+          ${renderWorkflowGraph(workflow)}
+        </div>
+        <div class="workflow-config-panel">
+          ${selectedNode ? renderWorkflowConfigPanel(selectedNode, workflow) : '<div class="workflow-empty">没有可配置节点</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkflowGraph(workflow) {
+  const outgoing = new Map();
+  for (const edge of workflow.edges || []) {
+    if (!outgoing.has(edge.source)) outgoing.set(edge.source, []);
+    outgoing.get(edge.source).push(edge);
+  }
+  return `
+    <div class="workflow-canvas-content">
+      <div class="workflow-node-grid">
+        ${(workflow.nodes || []).map((node, index) => {
+          const status = getWorkflowNodeRuntimeStatus(node);
+          const selected = state.selectedWorkflowNodeId === node.id;
+          const runner = node.data?.runner || node.data?.stageId || node.type;
+          return `
+            <div class="workflow-node-wrap">
+              <button type="button" class="workflow-node ${status} ${selected ? 'selected' : ''}" onclick="selectWorkflowNode('${escAttr(node.id)}')">
+                <span class="workflow-node-status">${statusIcon(status)}</span>
+                <span class="workflow-node-label">${esc(node.data?.label || stageName(node.id, node.id))}</span>
+                <span class="workflow-node-kind">${esc(node.type)} · ${esc(runner)}</span>
+                ${node.data?.hasConfirmationGate ? '<span class="workflow-node-chip">确认</span>' : ''}
+              </button>
+              ${index < workflow.nodes.length - 1 ? renderWorkflowEdges(node, outgoing.get(node.id) || []) : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+      ${renderFanoutDecisionPanel()}
+      ${renderWorkflowBranchLanes()}
+    </div>
+  `;
+}
+
+function renderWorkflowEdges(node, edges) {
+  if (!edges.length) return '<div class="workflow-edge muted">未连接</div>';
+  return edges.map(edge => {
+    const sourceStatus = getWorkflowNodeRuntimeStatus(node);
+    const active = ['completed', 'running', 'waiting_confirmation'].includes(sourceStatus);
+    return `
+      <div class="workflow-edge ${active ? 'active' : ''}" title="${escAttr(edge.kind || 'normal')}">
+        <span></span>
+        <small>${esc(edge.kind || 'normal')}</small>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderFanoutDecisionPanel() {
+  const instance = state.pipeline?.workflowInstance;
+  const decision = instance?.fanoutDecision;
+  if (!decision) return '';
+  const artifact = instance.fanoutDecisionArtifact || 'artifacts/fanout-decision.json';
+  return `
+    <div class="workflow-fanout-panel">
+      <div class="workflow-fanout-head">
+        <div>
+          <div class="workflow-section-title">Fanout 决策</div>
+          <div class="workflow-section-subtitle">
+            confidence: ${esc(decision.confidence || 'unknown')}
+            ${decision.fallbackReason ? ` · ${esc(decision.fallbackReason)}` : ''}
+          </div>
+        </div>
+        <button type="button" class="workflow-artifact-link" onclick="openBranchArtifact('${escAttr(artifact)}', event)">查看 JSON</button>
+      </div>
+      <div class="workflow-fanout-groups">
+        ${renderFanoutProjectGroup('Included', decision.includedProjects, 'included')}
+        ${renderFanoutProjectGroup('Excluded', decision.excludedProjects, 'excluded')}
+        ${renderFanoutProjectGroup('Unresolved', decision.unresolvedProjects, 'unresolved')}
+      </div>
+    </div>
+  `;
+}
+
+function renderFanoutProjectGroup(label, projects, kind) {
+  const items = Array.isArray(projects) ? projects : [];
+  return `
+    <div class="workflow-fanout-group ${kind}">
+      <div class="workflow-fanout-group-title">${esc(label)} · ${items.length}</div>
+      <div class="workflow-fanout-list">
+        ${items.length ? items.map(project => `
+          <span class="workflow-fanout-chip" title="${escAttr(project.reason || '')}">
+            ${esc(project.name || project.projectName || 'unknown')}
+          </span>
+        `).join('') : '<span class="workflow-fanout-empty">none</span>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkflowBranchLanes() {
+  const branches = state.pipeline?.workflowInstance?.branches || [];
+  if (!branches.length) return '';
+  return `
+    <div class="workflow-branch-lanes">
+      <div class="workflow-section-title">Branch Lanes</div>
+      ${branches.map(renderWorkflowBranchLane).join('')}
+    </div>
+  `;
+}
+
+function renderWorkflowBranchLane(branch) {
+  const expanded = state.expandedBranchIds.has(branch.branchId);
+  const nodes = getBranchWorkflowNodes(branch);
+  return `
+    <div class="workflow-branch-lane ${branch.status || 'pending'}">
+      <button type="button" class="workflow-branch-lane-head" onclick="toggleBranchDrilldown('${escAttr(branch.branchId)}')">
+        <span class="branch-status-dot ${branch.status || 'pending'}"></span>
+        <span class="workflow-branch-name">${esc(branch.projectName || branch.branchId)}</span>
+        <span class="workflow-branch-root">${esc(branch.projectRoot || '')}</span>
+        <span class="status-badge ${branch.status || 'pending'}">${statusLabel(branch.status || 'pending')}</span>
+      </button>
+      ${expanded ? `
+        ${renderWorkflowBranchActions(branch)}
+        <div class="workflow-branch-node-row">
+          ${nodes.map(node => `
+            <button type="button" class="workflow-branch-node ${node.status} ${isSelectedBranchNode(branch.branchId, node.id) ? 'selected' : ''}" onclick="selectBranchNode('${escAttr(branch.branchId)}', '${escAttr(node.id)}', event)">
+              <span>${statusIcon(node.status)}</span>
+              <strong>${esc(node.label)}</strong>
+              <small>${statusLabel(node.status)}</small>
+            </button>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderWorkflowBranchActions(branch) {
+  const canRerun = ['failed', 'waiting_fix', 'cancelled'].includes(branch.status);
+  const canCancel = ['pending', 'running', 'waiting_confirmation', 'suspended'].includes(branch.status);
+  if (!canRerun && !canCancel) return '';
+  return `
+    <div class="workflow-branch-actions">
+      ${canRerun ? `<button type="button" class="branch-action" onclick="rerunBranch('${escAttr(branch.branchId)}', '${escAttr(branch.currentNodeId || 'implementation-plan')}', event)">重跑分支</button>` : ''}
+      ${canCancel ? `<button type="button" class="branch-action danger" onclick="cancelBranch('${escAttr(branch.branchId)}', event)">取消分支</button>` : ''}
+    </div>
+  `;
+}
+
+function getBranchWorkflowNodes(branch) {
+  if (Array.isArray(branch.nodes) && branch.nodes.length) {
+    return branch.nodes.map(node => ({
+      id: node.id,
+      label: node.label || stageName(node.id, node.id),
+      status: node.status || 'pending',
+    }));
+  }
+  const sequence = [
+    ['implementation-plan', '实施方案'],
+    ['spec-generate', 'SPEC生成'],
+    ['java-impl', 'Java实现'],
+    ['testcode-generate', '测试代码'],
+    ['app-branch-summary', 'Summary'],
+  ];
+  const currentIndex = sequence.findIndex(([id]) => id === branch.currentNodeId);
+  return sequence.map(([id, label], index) => ({
+    id,
+    label,
+    status: getBranchNodeStatus(branch, index, currentIndex),
+  }));
+}
+
+function getBranchNodeStatus(branch, index, currentIndex) {
+  if (branch.status === 'completed') return 'completed';
+  if (['failed', 'waiting_fix', 'cancelled'].includes(branch.status)) {
+    return currentIndex < 0 || index === currentIndex ? branch.status : index < currentIndex ? 'completed' : 'pending';
+  }
+  if (['running', 'waiting_confirmation'].includes(branch.status)) {
+    if (index < currentIndex) return 'completed';
+    if (index === currentIndex) return branch.status;
+  }
+  return 'pending';
+}
+
+async function rerunBranch(branchId, fromNodeId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  if (!state.runId) return;
+  const res = await fetch(`/api/sessions/${state.runId}/branches/${encodeURIComponent(branchId)}/rerun`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fromNodeId }),
+  });
+  if (res.ok) {
+    const data = await res.json();
+    state.pipeline = data.state;
+    renderPipelineBar();
+    renderExecutionTrace();
+  }
+}
+
+async function cancelBranch(branchId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  if (!state.runId) return;
+  const res = await fetch(`/api/sessions/${state.runId}/branches/${encodeURIComponent(branchId)}/cancel`, { method: 'POST' });
+  if (res.ok) {
+    const data = await res.json();
+    state.pipeline = data.state;
+    renderPipelineBar();
+    renderExecutionTrace();
+  }
+}
+
+function selectWorkflowNode(nodeId) {
+  state.selectedWorkflowNodeId = nodeId;
+  renderExecutionTrace();
+}
+
+function getWorkflowNodeRuntimeStatus(workflowNode) {
+  const data = workflowNode?.data || {};
+  if (data.sessionKind && state.pipeline?.workflowInstance) {
+    const instanceNode = state.pipeline.workflowInstance.nodes?.find(node => node.id === workflowNode.id);
+    if (instanceNode) return getSessionWorkflowNodeStatus(instanceNode);
+  }
+  const stageId = data.stageId || data.sourceStageId || workflowNode.id;
+  const runNode = state.pipeline?.nodes?.find(node => node.id === stageId || node.id === workflowNode.id);
+  if (workflowNode.type === 'confirmation' && data.sourceStageId) {
+    const source = state.pipeline?.nodes?.find(node => node.id === data.sourceStageId);
+    if (source?.status === 'waiting_confirmation') return 'waiting_confirmation';
+    if (source?.status === 'completed') return 'completed';
+    return source?.status || 'pending';
+  }
+  return runNode?.status || 'pending';
+}
+
+function renderWorkflowConfigPanel(node, workflow) {
+  const data = node.data || {};
+  const draft = state.workflowConfigDraft[node.id] || workflowNodeToDraft(node);
+  const locked = Boolean(workflow.locked);
+  const runner = data.runner || data.stageId || '';
+  return `
+    <div class="workflow-config-header">
+      <div>
+        <div class="workflow-config-title">${esc(data.label || node.id)}</div>
+        <div class="workflow-config-subtitle">${esc(node.id)} · ${esc(node.type)}</div>
+      </div>
+      <span class="workflow-lock-badge">${locked ? '结构锁定' : '结构可编辑'}</span>
+    </div>
+    <div class="workflow-field">
+      <label>Stage runner</label>
+      <input type="text" value="${escAttr(runner)}" disabled>
+    </div>
+    <div class="workflow-field-grid">
+      <div class="workflow-field">
+        <label>Model override key</label>
+        <input type="text" value="${escAttr(draft.modelOverrideKey)}" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'modelOverrideKey', this.value)">
+      </div>
+      <div class="workflow-field">
+        <label>Max turns</label>
+        <input type="number" min="1" max="100" value="${escAttr(draft.maxTurns)}" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'maxTurns', this.value)">
+      </div>
+    </div>
+    <div class="workflow-field">
+      <label>Prompt config</label>
+      <input type="text" value="${escAttr(draft.promptTemplateId)}" placeholder="promptTemplateId" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'promptTemplateId', this.value)">
+    </div>
+    <div class="workflow-field">
+      <label>System prompt</label>
+      <textarea rows="4" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'systemPrompt', this.value)">${esc(draft.systemPrompt)}</textarea>
+    </div>
+    <div class="workflow-field">
+      <label>Tools</label>
+      <input type="text" value="${escAttr(draft.enabledBuiltins)}" placeholder="read_file, write_file" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'enabledBuiltins', this.value)">
+    </div>
+    <div class="workflow-field">
+      <label>MCP tools</label>
+      <input type="text" value="${escAttr(draft.enabledMcpTools)}" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'enabledMcpTools', this.value)">
+    </div>
+    <div class="workflow-field">
+      <label>Skills</label>
+      <input type="text" value="${escAttr(draft.enabledSkills)}" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'enabledSkills', this.value)">
+    </div>
+    <label class="workflow-check-row">
+      <input type="checkbox" ${draft.hasConfirmationGate ? 'checked' : ''} onchange="updateWorkflowDraft('${escAttr(node.id)}', 'hasConfirmationGate', this.checked)">
+      <span>启用确认 gate</span>
+    </label>
+    <div class="workflow-config-actions">
+      <button class="btn" type="button" onclick="resetWorkflowConfigDraft(); renderExecutionTrace()">重置</button>
+      <button class="btn btn-primary" type="button" onclick="saveWorkflowNodeConfig('${escAttr(node.id)}')" ${state.savingWorkflowConfig ? 'disabled' : ''}>保存配置</button>
+    </div>
+    <div class="workflow-config-hint">内置工作流只允许配置字段保存；节点、边和 runner 结构不可在此视图修改。</div>
+  `;
+}
+
+function updateWorkflowDraft(nodeId, key, value) {
+  state.workflowConfigDraft[nodeId] = {
+    ...(state.workflowConfigDraft[nodeId] || {}),
+    [key]: value,
+  };
+}
+
+async function saveWorkflowNodeConfig(nodeId) {
+  const draft = state.workflowConfigDraft[nodeId] || {};
+  const patch = {
+    modelOverrideKey: draft.modelOverrideKey || undefined,
+    maxTurns: draft.maxTurns === '' ? undefined : Number(draft.maxTurns),
+    promptTemplateId: draft.promptTemplateId || undefined,
+    systemPrompt: draft.systemPrompt || undefined,
+    enabledBuiltins: splitWorkflowCsv(draft.enabledBuiltins),
+    enabledMcpTools: splitWorkflowCsv(draft.enabledMcpTools),
+    enabledSkills: splitWorkflowCsv(draft.enabledSkills),
+    hasConfirmationGate: Boolean(draft.hasConfirmationGate),
+  };
+  state.savingWorkflowConfig = true;
+  renderExecutionTrace();
+  try {
+    const res = await fetch('/api/workflows/default-mrd-to-code/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodes: { [nodeId]: patch } }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '保存失败');
+    state.workflowDefinition = data.workflow;
+    state.workflowLoadError = '';
+    resetWorkflowConfigDraft();
+  } catch (err) {
+    state.workflowLoadError = err.message || String(err);
+  } finally {
+    state.savingWorkflowConfig = false;
+    renderExecutionTrace();
+  }
+}
+
+function splitWorkflowCsv(value) {
+  if (!value) return [];
+  return String(value).split(',').map(item => item.trim()).filter(Boolean);
+}
+
 function renderSelectedNodeExecution() {
-  const nodes = state.pipeline?.nodes || state.pipelineNodes || PIPELINE_STAGES;
+  const nodes = getPipelineBarNodes();
   const node = getSelectedNode();
   if (!node) return '<div style="color:var(--text-muted);padding:12px">请选择一个 Pipeline 节点</div>';
   const summary = summarizeNode(node);
@@ -945,6 +1650,7 @@ function renderSelectedNodeExecution() {
         <span>当前节点执行状态</span>
         <span>${nodes.findIndex(n => n.id === node.id) + 1}/${nodes.length}</span>
       </div>
+      ${shouldRenderFanoutWorkflowForNode(node.id) ? renderFanoutWorkflowMap(node.id) : renderMultiApplicationPanel(node)}
       ${renderNodeStatusCard(node, false)}
       <div class="selected-node-stream">
         <div class="selected-node-stream-title">执行内容</div>
@@ -954,8 +1660,389 @@ function renderSelectedNodeExecution() {
   `;
 }
 
+function isFanoutWorkflowNode(nodeId) {
+  return [
+    'mrd-render',
+    'project-fanout',
+    'implementation-plan',
+    'spec-generate',
+    'java-impl',
+    'testcode-generate',
+    'app-join',
+    'cross-app-code-review',
+    'cross-app-integration-review',
+    'archive',
+  ].includes(nodeId);
+}
+
+function shouldRenderFanoutWorkflowForNode(nodeId) {
+  if (!isFanoutWorkflowNode(nodeId)) return false;
+  if (['mrd-render', 'project-fanout', 'app-join', 'cross-app-code-review', 'cross-app-integration-review', 'archive'].includes(nodeId)) {
+    return true;
+  }
+  return canDisplaySessionWorkflow();
+}
+
+function renderFanoutWorkflowMap(activeNodeId = '') {
+  const branches = getSessionBranchFlowItems();
+  const decision = state.pipeline?.workflowInstance?.fanoutDecision;
+  if (!branches.length && !decision) return '';
+  const stages = [
+    { id: 'implementation-plan', label: '实施方案' },
+    { id: 'spec-generate', label: 'SPEC' },
+    { id: 'java-impl', label: 'Java 实现' },
+    { id: 'testcode-generate', label: '测试代码' },
+    { id: 'app-branch-summary', label: '分支汇总' },
+  ];
+  const included = decision?.includedProjects || [];
+  const excluded = decision?.excludedProjects || [];
+  const unresolved = decision?.unresolvedProjects || [];
+  const fanoutStatus = getNodeStatus('project-fanout');
+  const joinStatus = getNodeStatus('app-join');
+  const codeReviewStatus = getNodeStatus('cross-app-code-review');
+  const integrationReviewStatus = getNodeStatus('cross-app-integration-review');
+  const archiveStatus = getNodeStatus('archive');
+  return `
+    <div class="fanout-workflow-map">
+      <div class="fanout-map-header">
+        <div>
+          <div class="fanout-map-title">多应用动态 Workflow</div>
+          <div class="fanout-map-subtitle">
+            Fanout 后按应用泳道并行执行，Join 后进入跨应用审查
+          </div>
+        </div>
+        ${decision ? `
+          <button type="button" class="workflow-artifact-link" onclick="openBranchArtifact('${escAttr(state.pipeline.workflowInstance?.fanoutDecisionArtifact || 'artifacts/fanout-decision.json')}', event)">Fanout JSON</button>
+        ` : ''}
+      </div>
+      <div class="fanout-map-canvas">
+        <div class="fanout-start-node ${fanoutStatus} ${activeNodeId === 'project-fanout' ? 'active' : ''}" onclick="openPipelineNode('project-fanout')">
+          <strong>应用 Fanout</strong>
+          <small>按需求边界生成分支</small>
+          <span class="status-badge ${fanoutStatus}">${statusLabel(fanoutStatus)}</span>
+        </div>
+        <div class="fanout-connector fanout-to-lanes" aria-hidden="true"></div>
+        <div class="fanout-lanes">
+          ${branches.map(branch => renderFanoutWorkflowLane(branch, stages)).join('')}
+        </div>
+        <div class="fanout-review-flow">
+          <button type="button" class="fanout-terminal-node join ${joinStatus} ${activeNodeId === 'app-join' ? 'active' : ''}" onclick="openPipelineNode('app-join')">
+            <strong>Join</strong>
+            <small>${renderJoinSummary()}</small>
+            <span class="status-badge ${joinStatus}">${statusLabel(joinStatus)}</span>
+          </button>
+          <span class="fanout-down-arrow"></span>
+          <button type="button" class="fanout-terminal-node review ${codeReviewStatus} ${activeNodeId === 'cross-app-code-review' ? 'active' : ''}" onclick="openPipelineNode('cross-app-code-review')">
+            <strong>跨应用代码审查</strong>
+            <small>字段、接口、边界、重复实现</small>
+            <span class="status-badge ${codeReviewStatus}">${statusLabel(codeReviewStatus)}</span>
+          </button>
+          <span class="fanout-down-arrow"></span>
+          <button type="button" class="fanout-terminal-node review ${integrationReviewStatus} ${activeNodeId === 'cross-app-integration-review' ? 'active' : ''}" onclick="openPipelineNode('cross-app-integration-review')">
+            <strong>跨应用集成审查</strong>
+            <small>端到端链路和兼容性</small>
+            <span class="status-badge ${integrationReviewStatus}">${statusLabel(integrationReviewStatus)}</span>
+          </button>
+          <span class="fanout-side-arrow"></span>
+          <button type="button" class="fanout-terminal-node archive ${archiveStatus} ${activeNodeId === 'archive' ? 'active' : ''}" onclick="openPipelineNode('archive')">
+            <strong>归档</strong>
+            <small>分支报告 + 总交付</small>
+            <span class="status-badge ${archiveStatus}">${statusLabel(archiveStatus)}</span>
+          </button>
+        </div>
+      </div>
+      ${decision ? `
+        <div class="requirement-decision-row">
+          ${renderRequirementDecisionGroup('Included', included, 'included')}
+          ${renderRequirementDecisionGroup('Excluded', excluded, 'excluded')}
+          ${renderRequirementDecisionGroup('Unresolved', unresolved, 'unresolved')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderFanoutWorkflowLane(branch, stages) {
+  const currentStageId = branch.currentNodeId || state.pipeline?.currentNodeId || 'implementation-plan';
+  const laneSelected = state.selectedBranchNode?.branchId === branch.branchId;
+  return `
+    <div class="fanout-app-lane ${branch.status || 'pending'} ${laneSelected ? 'selected' : ''}" onclick="selectBranchNode('${escAttr(branch.branchId)}', '${escAttr(currentStageId)}', event)">
+      <button type="button" class="fanout-app-label" onclick="selectBranchNode('${escAttr(branch.branchId)}', '${escAttr(currentStageId)}', event)">
+        <span class="branch-status-dot ${branch.status || 'pending'}"></span>
+        <strong>${esc(branch.projectName || branch.branchId)}</strong>
+        <small>${statusLabel(branch.status || 'pending')}</small>
+      </button>
+      <div class="fanout-stage-track">
+        ${stages.map((stage, index) => renderFanoutStageChip(branch, stage, index < stages.length - 1)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderFanoutStageChip(branch, stage, hasNext) {
+  const node = branch.nodes.find(item => item.id === stage.id);
+  const status = node?.status || getBranchStageFallbackStatus(branch, stage.id);
+  return `
+    <div class="fanout-stage-wrap">
+      <button type="button" class="fanout-stage-chip ${status} ${isSelectedBranchNode(branch.branchId, stage.id) ? 'selected' : ''}" onclick="selectBranchNode('${escAttr(branch.branchId)}', '${escAttr(stage.id)}', event)" title="${escAttr(branch.projectName || branch.branchId)} · ${escAttr(stage.label)}">
+        <span>${esc(stage.label)}</span>
+        <small>${statusLabel(status)}</small>
+      </button>
+      ${hasNext ? '<span class="fanout-stage-arrow"></span>' : ''}
+    </div>
+  `;
+}
+
+function getBranchStageFallbackStatus(branch, stageId) {
+  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-branch-summary'];
+  const stageIndex = sequence.indexOf(stageId);
+  const currentIndex = sequence.indexOf(branch.currentNodeId || '');
+  if (branch.status === 'completed') return 'completed';
+  if (['failed', 'waiting_fix', 'cancelled'].includes(branch.status || '')) {
+    return currentIndex < 0 || stageIndex === currentIndex ? branch.status : stageIndex < currentIndex ? 'completed' : 'pending';
+  }
+  if (['running', 'waiting_confirmation'].includes(branch.status || '')) {
+    if (stageIndex < currentIndex) return 'completed';
+    if (stageIndex === currentIndex) return branch.status;
+  }
+  return 'pending';
+}
+
+function renderJoinSummary() {
+  const join = state.pipeline?.workflowInstance?.joins?.find(item => item.joinId === 'app-join');
+  if (!join) return '等待分支全部终态';
+  return `${join.completedBranchIds?.length || 0} 完成 · ${join.waitingForBranchIds?.length || 0} 等待 · ${join.failedBranchIds?.length || 0} 失败`;
+}
+
+function renderRequirementBranchChip(branch, stageId) {
+  const node = branch.nodes.find(item => item.id === stageId);
+  const status = node?.status || branch.status || 'pending';
+  return `
+    <button type="button" class="requirement-branch-chip ${status}" onclick="toggleBranchDrilldown('${escAttr(branch.branchId)}')">
+      <span class="branch-status-dot ${status}"></span>
+      <span>${esc(branch.projectName || branch.branchId)}</span>
+      <small>${statusLabel(status)}</small>
+    </button>
+  `;
+}
+
+function renderRequirementDecisionGroup(label, projects, kind) {
+  const items = Array.isArray(projects) ? projects : [];
+  return `
+    <div class="requirement-decision-group ${kind}">
+      <span>${esc(label)} · ${items.length}</span>
+      <strong>${items.length ? items.map(project => esc(getDecisionProjectName(project))).join(', ') : 'none'}</strong>
+    </div>
+  `;
+}
+
+function getDecisionProjectName(project) {
+  if (typeof project === 'string') return project;
+  if (!project || typeof project !== 'object') return 'unknown';
+  return project.name || project.projectName || project.id || project.path || 'unknown';
+}
+
+function getSessionBranchFlowItems() {
+  const instanceBranches = state.pipeline?.workflowInstance?.branches;
+  if (Array.isArray(instanceBranches) && instanceBranches.length) {
+    return instanceBranches.map(branch => ({
+      branchId: branch.branchId || branch.id || branch.projectName,
+      projectName: branch.projectName || branch.name || branch.branchId,
+      status: branch.status || 'pending',
+      currentNodeId: branch.currentNodeId,
+      nodes: getBranchWorkflowNodes(branch),
+    }));
+  }
+  const projects = state.pipeline?.projects;
+  if (Array.isArray(projects) && projects.length) {
+    return projects.map(project => {
+      const branchId = project.branchId || project.name;
+      const nodes = project.nodes
+        ? Object.values(project.nodes).map(node => ({
+            id: node.id,
+            label: stageName(node.id, node.id),
+            status: node.status || 'pending',
+          }))
+        : getBranchWorkflowNodes(project);
+      return {
+        branchId,
+        projectName: project.name || branchId,
+        status: project.status || 'pending',
+        currentNodeId: project.currentNodeId,
+        nodes,
+      };
+    });
+  }
+  const included = state.pipeline?.workflowInstance?.fanoutDecision?.includedProjects;
+  if (Array.isArray(included) && included.length) {
+    return included.map(project => {
+      const name = project.name || project.projectName || 'unknown';
+      return {
+        branchId: name,
+        projectName: name,
+        status: 'pending',
+        currentNodeId: 'implementation-plan',
+        nodes: getBranchWorkflowNodes({ status: 'pending', currentNodeId: 'implementation-plan' }),
+      };
+    });
+  }
+  return [];
+}
+
+function renderMultiApplicationPanel(node = null) {
+  if (node?.id === 'mrd-render') return '';
+  const projects = state.pipeline?.projects || [];
+  if (!projects.length) return '';
+  const counts = projects.reduce((acc, project) => {
+    const status = project.status || 'pending';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+  const completed = counts.completed || 0;
+  const failed = counts.failed || 0;
+  const waitingFix = counts.waiting_fix || 0;
+  const running = counts.running || counts.waiting_confirmation || 0;
+  const total = projects.length;
+  const percent = total ? Math.round((completed / total) * 100) : 0;
+  const crossAppArtifacts = getCrossAppArtifacts();
+  return `
+    <div class="multi-app-panel">
+      <div class="multi-app-header">
+        <div>
+          <div class="multi-app-title">多应用分支</div>
+          <div class="multi-app-subtitle">${completed}/${total} 完成 · ${running} 运行中 · ${failed} 失败 · ${waitingFix} 待修复</div>
+        </div>
+        <div class="multi-app-progress" title="分支完成度">
+          <span style="width:${percent}%"></span>
+        </div>
+      </div>
+      <div class="branch-grid">
+        ${projects.map(renderBranchCard).join('')}
+      </div>
+      ${crossAppArtifacts.length ? `
+        <div class="cross-app-findings">
+          <div class="cross-app-title">跨应用审查产物</div>
+          <div class="cross-app-links">
+            ${crossAppArtifacts.map(artifact => `
+              <button type="button" class="cross-app-link" onclick="openBranchArtifact('${escAttr(artifact)}', event)">
+                ${esc(artifact.split('/').slice(-2).join('/'))}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderBranchCard(project) {
+  const branchId = project.branchId || project.name;
+  const expanded = state.expandedBranchIds.has(branchId);
+  const artifacts = normalizeArtifactPaths(project.outputArtifacts || []);
+  const nodes = project.nodes ? Object.values(project.nodes) : [];
+  const failedOrWaiting = ['failed', 'waiting_fix'].includes(project.status);
+  const rerunButton = failedOrWaiting && project.currentNodeId
+    ? `<button class="branch-action" type="button" onclick="retryPipelineFromNode('${escAttr(project.currentNodeId)}', event)">从当前节点重跑</button>`
+    : '';
+  return `
+    <div class="branch-card ${project.status || 'pending'}">
+      <button type="button" class="branch-card-main" onclick="toggleBranchDrilldown('${escAttr(branchId)}')">
+        <span class="branch-status-dot ${project.status || 'pending'}"></span>
+        <span class="branch-name">${esc(project.name || branchId)}</span>
+        <span class="status-badge ${project.status || 'pending'}">${statusLabel(project.status || 'pending')}</span>
+      </button>
+      ${expanded ? `
+        <div class="branch-details">
+          <div class="branch-meta">
+            <span>branch: ${esc(branchId)}</span>
+            ${project.currentNodeId ? `<span>current: ${esc(stageName(project.currentNodeId, project.currentNodeId))}</span>` : ''}
+          </div>
+          ${nodes.length ? `
+            <div class="branch-node-list">
+              ${nodes.map(node => `
+                <div class="branch-node-row">
+                  <span>${esc(stageName(node.id, node.id))}</span>
+                  <span class="status-badge ${node.status || 'pending'}">${statusLabel(node.status || 'pending')}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          ${artifacts.length ? `
+            <div class="branch-artifacts">
+              ${artifacts.slice(0, 6).map(artifact => `
+                <button type="button" onclick="openBranchArtifact('${escAttr(artifact)}', event)">${esc(artifact.split('/').pop())}</button>
+              `).join('')}
+            </div>
+          ` : '<div class="branch-empty">暂无分支产物</div>'}
+          ${rerunButton ? `<div class="branch-actions">${rerunButton}</div>` : ''}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function toggleBranchDrilldown(branchId) {
+  if (state.expandedBranchIds.has(branchId)) state.expandedBranchIds.delete(branchId);
+  else state.expandedBranchIds.add(branchId);
+  renderExecutionTrace();
+}
+
+function selectBranchNode(branchId, stageId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const branch = findSessionBranch(branchId);
+  state.selectedBranchNode = {
+    branchId,
+    projectName: branch?.projectName || branch?.name || branchId,
+    stageId,
+  };
+  state.expandedBranchIds.add(branchId);
+  renderExecutionTrace();
+  loadFileTree('artifacts');
+  loadAgents();
+  const artifact = getSelectedBranchArtifacts()[0];
+  if (artifact && state.activeTab === 'preview') {
+    previewFile('artifacts', artifact);
+  } else if (state.activeTab === 'preview' && !artifact) {
+    clearPreviewForSelectedNode();
+  }
+}
+
+function isSelectedBranchNode(branchId, stageId) {
+  return state.selectedBranchNode?.branchId === branchId && state.selectedBranchNode?.stageId === stageId;
+}
+
+function findSessionBranch(branchId) {
+  const branches = state.pipeline?.workflowInstance?.branches || [];
+  const branch = branches.find(item => item.branchId === branchId || item.id === branchId);
+  if (branch) return branch;
+  const projects = state.pipeline?.projects || [];
+  return projects.find(item => (item.branchId || item.name) === branchId);
+}
+
+function openBranchArtifact(artifactPath, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  activateTab('preview');
+  previewFile('artifacts', artifactPath.replace(/^artifacts\//, ''));
+}
+
+function getCrossAppArtifacts() {
+  const indexed = Object.values(state.pipeline?.artifactIndex || state.pipeline?.artifact_index || {}).flat();
+  const live = (state.events || [])
+    .filter(event => event.type === 'artifact_written')
+    .map(event => event.data?.artifactPath);
+  return normalizeArtifactPaths([...indexed, ...live])
+    .filter(artifact => artifact.includes('cross-app/') || artifact.includes('cross-app\\'))
+    .sort();
+}
+
 function getSelectedNode() {
-  const nodes = state.pipeline?.nodes || state.pipelineNodes || PIPELINE_STAGES;
+  const nodes = getPipelineBarNodes();
   return nodes.find(node => node.id === state.selectedNodeId) || nodes[0];
 }
 
@@ -1015,7 +2102,8 @@ function renderSelectedNodeEvents(events) {
 }
 
 function appendEventToSelectedTrace(event) {
-  if (!state.selectedNodeId || event.nodeId !== state.selectedNodeId) return false;
+  const effectiveSelectedNodeId = state.selectedNodeId === 'mrd-clarify' ? 'mrd-render' : state.selectedNodeId;
+  if (!effectiveSelectedNodeId || event.nodeId !== effectiveSelectedNodeId) return false;
   if (!isVisibleTraceEvent(event)) return true;
   const container = document.getElementById('selected-node-events');
   if (!container) return false;
@@ -1136,19 +2224,22 @@ function renderDeferredToolResults() {
 
 function getSelectedNodeEvents() {
   const nodeId = state.selectedNodeId;
-  return (state.events || []).filter(event => event.nodeId === nodeId || event.data?.nodeId === nodeId || event.data?.stageId === nodeId);
+  const effectiveNodeId = nodeId === 'mrd-clarify' ? 'mrd-render' : nodeId;
+  return (state.events || []).filter(event => event.nodeId === effectiveNodeId || event.data?.nodeId === effectiveNodeId || event.data?.stageId === effectiveNodeId);
 }
 
 function summarizeNode(node) {
-  const nodeEvents = (state.events || []).filter(event => event.nodeId === node.id || event.data?.nodeId === node.id || event.data?.stageId === node.id);
-  const attemptStart = node.startedAt || [...nodeEvents].reverse().find(event => event.type === 'pipeline_node_start')?.timestamp || 0;
+  const effectiveNodeId = node.id === 'mrd-clarify' ? 'mrd-render' : node.id;
+  const nodeEvents = (state.events || []).filter(event => event.nodeId === effectiveNodeId || event.data?.nodeId === effectiveNodeId || event.data?.stageId === effectiveNodeId);
+  const runNode = effectiveNodeId === node.id ? node : (state.pipeline?.nodes || []).find(item => item.id === effectiveNodeId) || node;
+  const attemptStart = runNode.startedAt || [...nodeEvents].reverse().find(event => event.type === 'pipeline_node_start')?.timestamp || 0;
   const events = attemptStart
     ? nodeEvents.filter(event => (event.timestamp || 0) >= attemptStart)
     : nodeEvents;
-  const agents = (state.agents || []).filter(agent => agent.nodeId === node.id);
+  const agents = (state.agents || []).filter(agent => agent.nodeId === effectiveNodeId);
   const modelEvent = [...events].reverse().find(event => event.type === 'model_selected' || event.type === 'model_switched');
-  const startedAt = node.startedAt || events.find(event => event.type === 'pipeline_node_start')?.timestamp;
-  const completedAt = node.completedAt || [...events].reverse().find(event => event.type === 'pipeline_node_end')?.timestamp;
+  const startedAt = runNode.startedAt || events.find(event => event.type === 'pipeline_node_start')?.timestamp;
+  const completedAt = runNode.completedAt || [...events].reverse().find(event => event.type === 'pipeline_node_end')?.timestamp;
   return {
     eventCount: events.length,
     agentCount: agents.length,
@@ -1402,6 +2493,9 @@ function showConfirmation(d) {
   if (d.confirmationKind === 'mrd-clarify-questions') {
     setupConfirmWizard(d, content);
     renderConfirmWizardPage();
+  } else if (d.confirmationKind === 'mrd-render') {
+    setupMrdRenderWizard(d, content);
+    renderConfirmWizardPage();
   } else if (d.confirmationKind === 'mrd-clarify') {
     const options = Array.isArray(d.clarificationOptions) && d.clarificationOptions.length
       ? d.clarificationOptions
@@ -1470,6 +2564,7 @@ function setupConfirmWizard(d, content) {
       ];
   state.confirmationWizardKey = key;
   state.confirmationWizard = {
+    kind: 'mrd-clarify',
     index: 0,
     pages: [
       ...pages.map((page, index) => ({ ...page, kind: 'question', number: index + 1 })),
@@ -1481,8 +2576,127 @@ function setupConfirmWizard(d, content) {
   };
 }
 
+function setupMrdRenderWizard(d, content) {
+  const key = `${d.nodeId || ''}:${d.artifactPath || ''}:${content.length}:${content.slice(0, 80)}`;
+  if (state.confirmationWizard && state.confirmationWizardKey === key) return;
+  const sections = parseMarkdownSections(content);
+  const preferred = [
+    { title: '功能清单', match: /feature inventory|功能清单|需求清单|需求列表/i },
+    { title: '应用归属', match: /project ownership|应用归属|项目归属|需求归属/i },
+    { title: '实施边界', match: /implementation boundaries|实现边界|实施边界/i },
+    { title: '澄清问题', match: /clarification questions|澄清问题|待澄清/i },
+    { title: '确认决策', match: /clarified decisions|确认决策|已确认/i },
+  ];
+  const used = new Set();
+  const pages = [
+    {
+      kind: 'review',
+      title: '汇总方案',
+      body: buildMrdRenderSummary(content, sections),
+      number: 1,
+    },
+  ];
+
+  for (const item of preferred) {
+    const index = sections.findIndex((section, sectionIndex) => !used.has(sectionIndex) && item.match.test(section.title));
+    if (index >= 0) {
+      used.add(index);
+      pages.push({
+        kind: 'review',
+        title: item.title,
+        body: sections[index].body || sections[index].raw,
+        number: pages.length + 1,
+      });
+    }
+  }
+
+  for (const [index, section] of sections.entries()) {
+    if (used.has(index)) continue;
+    const title = section.title.replace(/^MRD\s+/i, '').trim();
+    if (!section.body || title.length > 48) continue;
+    pages.push({
+      kind: 'review',
+      title: title || `拆解内容 ${pages.length}`,
+      body: section.body,
+      number: pages.length + 1,
+    });
+    if (pages.length >= 8) break;
+  }
+
+  pages.push({
+    kind: 'extra',
+    title: '补充确认',
+    body: '如果需求清单、应用归属或实施边界需要调整，请在下方补充说明。没有补充时可直接确认继续。',
+    number: pages.length + 1,
+  });
+
+  state.confirmationWizardKey = key;
+  state.confirmationWizard = {
+    kind: 'mrd-render',
+    index: 0,
+    pages,
+    options: [],
+    answers: pages.map(() => ({ option: 'reviewed', note: '' })),
+    extra: '',
+  };
+}
+
+function parseMarkdownSections(content) {
+  const normalized = String(content || '').replace(/\r\n/g, '\n').trim();
+  if (!normalized) return [];
+  const parts = normalized
+    .split(/\n(?=#{1,4}\s+)/)
+    .map(part => part.trim())
+    .filter(Boolean);
+  return parts.map((part, index) => {
+    const [heading, ...bodyLines] = part.split('\n');
+    const title = heading.replace(/^#{1,4}\s*/, '').trim() || `章节 ${index + 1}`;
+    const body = bodyLines.join('\n').trim();
+    return { title, body, raw: part };
+  });
+}
+
+function buildMrdRenderSummary(content, sections) {
+  const normalized = String(content || '').replace(/\r\n/g, '\n').trim();
+  const summarySection = sections.find(section => /summary|汇总|总体方案|整体方案/i.test(section.title));
+  if (summarySection?.body) return summarySection.body.slice(0, 3600);
+
+  const ownership = sections.find(section => /project ownership|应用归属|项目归属|需求归属/i.test(section.title));
+  const boundaries = sections.find(section => /implementation boundaries|实现边界|实施边界/i.test(section.title));
+  const decisions = sections.find(section => /clarified decisions|确认决策|已确认/i.test(section.title));
+  const inventory = sections.find(section => /feature inventory|功能清单|需求清单|需求列表/i.test(section.title));
+  const blocks = [
+    compactSectionPreview('需求清单', inventory?.body),
+    compactSectionPreview('应用归属', ownership?.body),
+    compactSectionPreview('实施边界', boundaries?.body),
+    compactSectionPreview('确认决策', decisions?.body),
+  ].filter(Boolean);
+  if (blocks.length) {
+    return [
+      '请先确认本次需求拆解的总体方案，后续分页会逐项展示功能清单、应用归属、实施边界和确认决策。',
+      '',
+      ...blocks,
+    ].join('\n\n');
+  }
+  return normalized.slice(0, 3600) || '请确认当前需求拆解是否可作为后续多应用实施 workflow 的输入。';
+}
+
+function compactSectionPreview(title, body) {
+  if (!body) return '';
+  const lines = String(body)
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line && !/^[-=]{3,}$/.test(line))
+    .slice(0, 8);
+  if (!lines.length) return '';
+  return `## ${title}\n${lines.join('\n')}`;
+}
+
 function parseClarificationQuestionPages(content) {
   const normalized = String(content || '').replace(/\r\n/g, '\n').trim();
+  if (/##\s+需求-应用实现边界确认/.test(normalized)) {
+    return parseRequirementBoundaryQuestionPages(normalized);
+  }
   const lines = normalized.split('\n');
   const listItems = [];
   let current = null;
@@ -1529,11 +2743,88 @@ function parseClarificationQuestionPages(content) {
     .map((part, index) => ({ title: `问题 ${index + 1}`, body: part }));
 }
 
+function parseRequirementBoundaryQuestionPages(content) {
+  const sections = parseHashSections(content, 3);
+  const candidates = sections.get('上传应用候选') || '';
+  const inventory = sections.get('功能清单') || '';
+  const ownership = sections.get('应用归属') || '';
+  const boundaries = sections.get('实施边界') || '';
+  const required = sections.get('必须确认的问题') || '';
+  const questions = extractNumberedItems(required);
+  const context = [
+    candidates ? `## 上传应用候选\n${candidates}` : '',
+    ownership ? `## 应用归属\n${ownership}` : '',
+    boundaries ? `## 实施边界\n${boundaries}` : '',
+  ].filter(Boolean).join('\n\n');
+  const overview = [
+    '请先确认本次需求拆解的应用归属和实现边界。后续每页只展示一个需要确认的问题，并附带当前拆解依据。',
+    '',
+    candidates ? `## 上传应用候选\n${candidates}` : '',
+    inventory ? `## 功能清单\n${inventory}` : '',
+  ].filter(Boolean).join('\n\n');
+
+  if (!questions.length) {
+    return [{
+      title: '需求-应用边界确认',
+      body: [
+        overview,
+        context ? `## 当前边界依据\n${context}` : '',
+      ].filter(Boolean).join('\n\n'),
+    }];
+  }
+
+  return [
+    { title: '需求-应用边界总览', body: overview },
+    ...questions.map((question, index) => ({
+      title: `问题 ${index + 1}`,
+      body: [
+        question,
+        '',
+        '## 当前拆解依据',
+        context || '暂无可用上下文，请按业务事实补充应用归属和实现边界。',
+      ].join('\n'),
+    })),
+  ];
+}
+
+function parseHashSections(content, level) {
+  const marker = '#'.repeat(level);
+  const sections = new Map();
+  const re = new RegExp(`^${marker}\\\\s+(.+)$`, 'gm');
+  const matches = Array.from(content.matchAll(re));
+  for (let index = 0; index < matches.length; index += 1) {
+    const match = matches[index];
+    const title = match[1].trim();
+    const start = (match.index || 0) + match[0].length;
+    const end = index + 1 < matches.length ? matches[index + 1].index || content.length : content.length;
+    sections.set(title, content.slice(start, end).trim());
+  }
+  return sections;
+}
+
+function extractNumberedItems(content) {
+  const lines = String(content || '').replace(/\r\n/g, '\n').split('\n');
+  const items = [];
+  let current = '';
+  for (const line of lines) {
+    const match = line.match(/^\s*\d+[.、]\s+(.+)$/);
+    if (match) {
+      if (current.trim()) items.push(current.trim());
+      current = match[1].trim();
+    } else if (current && line.trim()) {
+      current += `\n${line.trim()}`;
+    }
+  }
+  if (current.trim()) items.push(current.trim());
+  return items;
+}
+
 function renderConfirmWizardPage() {
   const wizard = state.confirmationWizard;
   if (!wizard) return;
   const page = wizard.pages[wizard.index];
   const isExtraPage = page.kind === 'extra';
+  const isReviewPage = page.kind === 'review';
   const isFirst = wizard.index === 0;
   const isLast = wizard.index === wizard.pages.length - 1;
   const contentEl = document.getElementById('confirm-content');
@@ -1555,6 +2846,8 @@ function renderConfirmWizardPage() {
       </div>
       ${isExtraPage ? `
         <div class="confirm-help-text">这一页用于补充前面问题没有覆盖到的信息。没有额外内容时可以直接确认继续。</div>
+      ` : isReviewPage ? `
+        <div class="confirm-help-text">这一页只用于审阅确认。需要调整时可在下方写补充说明，最后一页再提交确认或驳回。</div>
       ` : `
         <div class="confirm-options">
           ${wizard.options.map(option => `
@@ -1578,6 +2871,8 @@ function renderConfirmWizardPage() {
   feedback.value = isExtraPage ? (wizard.extra || '') : (answer.note || '');
   feedback.placeholder = isExtraPage
     ? '可选：补充其它业务口径、项目归属、边界条件或验收标准...'
+    : isReviewPage
+      ? '可选：记录本页需要调整的需求清单、应用归属或实现边界...'
     : '可选：填写本题的具体答案、修正意见或补充约束...';
   feedback.oninput = saveCurrentConfirmWizardPage;
   if (finalActions) finalActions.style.display = isLast ? 'flex' : 'none';
@@ -1594,6 +2889,10 @@ function saveCurrentConfirmWizardPage() {
   }
   const answer = wizard.answers[page.number - 1];
   if (!answer) return;
+  if (page.kind === 'review') {
+    answer.note = feedback;
+    return;
+  }
   const selected = document.querySelector('input[name="mrd-clarify-option"]:checked');
   answer.option = selected?.value || answer.option;
   answer.note = feedback;
@@ -1630,6 +2929,18 @@ function buildConfirmWizardFeedback() {
   const wizard = state.confirmationWizard;
   if (!wizard) return '';
   saveCurrentConfirmWizardPage();
+  if (wizard.kind === 'mrd-render') {
+    const reviewPages = wizard.pages.filter(page => page.kind === 'review');
+    const notes = reviewPages.map(page => {
+      const answer = wizard.answers[page.number - 1] || {};
+      return answer.note ? `## ${page.title}\n${answer.note}` : '';
+    }).filter(Boolean);
+    return [
+      '需求拆解确认：分页审阅',
+      notes.length ? notes.join('\n\n') : '已按分页审阅汇总方案、功能清单、应用归属、实施边界和确认决策。',
+      wizard.extra ? `## 补充确认\n${wizard.extra}` : '',
+    ].filter(Boolean).join('\n\n');
+  }
   const optionById = new Map((wizard.options || []).map(option => [option.id, option]));
   const questionPages = wizard.pages.filter(page => page.kind === 'question');
   return [
@@ -1660,9 +2971,10 @@ function switchTab(tab) {
   if (!document.getElementById(`tab-${tab}`)) tab = 'artifacts';
   activateTab(tab);
   if (tab === 'preview') {
-    const artifact = state.selectedNodeId === 'spec-generate'
+    const branchArtifact = getSelectedBranchArtifacts()[0];
+    const artifact = branchArtifact || (state.selectedNodeId === 'spec-generate'
       ? findFirstFilePath(state.fileTreeCache.artifacts || [])
-      : getStageArtifacts(state.selectedNodeId)[0];
+      : getStageArtifacts(state.selectedNodeId)[0]);
     if (artifact && state.runId) previewFile('artifacts', artifact);
     else clearPreviewForSelectedNode();
   }
@@ -1688,7 +3000,7 @@ async function loadFileTree(scope) {
     const tree = scope === 'artifacts' ? filterArtifactTreeForSelectedNode(data.tree || []) : data.tree;
     state.fileTreeCache[scope] = tree;
     container.innerHTML = renderFileTree(tree, scope);
-    if (scope === 'artifacts' && state.activeTab === 'preview' && state.selectedNodeId === 'spec-generate') {
+    if (scope === 'artifacts' && state.activeTab === 'preview' && (state.selectedBranchNode || state.selectedNodeId === 'spec-generate')) {
       const firstFile = findFirstFilePath(tree);
       if (firstFile) previewFile('artifacts', firstFile);
     }
@@ -1696,6 +3008,10 @@ async function loadFileTree(scope) {
 }
 
 function filterArtifactTreeForSelectedNode(tree) {
+  const branchArtifacts = getSelectedBranchArtifacts();
+  if (state.selectedBranchNode) {
+    return branchArtifacts.length ? filterTreeByPaths(tree, new Set(branchArtifacts)) : [];
+  }
   if (state.selectedNodeId === 'spec-generate') {
     return filterTreeByPredicate(tree, node =>
       node.type === 'file' &&
@@ -1746,7 +3062,18 @@ function findFirstFilePath(nodes) {
 }
 
 function getStageArtifacts(nodeId) {
+  if (state.selectedBranchNode?.stageId === nodeId) return getSelectedBranchArtifacts();
   if (!nodeId) return [];
+  if (nodeId === 'mrd-clarify') {
+    const indexed = state.pipeline?.artifactIndex?.['mrd-render'] || state.pipeline?.artifact_index?.['mrd-render'] || [];
+    const liveArtifacts = (state.events || [])
+      .filter(event => event.type === 'artifact_written' && (event.nodeId === 'mrd-render' || event.data?.nodeId === 'mrd-render'))
+      .map(event => event.data?.artifactPath);
+    return sortStageArtifacts(nodeId, normalizeArtifactPaths([
+      ...(Array.isArray(indexed) ? indexed : [indexed]),
+      ...liveArtifacts,
+    ]).filter(path => path.includes('mrd-clarify-questions') || path.includes('implementation-boundaries')));
+  }
   const node = (state.pipeline?.nodes || []).find(item => item.id === nodeId);
   const indexed = state.pipeline?.artifactIndex?.[nodeId] || state.pipeline?.artifact_index?.[nodeId];
   const artifacts = indexed || node?.outputArtifacts || node?.output_artifacts || [];
@@ -1757,6 +3084,38 @@ function getStageArtifacts(nodeId) {
     ...(Array.isArray(artifacts) ? artifacts : [artifacts]),
     ...liveArtifacts,
   ]));
+}
+
+function getSelectedBranchArtifacts() {
+  const selection = state.selectedBranchNode;
+  if (!selection) return [];
+  const branch = findSessionBranch(selection.branchId);
+  const stageId = selection.stageId;
+  const projectName = selection.projectName || branch?.projectName || branch?.name || selection.branchId;
+  const branchNode = (branch?.nodes || []).find(node => node.id === stageId) ||
+    getBranchWorkflowNodes(branch || {}).find(node => node.id === stageId);
+  const indexed = branch?.artifactIndex?.[stageId] || branch?.artifact_index?.[stageId] || [];
+  const nodeArtifacts = branchNode?.outputArtifacts || branchNode?.output_artifacts || branchNode?.artifacts || [];
+  const globalIndexed = state.pipeline?.artifactIndex?.[stageId] || state.pipeline?.artifact_index?.[stageId] || [];
+  const liveArtifacts = (state.events || [])
+    .filter(event => (event.nodeId === stageId || event.data?.nodeId === stageId))
+    .map(event => event.data?.artifactPath);
+  const normalized = normalizeArtifactPaths([
+    ...(Array.isArray(indexed) ? indexed : [indexed]),
+    ...(Array.isArray(nodeArtifacts) ? nodeArtifacts : [nodeArtifacts]),
+    ...(Array.isArray(globalIndexed) ? globalIndexed : [globalIndexed]),
+    ...liveArtifacts,
+  ]);
+  const tokens = [
+    projectName,
+    selection.branchId,
+    branch?.projectRoot,
+  ].filter(Boolean).map(token => String(token).replace(/^project\//, ''));
+  const scoped = normalized.filter(path => {
+    const clean = path.replace(/^artifacts\//, '');
+    return tokens.some(token => clean === token || clean.startsWith(`${token}/`) || clean.includes(`/${token}/`));
+  });
+  return sortStageArtifacts(stageId, scoped);
 }
 
 function normalizeArtifactPaths(paths) {
@@ -1781,6 +3140,11 @@ function sortStageArtifacts(nodeId, paths) {
 
 function renderFileTree(nodes, scope, depth = 0) {
   if (!nodes || !nodes.length) {
+    const branchSelection = state.selectedBranchNode;
+    if (branchSelection) {
+      const label = `${branchSelection.projectName || branchSelection.branchId} / ${stageName(branchSelection.stageId, branchSelection.stageId)}`;
+      return `<div style="color:var(--text-muted);font-size:11px;padding:8px">当前应用子流程暂无产物：${esc(label)}</div>`;
+    }
     const node = getSelectedNode();
     return `<div style="color:var(--text-muted);font-size:11px;padding:8px">当前节点暂无产物：${esc(stageName(node?.id, node?.name))}</div>`;
   }
@@ -1819,6 +3183,14 @@ async function previewFile(scope, filePath) {
 
 function clearPreviewForSelectedNode() {
   const container = document.getElementById('file-preview');
+  if (state.selectedBranchNode) {
+    const branch = state.selectedBranchNode;
+    const label = `${branch.projectName || branch.branchId} / ${stageName(branch.stageId, branch.stageId)}`;
+    if (container) {
+      container.innerHTML = `<div style="padding:20px;color:var(--text-muted);text-align:center">当前应用子流程暂无可预览产物：${esc(label)}</div>`;
+    }
+    return;
+  }
   const node = getSelectedNode();
   if (container) {
     container.innerHTML = `<div style="padding:20px;color:var(--text-muted);text-align:center">当前节点暂无可预览产物：${esc(stageName(node?.id, node?.name))}</div>`;
@@ -1841,7 +3213,16 @@ async function loadAgents() {
 function renderAgents(agents) {
   const container = document.getElementById('agents-list');
   const node = getSelectedNode();
-  let currentAgents = (agents || []).filter(agent => agent.nodeId === state.selectedNodeId);
+  const branchSelection = state.selectedBranchNode;
+  let currentAgents = (agents || []).filter(agent => agent.nodeId === (branchSelection?.stageId || state.selectedNodeId));
+  if (branchSelection) {
+    currentAgents = currentAgents.filter(agent => {
+      const projectName = inferProjectName(agent);
+      return agent.branchId === branchSelection.branchId ||
+        agent.projectName === branchSelection.projectName ||
+        projectName === branchSelection.projectName;
+    });
+  }
   if (['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'archive'].includes(state.selectedNodeId)) {
     currentAgents = currentAgents.filter(agent => agent.projectName);
   }
@@ -1853,7 +3234,7 @@ function renderAgents(agents) {
     <div class="agent-overview">
       <div>
         <strong>${currentAgents.length}</strong>
-        <span>当前节点 Agent</span>
+        <span>${branchSelection ? '当前应用节点 Agent' : '当前节点 Agent'}</span>
       </div>
       <div>
         <strong>${currentAgents.filter(a => ['running','waking','waiting_tool','waiting_confirmation','compacting'].includes(a.status)).length}</strong>
@@ -1959,6 +3340,7 @@ function renderModelSwitchHistory(history) {
 function nodeSubtaskLabel(nodeId) {
   return {
     'upload-init': '上传文件、初始化运行目录和项目空间',
+    'mrd-clarify': '确认需求清单、应用归属和实现边界',
     'mrd-render': '拆解需求、确认功能归属和待澄清问题',
     'implementation-plan': '生成 PRD 验收口径和项目技术方案',
     'spec-generate': '并发生成开发 OpenSpec 任务清单和测试任务清单',

@@ -5,6 +5,7 @@ import { getRunPaths } from '../../runtime/paths.js';
 import { ProjectManifest, detectProjectRoots, listProjectFiles } from './upload-init.js';
 import { extractSection } from './requirement-decompose.js';
 import { loadPromptFile, renderPromptTemplate } from './prompt-files.js';
+import { readProjectOpenSpecContext } from './openspec-integration.js';
 
 export function buildImplementationPlanPrompt(
   node: PipelineNode,
@@ -207,6 +208,7 @@ export function buildProjectStagePromptVariables(
     prd: readArtifactForPrompt(paths, 'prd.md', 24000),
     implementation_manifest: readArtifactForPrompt(paths, 'implementation-plan-manifest.json', 12000),
     spec_manifest: readArtifactForPrompt(paths, 'spec-manifest.json', 12000),
+    openspec_change_context: readProjectOpenSpecContext(paths, path.basename(paths.runDir), project.name, 24000),
     tech_design: readArtifactForPrompt(paths, `${project.name}/tech-design.md`, 26000),
     openspec_task: readArtifactForPrompt(paths, `${project.name}/openspec-task.md`, 24000),
     openspec_test_task: readArtifactForPrompt(paths, `${project.name}/openspec-test-task.md`, 24000),

@@ -29,6 +29,7 @@
 - 聚焦每个开发任务对应的测试文件、测试用例、Mock/Stub、断言、异常路径、回归覆盖和 Maven 命令。
 - 每条任务尽量包含目标测试文件、被测生产类/方法、Mock 对象、断言点或 Maven 命令。
 - 所有可执行测试任务必须使用 `- [ ] ...` checkbox 格式，不能用 `1.`/`2.` 编号任务。
+- Pipeline 会将这份测试任务清单同步生成到 `artifacts/{{project_name}}/openspec/changes/.../tasks.md` 的 Test 部分，所以每条任务必须是 OpenSpec 可执行任务。
 - 不要生成 Java 测试代码正文。
 
 推荐结构：
