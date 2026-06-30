@@ -83,3 +83,43 @@ Recommended decision for the OpenSpec change:
 > platform runner, and project-owned Playwright configuration is used when
 > present.
 
+## Implemented Runtime Contract
+
+The platform now records startup capability evidence in
+`artifacts/project-manifest.json` for each detected project. The snapshot
+includes frontend/backend startup commands, framework and script signals,
+readiness endpoints, API base URL conventions, fallback reasons, confidence, and
+project-owned `playwright.config.*` detection.
+
+Runtime configuration is controlled by:
+
+- `AI_CODING_E2E_VERIFY=0` to disable `e2e-verify`
+- `AI_CODING_E2E_BROWSER_CONCURRENCY`
+- `AI_CODING_E2E_STARTUP_TIMEOUT_MS`
+- `AI_CODING_E2E_READINESS_TIMEOUT_MS`
+- `AI_CODING_E2E_ARTIFACT_RETENTION=all|failures|summary-only`
+- `AI_CODING_E2E_STARTUP_CONFIDENCE=high|medium|low|none`
+
+For each app, verification writes app-scoped artifacts under
+`artifacts/<project>/e2e/`:
+
+- `startup-manifest.json`
+- `api-contract-results.json`
+- `api-smoke-results.json`
+- `playwright-report/`
+- `screenshots/`
+- `traces/`
+- `console-network-summary.json`
+- `failure-classification.json`
+- `verification-summary.md`
+- `e2e-summary.json`
+
+`app-integration-test` is the current branch node that surfaces these artifacts
+in the session UI. Dynamic plans may also use runner IDs `frontend-test`,
+`api-contract-check`, and `e2e-verify`; those map to the integration/E2E
+verification artifact scope.
+
+When Playwright is installed but browser binaries are unavailable, the platform
+records a bounded HTTP fallback artifact so local test environments can still
+verify startup and routing behavior. Product runs should install Playwright
+browsers for true browser-level coverage.

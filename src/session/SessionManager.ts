@@ -515,14 +515,16 @@ function inferBranchNodeStatus(
 function branchNodeIdForStage(nodeId?: string): string | undefined {
   if (!nodeId) return undefined;
   if (nodeId === 'archive') return 'app-branch-summary';
-  return ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate'].includes(nodeId)
+  if (nodeId === 'e2e-verify' || nodeId === 'api-contract-check' || nodeId === 'frontend-test') return 'app-integration-test';
+  return ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-integration-test'].includes(nodeId)
     ? nodeId
     : undefined;
 }
 
 function stageIdForBranchNode(branchNodeId: string): string | undefined {
   if (branchNodeId === 'app-branch-summary') return 'archive';
-  return ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate'].includes(branchNodeId)
+  if (branchNodeId === 'app-integration-test') return 'app-integration-test';
+  return ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-integration-test'].includes(branchNodeId)
     ? branchNodeId
     : undefined;
 }

@@ -40,6 +40,13 @@ export interface PipelineConfig {
     testConcurrency: number;
     branchFailurePolicy: 'fail_fast' | 'continue_and_collect' | 'threshold';
   };
+  e2e: {
+    enabled: boolean;
+    browserConcurrency: number;
+    startupTimeoutMs: number;
+    readinessTimeoutMs: number;
+    artifactRetention: 'all' | 'failures' | 'summary-only';
+  };
 }
 
 const DEFAULTS: PipelineConfig = {
@@ -79,6 +86,13 @@ const DEFAULTS: PipelineConfig = {
     llmConcurrency: 6,
     testConcurrency: 2,
     branchFailurePolicy: 'continue_and_collect',
+  },
+  e2e: {
+    enabled: true,
+    browserConcurrency: 1,
+    startupTimeoutMs: 30000,
+    readinessTimeoutMs: 15000,
+    artifactRetention: 'failures',
   },
 };
 
@@ -178,6 +192,36 @@ function loadFromEnv(): Record<string, any> {
     const failurePolicy = process.env.AI_CODING_BRANCH_FAILURE_POLICY;
     if (failurePolicy === 'fail_fast' || failurePolicy === 'continue_and_collect' || failurePolicy === 'threshold') {
       envConfig.workflow = { ...(envConfig.workflow || {}), branchFailurePolicy: failurePolicy };
+    }
+  }
+  if (process.env.AI_CODING_E2E_VERIFY) {
+    envConfig.e2e = {
+      ...(envConfig.e2e || {}),
+      enabled: process.env.AI_CODING_E2E_VERIFY !== '0',
+    };
+  }
+  if (process.env.AI_CODING_E2E_BROWSER_CONCURRENCY) {
+    envConfig.e2e = {
+      ...(envConfig.e2e || {}),
+      browserConcurrency: parseInt(process.env.AI_CODING_E2E_BROWSER_CONCURRENCY, 10),
+    };
+  }
+  if (process.env.AI_CODING_E2E_STARTUP_TIMEOUT_MS) {
+    envConfig.e2e = {
+      ...(envConfig.e2e || {}),
+      startupTimeoutMs: parseInt(process.env.AI_CODING_E2E_STARTUP_TIMEOUT_MS, 10),
+    };
+  }
+  if (process.env.AI_CODING_E2E_READINESS_TIMEOUT_MS) {
+    envConfig.e2e = {
+      ...(envConfig.e2e || {}),
+      readinessTimeoutMs: parseInt(process.env.AI_CODING_E2E_READINESS_TIMEOUT_MS, 10),
+    };
+  }
+  if (process.env.AI_CODING_E2E_ARTIFACT_RETENTION) {
+    const retention = process.env.AI_CODING_E2E_ARTIFACT_RETENTION;
+    if (retention === 'all' || retention === 'failures' || retention === 'summary-only') {
+      envConfig.e2e = { ...(envConfig.e2e || {}), artifactRetention: retention };
     }
   }
   return envConfig;

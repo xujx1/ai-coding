@@ -13,6 +13,7 @@ export const SESSION_BRANCH_NODE_SEQUENCE = [
   'spec-generate',
   'java-impl',
   'testcode-generate',
+  'app-integration-test',
   'app-branch-summary',
 ];
 
@@ -73,10 +74,11 @@ export interface SessionWorkflowBranchRef {
   nodes?: SessionWorkflowBranchNode[];
   artifactIndex?: Record<string, string[]>;
   childAgentIds?: string[];
-  retry?: {
+    retry?: {
     reviewBlockCount: number;
     testRetryCount: number;
     coverageRetryCount: number;
+    integrationRetryCount?: number;
   };
 }
 
@@ -299,6 +301,7 @@ export function createBranchRef(args: {
       reviewBlockCount: 0,
       testRetryCount: 0,
       coverageRetryCount: 0,
+      integrationRetryCount: 0,
     },
   };
 }
@@ -438,6 +441,7 @@ function branchNodeLabel(nodeId: string): string {
     'spec-generate': 'SPEC生成',
     'java-impl': 'Java实现',
     'testcode-generate': '测试代码',
+    'app-integration-test': 'E2E Verify',
     'app-branch-summary': 'Summary',
   }[nodeId] ?? nodeId;
 }

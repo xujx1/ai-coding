@@ -46,6 +46,8 @@ export interface AgentEngineConfig {
   outputArtifacts?: string[];
   taskDescription?: string;
   requireToolUse?: boolean;
+  getProgressChecklist?: () => string | undefined;
+  progressChecklistLabel?: string;
 }
 
 export type AgentEvent =
@@ -223,6 +225,7 @@ export class AgentEngine {
     let repeatedReadOnlySignature = '';
     let repeatedReadOnlyCount = 0;
     let shouldNudgeStopRepeatedReads = false;
+    let lastProgressChecklist = '';
 
     for (let turn = 0; turn < maxTurns; turn++) {
       if (this.aborted) {
@@ -234,6 +237,21 @@ export class AgentEngine {
       this.state.turnCount = turn + 1;
       this.saveState();
       yield { type: 'turn_start', turn: turn + 1 };
+
+      const progressChecklist = this.config.getProgressChecklist?.()?.trim() ?? '';
+      if (progressChecklist && progressChecklist !== lastProgressChecklist) {
+        lastProgressChecklist = progressChecklist;
+        this.messages.push({
+          role: 'user',
+          content: [
+            `Current ${this.config.progressChecklistLabel ?? 'task'} progress checklist:`,
+            progressChecklist,
+            '',
+            'Use this checklist to decide the next concrete implementation step.',
+            'When all required checklist items are complete and verified, stop using tools and provide the final completion summary.',
+          ].join('\n'),
+        });
+      }
 
       // 当对话接近模型上下文上限时，把历史消息压缩成摘要，只保留最近若干轮原文。
       // 这影响的是 Agent 内部上下文，不会改变节点间传递的产物输入。

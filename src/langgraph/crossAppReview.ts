@@ -354,7 +354,7 @@ function findDatabaseConflictFindings(summaries: BranchSummary[]): CrossAppFindi
 }
 
 function findFailedTestFindings(summaries: BranchSummary[]): CrossAppFinding[] {
-  return summaries
+  const unitFindings = summaries
     .filter(summary => summary.testResults.status === 'failed')
     .map(summary => ({
       id: `test-${slug(summary.branchId)}`,
@@ -363,6 +363,16 @@ function findFailedTestFindings(summaries: BranchSummary[]): CrossAppFinding[] {
       message: `${summary.projectName} has failed branch tests and cannot pass cross-app integration review.`,
       affectedBranches: [summary.branchId],
     }));
+  const e2eFindings = summaries
+    .filter(summary => summary.e2eVerification?.status === 'failed')
+    .map(summary => ({
+      id: `e2e-${slug(summary.branchId)}`,
+      severity: 'blocking' as const,
+      category: inferFindingCategory(summary.e2eVerification?.failureClassification ?? 'integration'),
+      message: `${summary.projectName} E2E verification failed (${summary.e2eVerification?.failureClassification ?? 'unclassified'}).`,
+      affectedBranches: [summary.branchId],
+    }));
+  return [...unitFindings, ...e2eFindings];
 }
 
 function findRequiredCheckFindings(summaries: BranchSummary[]): CrossAppFinding[] {

@@ -1,6 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getRunPaths } from '../../runtime/paths.js';
+import {
+  ProjectStartupCapabilitySnapshot,
+} from '../../e2e/types.js';
+import { detectProjectStartupCapabilities } from '../../e2e/capabilities.js';
 
 export interface ProjectManifest {
   requirements: Array<{ name: string; path: string; size: number }>;
@@ -12,6 +16,7 @@ export interface ProjectManifest {
     pomPath?: string;
     sourceRoots?: string[];
     testRoots?: string[];
+    capabilities?: ProjectStartupCapabilitySnapshot;
   }>;
 }
 
@@ -101,6 +106,10 @@ export function generateProjectManifest(paths: ReturnType<typeof getRunPaths>): 
       pomPath: hasPom ? path.join(path.relative(path.join(paths.runDir, 'workspace'), p.root), 'pom.xml') : undefined,
       sourceRoots: sourceRoots.length ? sourceRoots : undefined,
       testRoots: testRoots.length ? testRoots : undefined,
+      capabilities: {
+        ...detectProjectStartupCapabilities(p.root),
+        projectRoot: path.relative(path.join(paths.runDir, 'workspace'), p.root),
+      },
     };
   });
 
@@ -125,7 +134,8 @@ export function ensureProjectManifest(paths: ReturnType<typeof getRunPaths>): Pr
 function isProjectRoot(dir: string): boolean {
   return fs.existsSync(path.join(dir, 'pom.xml')) ||
     fs.existsSync(path.join(dir, 'build.gradle')) ||
-    fs.existsSync(path.join(dir, 'build.gradle.kts'));
+    fs.existsSync(path.join(dir, 'build.gradle.kts')) ||
+    fs.existsSync(path.join(dir, 'package.json'));
 }
 
 function looksLikeSingleProjectDirectory(dir: string): boolean {

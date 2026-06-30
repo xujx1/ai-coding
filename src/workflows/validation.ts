@@ -30,6 +30,9 @@ const BUILT_IN_STAGE_RUNNERS: ReadonlySet<StageRunnerId> = new Set(
     'app-testcode-generate',
     'app-unit-test',
     'app-integration-test',
+    'api-contract-check',
+    'e2e-verify',
+    'frontend-test',
     'app-branch-summary',
   ]
 );

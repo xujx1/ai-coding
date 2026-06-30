@@ -122,6 +122,7 @@ import {
   registerKnowledgeTools,
 } from './node-agents/project-agent-tools.js';
 import {
+  getProjectOpenSpecChange,
   markProjectOpenSpecTasksCompleted,
   writeProjectOpenSpecChange,
 } from './node-agents/openspec-integration.js';
@@ -137,6 +138,7 @@ import {
   StageRunnerRegistry,
 } from './nodeRunners.js';
 import { createLegacyStageRunnerRegistry } from './node-runners/legacyStageRunners.js';
+import { runE2EVerificationStage } from './node-runners/e2eVerificationRunner.js';
 import { runUploadInitStage } from './node-runners/uploadInitRunner.js';
 
 export type PipelineEvent =
@@ -165,6 +167,8 @@ export class PipelineEngine extends EventEmitter {
   private skipConfirmations = false;
   private readonly stageRunnerRegistry: StageRunnerRegistry = {
     'upload-init': runUploadInitStage,
+    'app-integration-test': runE2EVerificationStage,
+    'e2e-verify': runE2EVerificationStage,
     ...createLegacyStageRunnerRegistry(),
   };
 
@@ -2347,6 +2351,23 @@ export class PipelineEngine extends EventEmitter {
     summary.testResults = {
       status: branchArtifacts.some(artifact => artifact.endsWith('/failure-classification.json')) ? 'passed' : 'skipped',
     };
+    const e2eSummary = readE2ESummaryArtifact(paths, branchArtifacts);
+    if (e2eSummary) {
+      summary.e2eVerification = {
+        status: e2eSummary.status,
+        failureClassification: e2eSummary.failureClassification,
+        fallbackReason: e2eSummary.fallbackReason,
+        artifactPaths: e2eSummary.artifactPaths ?? branchArtifacts.filter(artifact => artifact.includes('/e2e/')),
+      };
+      if (e2eSummary.status === 'failed') {
+        summary.testResults = { status: 'failed' };
+      } else if (e2eSummary.status === 'passed') {
+        summary.testResults = { status: 'passed' };
+      }
+      if (e2eSummary.status === 'unsupported' || e2eSummary.status === 'skipped') {
+        summary.requiredCrossAppChecks.push('E2E verification was skipped or unsupported; review fallback reason before release.');
+      }
+    }
     summary.riskNotes = (branch.nodes ?? [])
       .filter(branchNode => branchNode.error)
       .map(branchNode => `${branchNode.label}: ${branchNode.error}`);
@@ -2438,6 +2459,8 @@ export class PipelineEngine extends EventEmitter {
       modelStageId?: string;
       taskDescription?: string;
       requireToolUse?: boolean;
+      getProgressChecklist?: () => string | undefined;
+      progressChecklistLabel?: string;
     }
   ): Promise<ProjectAgentResult> {
     const failureCount = options.nodeState?.failureCount ?? 0;
@@ -2486,6 +2509,8 @@ export class PipelineEngine extends EventEmitter {
         projectName: project.name,
         taskDescription,
         requireToolUse: options.requireToolUse ?? (process.env.AI_CODING_MOCK_LLM !== '1' && ['java-impl', 'testcode-generate'].includes(node.id)),
+        getProgressChecklist: options.getProgressChecklist ?? createProjectProgressChecklistProvider(paths, this.runId, node.id, project.name),
+        progressChecklistLabel: options.progressChecklistLabel ?? progressChecklistLabelForNode(node.id),
       });
       this.currentAgent = agent;
 
@@ -2938,6 +2963,92 @@ function markMarkdownTasksCompleted(content: string): string {
     .replace(/^(\s*)\d+\.\s+(.+)$/gm, '$1- [x] $2');
 }
 
+function createProjectProgressChecklistProvider(
+  paths: ReturnType<typeof getRunPaths>,
+  runId: string,
+  nodeId: string,
+  projectName: string
+): (() => string | undefined) | undefined {
+  const section = progressSectionForNode(nodeId);
+  if (!section) return undefined;
+  return () => buildProjectProgressChecklist(paths, runId, projectName, section);
+}
+
+function buildProjectProgressChecklist(
+  paths: ReturnType<typeof getRunPaths>,
+  runId: string,
+  projectName: string,
+  section: 'development' | 'test'
+): string {
+  const entries: string[] = [];
+  const projectTaskPath = section === 'development'
+    ? `${projectName}/openspec-task.md`
+    : `${projectName}/openspec-test-task.md`;
+  entries.push(...unfinishedTasksFromArtifact(paths, projectTaskPath, section));
+
+  const openSpecChange = getProjectOpenSpecChange(paths, runId, projectName);
+  entries.push(...unfinishedTasksFromArtifact(paths, openSpecChange.tasksPath, section));
+
+  const uniqueEntries = Array.from(new Set(entries)).slice(0, 40);
+  if (!uniqueEntries.length) {
+    return [
+      `- No unfinished ${section === 'development' ? 'development' : 'test'} OpenSpec tasks detected for ${projectName}.`,
+      '- If implementation and verification are complete, provide the final completion summary without more tool calls.',
+    ].join('\n');
+  }
+  return uniqueEntries.join('\n');
+}
+
+function unfinishedTasksFromArtifact(
+  paths: ReturnType<typeof getRunPaths>,
+  relativePath: string,
+  section: 'development' | 'test'
+): string[] {
+  const absolutePath = path.join(paths.artifactsDir, relativePath);
+  if (!fs.existsSync(absolutePath)) return [];
+  const content = fs.readFileSync(absolutePath, 'utf-8');
+  return extractUnfinishedMarkdownTasks(content, section)
+    .map(task => `- ${relativePath}: ${task}`);
+}
+
+function extractUnfinishedMarkdownTasks(
+  content: string,
+  section: 'development' | 'test'
+): string[] {
+  const lines = content.split(/\r?\n/);
+  let inRelevantSection = true;
+  const hasOpenSpecSections = lines.some(line => /^##\s+(Development|Test)\s*$/i.test(line.trim()));
+  const tasks: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^##\s+Development\s*$/i.test(trimmed)) {
+      inRelevantSection = section === 'development';
+      continue;
+    }
+    if (/^##\s+Test\s*$/i.test(trimmed)) {
+      inRelevantSection = section === 'test';
+      continue;
+    }
+    if (hasOpenSpecSections && !inRelevantSection) continue;
+    const match = trimmed.match(/^[-*]\s+\[\s\]\s+(.+)$/);
+    if (match) tasks.push(match[1].trim());
+  }
+  return tasks;
+}
+
+function progressSectionForNode(nodeId: string): 'development' | 'test' | undefined {
+  if (nodeId === 'java-impl' || nodeId === 'java-review') return 'development';
+  if (nodeId === 'testcode-generate' || nodeId === 'maven-test-runner') return 'test';
+  return undefined;
+}
+
+function progressChecklistLabelForNode(nodeId: string): string | undefined {
+  const section = progressSectionForNode(nodeId);
+  if (section === 'development') return 'OpenSpec development task';
+  if (section === 'test') return 'OpenSpec test task';
+  return undefined;
+}
+
 function buildVirtualJavaImplementationFile(projectName: string, agentOutput: string): ProjectChangedFile {
   const className = `${toPascalIdentifier(projectName)}TraceKeyImplementationGuide`;
   const content = [
@@ -3330,6 +3441,10 @@ function isProjectScopedNode(nodeId: string): boolean {
     'spec-generate',
     'java-impl',
     'testcode-generate',
+    'app-integration-test',
+    'e2e-verify',
+    'api-contract-check',
+    'frontend-test',
     'archive',
   ].includes(normalizeStageId(nodeId));
 }
@@ -3337,22 +3452,24 @@ function isProjectScopedNode(nodeId: string): boolean {
 function branchNodeIdForStage(nodeId: string): string | null {
   const normalized = normalizeStageId(nodeId);
   if (normalized === 'archive') return 'app-branch-summary';
+  if (normalized === 'e2e-verify' || normalized === 'api-contract-check' || normalized === 'frontend-test') return 'app-integration-test';
   return [
     'implementation-plan',
     'spec-generate',
     'java-impl',
     'testcode-generate',
+    'app-integration-test',
   ].includes(normalized) ? normalized : null;
 }
 
 function nextBranchNodeId(branchNodeId: string): string | null {
-  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-branch-summary'];
+  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-integration-test', 'app-branch-summary'];
   const index = sequence.indexOf(branchNodeId);
   return index >= 0 ? sequence[index + 1] ?? null : null;
 }
 
 function isBranchNodeAfter(nodeId: string, referenceNodeId: string): boolean {
-  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-branch-summary'];
+  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-integration-test', 'app-branch-summary'];
   const nodeIndex = sequence.indexOf(nodeId);
   const referenceIndex = sequence.indexOf(referenceNodeId);
   return nodeIndex > referenceIndex && referenceIndex >= 0;
@@ -3378,6 +3495,25 @@ function artifactsForProject(artifacts: string[], projectName: string): string[]
     artifact.startsWith(projectPrefix) ||
     (projectName === 'project' && !artifact.includes('/cross-app/') && artifact.endsWith('prd.md'))
   );
+}
+
+function readE2ESummaryArtifact(
+  paths: ReturnType<typeof getRunPaths>,
+  artifacts: string[]
+): {
+  status: 'passed' | 'failed' | 'skipped' | 'unsupported';
+  failureClassification?: 'frontend' | 'backend' | 'contract' | 'environment';
+  fallbackReason?: string;
+  artifactPaths?: string[];
+} | null {
+  const summaryArtifact = artifacts.find(artifact => artifact.replace(/\\/g, '/').endsWith('/e2e/e2e-summary.json'));
+  if (!summaryArtifact) return null;
+  const relativePath = summaryArtifact.replace(/^artifacts\//, '');
+  try {
+    return JSON.parse(fs.readFileSync(path.join(paths.artifactsDir, relativePath), 'utf-8'));
+  } catch {
+    return null;
+  }
 }
 
 function getNodeIndexById(nodeId: string): number {

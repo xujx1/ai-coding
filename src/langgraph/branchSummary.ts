@@ -30,6 +30,7 @@ export function createEmptyBranchSummary(args: {
     testResults: {
       status: 'skipped',
     },
+    e2eVerification: undefined,
     riskNotes: [],
     requiredCrossAppChecks: [],
   };

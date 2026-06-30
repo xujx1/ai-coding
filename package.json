@@ -24,6 +24,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/adm-zip": "^0.5.5",
     "@types/diff": "^6.0.0",
     "@types/multer": "^1.4.12",

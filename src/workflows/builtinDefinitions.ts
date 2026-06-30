@@ -212,7 +212,7 @@ function branchNodeLabel(nodeId: string): string {
     'app-code-review': 'App Code Review',
     'app-testcode-generate': 'App Test Code Generate',
     'app-unit-test': 'App Unit Test',
-    'app-integration-test': 'App Integration Test',
+    'app-integration-test': 'E2E Verify',
     'app-branch-summary': 'App Branch Summary',
   }[nodeId] ?? nodeId;
 }
@@ -224,7 +224,18 @@ function branchArtifactOutputs(nodeId: string): string[] {
     'app-code-review': ['{project}/review-findings.json'],
     'app-testcode-generate': ['{project}/testcode-generation-report.md'],
     'app-unit-test': ['{project}/test-report.md', '{project}/coverage-summary.json'],
-    'app-integration-test': ['{project}/integration-test-report.md'],
+    'app-integration-test': [
+      '{project}/e2e/startup-manifest.json',
+      '{project}/e2e/api-contract-results.json',
+      '{project}/e2e/api-smoke-results.json',
+      '{project}/e2e/playwright-report/',
+      '{project}/e2e/screenshots/',
+      '{project}/e2e/traces/',
+      '{project}/e2e/console-network-summary.json',
+      '{project}/e2e/failure-classification.json',
+      '{project}/e2e/verification-summary.md',
+      '{project}/e2e/e2e-summary.json',
+    ],
     'app-branch-summary': ['{project}/branch-summary.json'],
   }[nodeId] ?? [];
 }

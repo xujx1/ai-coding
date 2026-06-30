@@ -128,6 +128,7 @@ export interface BranchSummary {
   configChanges: ConfigChange[];
   dependencyChanges: DependencyChange[];
   testResults: TestResultSummary;
+  e2eVerification?: E2EVerificationSummary;
   riskNotes: string[];
   requiredCrossAppChecks: string[];
 }
@@ -183,6 +184,13 @@ export interface TestResultSummary {
   passed?: number;
   failed?: number;
   coverage?: number;
+}
+
+export interface E2EVerificationSummary {
+  status: 'passed' | 'failed' | 'skipped' | 'unsupported';
+  failureClassification?: 'frontend' | 'backend' | 'contract' | 'environment';
+  fallbackReason?: string;
+  artifactPaths: string[];
 }
 
 export interface FanoutRuntimeConfig {
