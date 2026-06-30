@@ -31,6 +31,7 @@
     <select id="selectByScopeKey" resultMap="ScopeActivityResultMap">
         SELECT * FROM t_scope_act_${tableSuffix}
         WHERE scope_key = #{scopeKey} AND region_code = #{regionCode}
+        ORDER BY activity_id ASC
     </select>
 
     <select id="selectActiveByScopeKey" resultMap="ScopeActivityResultMap">

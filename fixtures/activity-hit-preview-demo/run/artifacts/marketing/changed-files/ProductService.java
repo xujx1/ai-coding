@@ -260,28 +260,42 @@ public class ProductService {
                     req.getRegionCode(), req.getScopeType(), req.getProductId(), req.getSkuId());
         }
 
-        // Route to shard
-        String tableSuffix = shardingRouter.routeScopeActTable(req.getRegionCode(), scopeKey);
-
-        // Query only ONLINE activities from C-end runtime table
-        List<ScopeActivity> activities = scopeActivityMapper.selectActiveByScopeKey(
-                tableSuffix, scopeKey, req.getRegionCode());
-
-        if (activities == null || activities.isEmpty()) {
+        List<ScopeActivity> activities = queryOnlineScopeActivities(req.getRegionCode(), scopeKey);
+        if (activities.isEmpty()) {
             return RpcResult.success(Collections.<ScopeActivityDTO>emptyList(), req.getRequestId());
         }
 
-        // Filter out blacklisted (force-offlined) activities
         List<ScopeActivityDTO> result = new ArrayList<ScopeActivityDTO>();
         for (ScopeActivity sa : activities) {
-            String blacklistKey = "force_offline:" + req.getRegionCode() + ":" + sa.getActivityId();
-            if (localCache.isMember("blacklist", blacklistKey)) {
-                continue;
-            }
             result.add(convertToScopeDTO(sa));
         }
 
         return RpcResult.success(result, req.getRequestId());
+    }
+
+    /**
+     * Queries ONLINE runtime scope activities and filters force-offline blacklist entries.
+     *
+     * @param regionCode region code
+     * @param scopeKey scope key
+     * @return visible runtime scope activities
+     */
+    public List<ScopeActivity> queryOnlineScopeActivities(String regionCode, String scopeKey) {
+        String tableSuffix = shardingRouter.routeScopeActTable(regionCode, scopeKey);
+        List<ScopeActivity> activities = scopeActivityMapper.selectActiveByScopeKey(tableSuffix, scopeKey, regionCode);
+        if (activities == null || activities.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ScopeActivity> result = new ArrayList<ScopeActivity>();
+        for (ScopeActivity activity : activities) {
+            String blacklistKey = "force_offline:" + regionCode + ":" + activity.getActivityId();
+            if (localCache.isMember("blacklist", blacklistKey)) {
+                continue;
+            }
+            result.add(activity);
+        }
+        return result;
     }
 
     // =========================================================================

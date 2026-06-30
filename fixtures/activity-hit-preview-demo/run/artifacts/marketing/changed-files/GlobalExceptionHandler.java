@@ -8,6 +8,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Locale;
+
 import javax.servlet.http.HttpServletRequest;
 
 /**
@@ -33,7 +35,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public RpcResult<Void> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
                                                         HttpServletRequest request) {
-        return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, "request body is required", extractRequestId(request));
+        String message = "request body is required";
+        if (ex.getCause() != null && ex.getCause().getMessage() != null) {
+            String causeMessage = ex.getCause().getMessage().toLowerCase(Locale.ROOT);
+            if (causeMessage.contains("json parse error") || causeMessage.contains("unexpected character")
+                    || causeMessage.contains("unexpected end-of-input") || causeMessage.contains("cannot deserialize")) {
+                message = "invalid request body";
+            }
+        }
+        return RpcResult.fail(ErrorCode.INVALID_ARGUMENT, message, extractRequestId(request));
     }
 
     /**

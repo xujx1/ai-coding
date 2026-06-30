@@ -19,4 +19,9 @@ public interface SyncEventLogMapper {
 
     @Select("SELECT * FROM t_sync_event_log WHERE consume_status IN ('PENDING','DLQ') AND next_retry_at <= #{now} AND retry_count < 10 LIMIT 100")
     List<SyncEventLog> selectRetryable(@Param("now") Long now);
+
+    @Select("SELECT * FROM t_sync_event_log WHERE aggregate_id = #{aggregateId} AND region_code = #{regionCode} AND event_type = #{eventType} ORDER BY created_at DESC LIMIT 1")
+    SyncEventLog selectLatestByAggregateIdAndEventType(@Param("aggregateId") String aggregateId,
+                                                       @Param("regionCode") String regionCode,
+                                                       @Param("eventType") String eventType);
 }

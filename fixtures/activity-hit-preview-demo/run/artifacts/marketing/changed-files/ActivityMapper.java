@@ -18,6 +18,17 @@ public interface ActivityMapper {
     @Select("SELECT * FROM t_activity WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND is_deleted = 0")
     Activity selectByActivityId(@Param("activityId") String activityId, @Param("regionCode") String regionCode);
 
+    @Select({
+            "<script>",
+            "SELECT * FROM t_activity WHERE region_code = #{regionCode} AND is_deleted = 0 AND activity_id IN",
+            "<foreach collection='activityIds' item='activityId' open='(' separator=',' close=')'>",
+            "#{activityId}",
+            "</foreach>",
+            "</script>"
+    })
+    List<Activity> selectByActivityIds(@Param("activityIds") List<String> activityIds,
+                                       @Param("regionCode") String regionCode);
+
     @Update("UPDATE t_activity SET status = #{newStatus}, version = #{newVersion}, updated_at = #{updatedAt}, updated_by = #{updatedBy} WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND status = #{oldStatus} AND version = #{oldVersion}")
     int updateStatus(@Param("activityId") String activityId, @Param("regionCode") String regionCode, @Param("oldStatus") String oldStatus, @Param("newStatus") String newStatus, @Param("oldVersion") Integer oldVersion, @Param("newVersion") Integer newVersion, @Param("updatedAt") Long updatedAt, @Param("updatedBy") String updatedBy);
 

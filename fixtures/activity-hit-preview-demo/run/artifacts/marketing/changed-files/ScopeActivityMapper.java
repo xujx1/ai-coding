@@ -10,7 +10,7 @@ public interface ScopeActivityMapper {
 
     int insert(@Param("tableSuffix") String tableSuffix, @Param("record") ScopeActivity record);
 
-    ScopeActivity selectByScopeKey(@Param("tableSuffix") String tableSuffix, @Param("scopeKey") String scopeKey, @Param("regionCode") String regionCode);
+    List<ScopeActivity> selectByScopeKey(@Param("tableSuffix") String tableSuffix, @Param("scopeKey") String scopeKey, @Param("regionCode") String regionCode);
 
     List<ScopeActivity> selectActiveByScopeKey(@Param("tableSuffix") String tableSuffix, @Param("scopeKey") String scopeKey, @Param("regionCode") String regionCode);
 

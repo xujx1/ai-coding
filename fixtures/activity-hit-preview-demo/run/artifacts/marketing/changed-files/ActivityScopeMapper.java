@@ -14,6 +14,9 @@ public interface ActivityScopeMapper {
     @Select("SELECT * FROM t_activity_scope WHERE activity_id = #{activityId} AND region_code = #{regionCode} AND is_deleted = 0")
     List<ActivityScope> selectByActivityId(@Param("activityId") String activityId, @Param("regionCode") String regionCode);
 
+    @Select("SELECT * FROM t_activity_scope WHERE scope_key = #{scopeKey} AND region_code = #{regionCode} AND is_deleted = 0")
+    List<ActivityScope> selectByScopeKeyForPreview(@Param("scopeKey") String scopeKey, @Param("regionCode") String regionCode);
+
     @Select("SELECT * FROM t_activity_scope WHERE scope_key = #{scopeKey} AND activity_id = #{activityId} AND region_code = #{regionCode} AND is_deleted = 0")
     ActivityScope selectByScopeKey(@Param("scopeKey") String scopeKey, @Param("activityId") String activityId, @Param("regionCode") String regionCode);
 

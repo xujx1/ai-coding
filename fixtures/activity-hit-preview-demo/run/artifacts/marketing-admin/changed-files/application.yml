@@ -1,9 +1,9 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
-    name: ump-marketing
+    name: marketing-admin
   datasource:
     url: jdbc:mysql://localhost:3306/ump_marketing?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
@@ -19,6 +19,12 @@ mybatis:
   type-aliases-package: com.ump.marketing.domain.model
   configuration:
     map-underscore-to-camel-case: true
+
+preview:
+  runtime:
+    base-url: http://localhost:8080
+    connect-timeout-ms: 1000
+    read-timeout-ms: 2000
 
 logging:
   level:
