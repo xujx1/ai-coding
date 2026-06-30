@@ -1,0 +1,26 @@
+{
+  "agentRunId": "lxe-v07E",
+  "runId": "PDRbY_AI59",
+  "nodeId": "frontend-impl",
+  "projectName": "marketing-admin",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+  "taskDescription": "实现 marketing-admin 项目文件夹的前端代码",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 7,
+  "tokenUsage": {
+    "input": 218902,
+    "output": 14471
+  },
+  "compactCount": 0,
+  "toolCallCount": 17,
+  "inputArtifacts": [],
+  "outputArtifacts": [],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782803434265,
+  "updatedAt": 1782803961844,
+  "completedAt": 1782803961844
+}

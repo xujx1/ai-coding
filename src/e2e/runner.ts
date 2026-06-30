@@ -99,6 +99,7 @@ export async function runE2EVerification(
   }
 
   try {
+    startupArtifact = artifactPathFor(args.appName, 'startup-manifest.json');
     const harness = await startIntegrationHarness({
       runId: args.runId,
       appName: args.appName,
@@ -109,6 +110,11 @@ export async function runE2EVerification(
     });
     cleanup = harness.cleanup;
     startupArtifact = harness.artifactPath;
+    const startupArtifacts = unique([
+      startupArtifact,
+      harness.manifest.backend?.logArtifactPath,
+      harness.manifest.frontend?.logArtifactPath,
+    ].filter(Boolean) as string[]);
     frontendUrl = harness.manifest.frontend?.url;
     backendUrl = harness.manifest.backend?.url;
     smoke = await runApiSmokeChecks({
@@ -147,10 +153,7 @@ export async function runE2EVerification(
         liveFrontendUrl: frontendUrl,
         liveBackendUrl: backendUrl,
         usedProjectPlaywrightConfig: Boolean(capabilities.playwrightConfig),
-        artifactPaths: [
-          ...(startupArtifact ? [startupArtifact] : []),
-          ...browser.artifactPaths,
-        ],
+        artifactPaths: [],
         failureClassification: browser.ok ? undefined : 'frontend',
         fallbackReason: browser.ok ? undefined : browser.error,
         generatedAt: new Date().toISOString(),
@@ -160,7 +163,7 @@ export async function runE2EVerification(
       diagnostics: browser.diagnostics,
       classification: browser.ok ? undefined : classifyE2EFailure('frontend', browser.error ?? 'Browser verification failed.', 'playwright'),
       extraArtifactPaths: [
-        ...(startupArtifact ? [startupArtifact] : []),
+        ...startupArtifacts,
         ...browser.artifactPaths,
       ],
     });
@@ -174,11 +177,20 @@ export async function runE2EVerification(
       smoke,
       diagnostics: emptyDiagnostics(),
       classification: classifyE2EFailure(classifyStartupError(reason), reason, 'startup'),
-      extraArtifactPaths: startupArtifact ? [startupArtifact] : [],
+      extraArtifactPaths: startupFailureArtifacts(args.paths, args.appName, startupArtifact),
     });
   } finally {
     await cleanup?.();
   }
+}
+
+function startupFailureArtifacts(paths: RunPaths, appName: string, startupArtifact?: string): string[] {
+  const e2eDir = appE2EDir(paths, appName);
+  return [
+    startupArtifact,
+    fs.existsSync(path.join(e2eDir, 'backend-startup.log')) ? artifactPathFor(appName, 'backend-startup.log') : undefined,
+    fs.existsSync(path.join(e2eDir, 'frontend-startup.log')) ? artifactPathFor(appName, 'frontend-startup.log') : undefined,
+  ].filter(Boolean) as string[];
 }
 
 export function classifyE2EFailure(
@@ -234,61 +246,14 @@ async function runBrowserVerification(args: {
   }
 
   try {
-    const importer = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<any>;
-    const playwright = await importer('playwright');
-    const browser = await playwright.chromium.launch();
-    const page = await browser.newPage();
-    page.on('console', (message: any) => {
-      if (message.type() === 'error') diagnostics.consoleErrors.push(message.text());
-    });
-    page.on('requestfailed', (request: any) => {
-      diagnostics.networkErrors.push({
-        url: request.url(),
-        method: request.method(),
-        error: request.failure()?.errorText,
-      });
-    });
-    const response = await page.goto(args.frontendUrl, { waitUntil: 'domcontentloaded', timeout: args.timeoutMs });
-    const screenshotDir = path.join(args.outputDir, 'screenshots');
-    fs.mkdirSync(screenshotDir, { recursive: true });
-    await page.screenshot({ path: path.join(screenshotDir, 'home.png'), fullPage: true });
-    await browser.close();
-    return {
-      ok: Boolean(response?.ok()),
-      error: response?.ok() ? undefined : `Frontend returned HTTP ${response?.status() ?? 'unknown'}.`,
-      artifactPaths: ['screenshots/home.png'],
+    return await runGeneratedPlaywrightSpec({
+      projectRoot: args.projectRoot,
+      outputDir: args.outputDir,
+      frontendUrl: args.frontendUrl,
+      timeoutMs: args.timeoutMs,
       diagnostics,
-    };
+    });
   } catch (err) {
-    if (args.frontendUrl) {
-      const reportDir = path.join(args.outputDir, 'playwright-report');
-      fs.mkdirSync(reportDir, { recursive: true });
-      try {
-        const response = await fetch(args.frontendUrl);
-        const report = {
-          mode: 'http-fallback',
-          reason: `Playwright browser execution was unavailable: ${(err as Error).message}`,
-          url: args.frontendUrl,
-          status: response.status,
-          ok: response.ok,
-          generatedAt: new Date().toISOString(),
-        };
-        fs.writeFileSync(path.join(reportDir, 'platform-fallback.json'), JSON.stringify(report, null, 2), 'utf-8');
-        return {
-          ok: response.ok,
-          error: response.ok ? undefined : `Frontend returned HTTP ${response.status}.`,
-          artifactPaths: ['playwright-report/platform-fallback.json'],
-          diagnostics,
-        };
-      } catch (fallbackErr) {
-        return {
-          ok: false,
-          error: (fallbackErr as Error).message,
-          artifactPaths: [],
-          diagnostics,
-        };
-      }
-    }
     return {
       ok: false,
       error: (err as Error).message,
@@ -296,6 +261,159 @@ async function runBrowserVerification(args: {
       diagnostics,
     };
   }
+}
+
+async function runGeneratedPlaywrightSpec(args: {
+  projectRoot: string;
+  outputDir: string;
+  frontendUrl?: string;
+  timeoutMs: number;
+  diagnostics: ConsoleNetworkDiagnostic;
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  artifactPaths: string[];
+  diagnostics: ConsoleNetworkDiagnostic;
+}> {
+  if (!args.frontendUrl) {
+    return {
+      ok: false,
+      error: 'No live frontend URL was available for generated Playwright verification.',
+      artifactPaths: [],
+      diagnostics: args.diagnostics,
+    };
+  }
+  const reportDir = path.join(args.outputDir, 'playwright-report');
+  const screenshotDir = path.join(args.outputDir, 'screenshots');
+  fs.mkdirSync(reportDir, { recursive: true });
+  fs.mkdirSync(screenshotDir, { recursive: true });
+  const specPath = path.join(args.outputDir, 'generated-playwright.spec.js');
+  const executionSpecPath = path.join(process.cwd(), 'generated-e2e-tests', `${safeFileSegment(path.basename(args.outputDir))}-${Date.now()}.spec.js`);
+  const outputPath = path.join(reportDir, 'generated-playwright-output.json');
+  const screenshotPath = path.join(screenshotDir, 'home.png');
+  const expectedKeywords = inferExpectedVisibleKeywords(args.projectRoot);
+  fs.writeFileSync(specPath, renderGeneratedPlaywrightSpec(), 'utf-8');
+  fs.mkdirSync(path.dirname(executionSpecPath), { recursive: true });
+  fs.writeFileSync(executionSpecPath, fs.readFileSync(specPath, 'utf-8'), 'utf-8');
+  const cliSpecPath = path.relative(process.cwd(), executionSpecPath);
+  const output = await runCommand(
+    'npx',
+    ['playwright', 'test', cliSpecPath, '--reporter=json', `--output=${path.join(args.outputDir, 'test-results')}`],
+    process.cwd(),
+    Math.max(args.timeoutMs, 30000),
+    {
+      E2E_FRONTEND_URL: args.frontendUrl,
+      E2E_SCREENSHOT_PATH: screenshotPath,
+      E2E_EXPECTED_KEYWORDS: JSON.stringify(expectedKeywords),
+    }
+  );
+  const rawOutput = output.stdout || output.stderr || '{}';
+  fs.writeFileSync(outputPath, rawOutput, 'utf-8');
+  fs.rmSync(executionSpecPath, { force: true });
+  const consoleErrors = extractPlaywrightConsoleErrors(rawOutput);
+  args.diagnostics.consoleErrors.push(...consoleErrors);
+  return {
+    ok: output.exitCode === 0,
+    error: output.exitCode === 0 ? undefined : output.stderr || output.stdout || 'Generated Playwright verification failed.',
+    artifactPaths: [
+      'generated-playwright.spec.js',
+      'playwright-report/generated-playwright-output.json',
+      ...(fs.existsSync(screenshotPath) ? ['screenshots/home.png'] : []),
+    ],
+    diagnostics: args.diagnostics,
+  };
+}
+
+function safeFileSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'e2e';
+}
+
+function renderGeneratedPlaywrightSpec(): string {
+  return `import { test, expect } from '@playwright/test';
+
+test('generated app verification', async ({ page }) => {
+  const frontendUrl = process.env.E2E_FRONTEND_URL;
+  const screenshotPath = process.env.E2E_SCREENSHOT_PATH;
+  const expectedKeywords = JSON.parse(process.env.E2E_EXPECTED_KEYWORDS || '[]');
+  const consoleErrors = [];
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', error => {
+    consoleErrors.push(error.message);
+  });
+
+  const response = await page.goto(frontendUrl, { waitUntil: 'domcontentloaded' });
+  expect(response && response.ok(), 'frontend should return a successful HTTP response').toBeTruthy();
+  await expect(page.locator('body')).toBeVisible();
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
+
+  const bodyText = (await page.locator('body').innerText()).trim();
+  expect(bodyText.length, 'page should render visible text').toBeGreaterThan(0);
+  if (expectedKeywords.length > 0) {
+    expect(
+      expectedKeywords.some(keyword => bodyText.includes(keyword)),
+      'page should contain at least one expected business keyword'
+    ).toBeTruthy();
+  }
+  if (screenshotPath) {
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+  }
+  expect(consoleErrors, 'page should not emit console errors').toEqual([]);
+});
+`;
+}
+
+function inferExpectedVisibleKeywords(projectRoot: string): string[] {
+  const staticRoot = path.join(projectRoot, 'src/main/resources/static');
+  const candidates = ['活动', '命中', '预览', '商品', 'SKU', '管理配置', '用户运行'];
+  if (!fs.existsSync(staticRoot)) return [];
+  const text = listFiles(staticRoot, 2)
+    .filter(file => /\.(html|js|css|vue|tsx|jsx|ts)$/.test(file))
+    .map(file => fs.readFileSync(path.join(staticRoot, file), 'utf-8'))
+    .join('\n');
+  return candidates.filter(keyword => text.includes(keyword)).slice(0, 5);
+}
+
+function listFiles(root: string, maxDepth: number, depth = 0): string[] {
+  if (depth > maxDepth || !fs.existsSync(root)) return [];
+  const files: string[] = [];
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (entry.name.startsWith('.')) continue;
+    const fullPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listFiles(fullPath, maxDepth, depth + 1).map(file => path.join(entry.name, file)));
+    } else {
+      files.push(entry.name);
+    }
+  }
+  return files;
+}
+
+function extractPlaywrightConsoleErrors(rawOutput: string): string[] {
+  try {
+    const parsed = JSON.parse(rawOutput);
+    const errors: string[] = [];
+    for (const suite of parsed.suites ?? []) {
+      collectSpecErrors(suite, errors);
+    }
+    return errors;
+  } catch {
+    return [];
+  }
+}
+
+function collectSpecErrors(node: any, errors: string[]): void {
+  for (const spec of node.specs ?? []) {
+    for (const test of spec.tests ?? []) {
+      for (const result of test.results ?? []) {
+        for (const error of result.errors ?? []) {
+          if (error.message) errors.push(String(error.message));
+        }
+      }
+    }
+  }
+  for (const child of node.suites ?? []) collectSpecErrors(child, errors);
 }
 
 function writeTerminalArtifacts(args: {
@@ -327,7 +445,7 @@ function writeTerminalArtifacts(args: {
     artifactPathFor(args.appName, 'console-network-summary.json'),
     ...(args.classification ? [artifactPathFor(args.appName, 'failure-classification.json')] : []),
     artifactPathFor(args.appName, 'verification-summary.md'),
-    ...(args.extraArtifactPaths ?? []),
+    ...(args.extraArtifactPaths ?? []).map(artifact => normalizeE2EArtifactPath(args.appName, artifact)),
     ...args.summary.artifactPaths.map(artifact => artifact.startsWith('artifacts/')
       ? artifact
       : artifactPathFor(args.appName, artifact)),
@@ -421,11 +539,13 @@ function runCommand(
   command: string,
   args: string[],
   cwd: string,
-  timeoutMs: number
+  timeoutMs: number,
+  env?: NodeJS.ProcessEnv
 ): Promise<{ exitCode: number | null; stdout: string; stderr: string }> {
   return new Promise(resolve => {
     const child = spawn(command, args, {
       cwd,
+      env: env ? { ...process.env, ...env } : process.env,
       shell: false,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -462,4 +582,8 @@ function safeArtifactSegment(value: string): string {
 
 function unique(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))];
+}
+
+function normalizeE2EArtifactPath(appName: string, artifact: string): string {
+  return artifact.startsWith('artifacts/') ? artifact : artifactPathFor(appName, artifact);
 }

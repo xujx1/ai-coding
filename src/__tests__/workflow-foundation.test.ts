@@ -4,6 +4,7 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import test from 'node:test';
+import type { LLMContentBlock, LLMProvider, LLMRequest, LLMResponse, LLMStreamEvent } from '../models/providers.js';
 import { getRunPaths, RunPaths } from '../runtime/paths.js';
 import { getStateStore } from '../persistence/stateStore.js';
 import { SessionManager } from '../session/SessionManager.js';
@@ -32,7 +33,10 @@ import {
   targetNodeForFailure,
 } from '../langgraph/nodes/rollbackRouter.js';
 import { computeJoinState } from '../langgraph/nodes/joinNode.js';
-import { AsyncSemaphore } from '../langgraph/concurrency.js';
+import {
+  AsyncSemaphore,
+  createPlanResourceSemaphores,
+} from '../langgraph/concurrency.js';
 import { createLangGraphEventBridge } from '../langgraph/eventBridge.js';
 import { resolveConfirmationDecision } from '../langgraph/nodes/confirmationNode.js';
 import { writeBranchSummaryArtifact } from '../langgraph/branchSummary.js';
@@ -51,6 +55,8 @@ import {
   createInitialSessionWorkflowInstance,
   createLegacySessionWorkflowInstance,
   getSessionWorkflowInstanceOrLegacy,
+  syncSessionBranchRuntimeFromNodes,
+  syncSessionWorkflowJoinFromBranches,
 } from '../workflows/sessionInstance.js';
 import {
   deriveFanoutDecision,
@@ -63,6 +69,21 @@ import {
   deriveProjectCapabilityShape,
   validateSessionExecutionPlan,
 } from '../workflows/sessionPlan.js';
+import {
+  listPlanNodeContracts,
+  PLAN_NODE_REGISTRY,
+} from '../workflows/planNodeRegistry.js';
+import { validateStructuredPlanDocument } from '../workflows/planValidation.js';
+import {
+  buildRequirementOwnershipArtifact,
+  REQUIREMENT_OWNERSHIP_ARTIFACT_PATH,
+} from '../workflows/requirementOwnership.js';
+import { requestStructuredSessionPlan } from '../workflows/structuredPlannerAdapter.js';
+import {
+  applyReplanRevision,
+  createReplanRequest,
+  evaluateReplanFuse,
+} from '../workflows/replan.js';
 import {
   cancelBranchTrack,
   createInitialBranchState,
@@ -217,6 +238,71 @@ test('session workflow instance creates dynamic graph and legacy fallback', () =
     createdAt: snapshot.capturedAt,
   });
   assert.equal(derived.layout, 'legacy-fixed');
+});
+
+test('session branch runtime aggregates completed branches and stale node updates', () => {
+  const marketing = createBranchRef({
+    branchId: 'run-marketing',
+    projectName: 'marketing',
+    projectRoot: '/tmp/marketing',
+  });
+  marketing.nodes = [
+    { id: 'implementation-plan', label: '实施方案', status: 'completed' },
+    { id: 'spec-generate', label: 'SPEC生成', status: 'completed' },
+    { id: 'java-impl', label: 'Java实现', status: 'completed' },
+    { id: 'backend-test', label: '后端测试', status: 'completed' },
+  ];
+  syncSessionBranchRuntimeFromNodes(marketing);
+  assert.equal(marketing.status, 'completed');
+  assert.equal(marketing.currentNodeId, 'backend-test');
+
+  const admin = createBranchRef({
+    branchId: 'run-marketing-admin',
+    projectName: 'marketing-admin',
+    projectRoot: '/tmp/marketing-admin',
+  });
+  admin.nodes = [
+    { id: 'implementation-plan', label: '实施方案', status: 'completed' },
+    { id: 'spec-generate', label: 'SPEC生成', status: 'completed' },
+    { id: 'java-impl', label: 'Java实现', status: 'completed' },
+    { id: 'frontend-impl', label: '前端实现', status: 'completed' },
+    { id: 'backend-test', label: '后端测试', status: 'running' },
+    { id: 'frontend-test', label: '前端测试', status: 'completed' },
+    { id: 'e2e-verify', label: '端到端验证', status: 'failed', error: 'startup timeout' },
+  ];
+  syncSessionBranchRuntimeFromNodes(admin);
+  assert.equal(admin.status, 'failed');
+  assert.equal(admin.currentNodeId, 'e2e-verify');
+
+  admin.nodes.find(node => node.id === 'backend-test')!.status = 'completed';
+  syncSessionBranchRuntimeFromNodes(admin);
+  assert.equal(admin.status, 'failed', 'stale backend-test completion must not overwrite downstream e2e failure');
+  assert.equal(admin.currentNodeId, 'e2e-verify');
+
+  const workflow = createBuiltInMrdToCodeWorkflow();
+  const workflowInstance = createInitialSessionWorkflowInstance({
+    runId: 'branch-aggregate-run',
+    templateSnapshot: {
+      workflowId: workflow.id,
+      workflowVersion: workflow.version,
+      capturedAt: '2026-06-30T00:00:00.000Z',
+      definition: workflow,
+    },
+  });
+  workflowInstance.branches = [marketing, admin];
+  workflowInstance.joins = [{
+    joinId: 'app-join',
+    waitingForBranchIds: [marketing.branchId, admin.branchId],
+    completedBranchIds: [],
+    failedBranchIds: [],
+    cancelledBranchIds: [],
+    status: 'waiting',
+  }];
+  syncSessionWorkflowJoinFromBranches(workflowInstance);
+  assert.deepEqual(workflowInstance.joins[0].waitingForBranchIds, []);
+  assert.deepEqual(workflowInstance.joins[0].completedBranchIds, [marketing.branchId]);
+  assert.deepEqual(workflowInstance.joins[0].failedBranchIds, [admin.branchId]);
+  assert.equal(workflowInstance.joins[0].status, 'failed');
 });
 
 test('state store persists session workflow instance without dropping existing read model fields', async () => {
@@ -451,6 +537,179 @@ test('session execution planner creates capability-driven branch tracks and vali
   assert.ok(fullstack?.nodes.some(node => node.id === 'app-track-join'));
 });
 
+test('structured plan registry covers generated and orchestration node contracts', () => {
+  const contracts = listPlanNodeContracts();
+  const expectedNodeTypes = [
+    'requirement-ownership-confirmation',
+    'implementation-plan',
+    'spec-generate',
+    'backend-impl',
+    'java-impl',
+    'frontend-impl',
+    'backend-test',
+    'frontend-test',
+    'api-contract-check',
+    'e2e-verify',
+    'documentation-impl',
+    'documentation-test',
+    'app-track-join',
+    'app-branch-summary',
+    'cross-app-code-review',
+    'cross-app-integration-review',
+    'archive',
+  ];
+
+  assert.deepEqual(contracts.map(contract => contract.nodeType).sort(), expectedNodeTypes.sort());
+  for (const contract of contracts) {
+    assert.equal(PLAN_NODE_REGISTRY[contract.nodeType], contract);
+    assert.equal(contract.runner.length > 0, true);
+    assert.equal(contract.inputSchema.type, 'object');
+    assert.equal(contract.outputSchema.type, 'object');
+    assert.ok(Array.isArray(contract.artifacts.requiredArtifacts));
+    assert.ok(Array.isArray(contract.artifacts.producedArtifacts));
+    assert.equal(typeof contract.confirmation.required, 'boolean');
+    assert.equal(typeof contract.replan.replannable, 'boolean');
+    assert.equal(Number.isInteger(contract.replan.maxAttempts), true);
+  }
+  assert.equal(PLAN_NODE_REGISTRY['requirement-ownership-confirmation'].confirmation.required, true);
+  assert.equal(PLAN_NODE_REGISTRY['e2e-verify'].resources.browserSlots, 1);
+  assert.equal(PLAN_NODE_REGISTRY.archive.replan.replannable, false);
+});
+
+test('structured session plans persist initial revision and migration metadata', () => {
+  const plan = createSessionExecutionPlan({
+    runId: 'structured-metadata-run',
+    decision: fanoutDecisionFixture([{ name: 'fullstack', root: 'fullstack' }]),
+    manifest: {
+      requirements: [],
+      projects: [{
+        name: 'fullstack',
+        root: 'fullstack',
+        buildTool: 'maven',
+        sourceRoots: ['src/main/java', 'src'],
+        testRoots: ['src/test/java', '__tests__'],
+        capabilities: startupCapability({ backend: true, frontend: true }),
+      }],
+    },
+    generatedAt: '2026-06-28T00:00:01.000Z',
+  });
+
+  assert.equal(plan.schemaVersion, 1);
+  assert.equal(plan.currentRevisionId, 'rev-1');
+  assert.equal(plan.revisions.length, 1);
+  assert.ok(plan.nodeContracts.some(contract => contract.nodeType === 'e2e-verify' && contract.resources.browserSlots === 1));
+  assert.equal(plan.revisions[0].revisionId, 'rev-1');
+  assert.equal(plan.revisions[0].reason, 'initial');
+  assert.equal(plan.revisions[0].validation.valid, true);
+  assert.deepEqual(plan.revisions[0].lockedNodeIds, []);
+  assert.deepEqual(plan.migration, {
+    source: 'structured',
+    legacyFallbackUsed: false,
+    warnings: [],
+  });
+});
+
+test('structured plan validation rejects invalid node contracts before execution', () => {
+  const plan = createSessionExecutionPlan({
+    runId: 'structured-invalid-run',
+    decision: fanoutDecisionFixture([{ name: 'fullstack', root: 'fullstack' }]),
+    manifest: {
+      requirements: [],
+      projects: [{
+        name: 'fullstack',
+        root: 'fullstack',
+        buildTool: 'maven',
+        sourceRoots: ['src/main/java', 'src'],
+        testRoots: ['src/test/java', '__tests__'],
+        capabilities: startupCapability({ backend: true, frontend: true }),
+      }],
+    },
+  });
+  const invalid = JSON.parse(JSON.stringify(plan)) as typeof plan;
+  invalid.branches[0].nodes[0].type = 'unknown-node' as never;
+  invalid.branches[0].nodes[1].runner = 'wrong-runner';
+  const nodeWithoutDependencies = invalid.branches[0].nodes[2] as unknown as { dependsOn?: string[] };
+  delete nodeWithoutDependencies.dependsOn;
+  invalid.branches[0].nodes[3].dependsOn = ['missing-node'];
+
+  const issues = validateStructuredPlanDocument(invalid);
+  const codes = issues.map(issue => issue.code);
+
+  assert.ok(codes.includes('unknown-node-type'));
+  assert.ok(codes.includes('runner-contract-mismatch'));
+  assert.ok(codes.includes('missing-node-dependencies'));
+  assert.ok(codes.includes('missing-dependency'));
+  assert.ok(issues.every(issue => issue.severity === 'error'));
+});
+
+test('structured planner adapter uses tool schema and strict JSON fallback validation', async () => {
+  const plan = createSessionExecutionPlan({
+    runId: 'structured-adapter-run',
+    decision: fanoutDecisionFixture([{ name: 'fullstack', root: 'fullstack' }]),
+    manifest: {
+      requirements: [],
+      projects: [{
+        name: 'fullstack',
+        root: 'fullstack',
+        buildTool: 'maven',
+        sourceRoots: ['src/main/java', 'src'],
+        testRoots: ['src/test/java', '__tests__'],
+        capabilities: startupCapability({ backend: true, frontend: true }),
+      }],
+    },
+  });
+  const toolProvider = new StaticLLMProvider([{
+    type: 'tool_use',
+    id: 'tool-1',
+    name: 'emit_session_execution_plan',
+    input: plan as unknown as Record<string, unknown>,
+  }]);
+
+  const toolResult = await requestStructuredSessionPlan({
+    provider: toolProvider,
+    modelId: 'planner-model',
+    systemPrompt: 'You are a structured planner.',
+    userPrompt: 'Plan the session.',
+  });
+  assert.equal(toolResult.ok, true);
+  assert.equal(toolResult.mode, 'tool');
+  assert.equal(toolProvider.lastRequest?.toolChoice, 'required');
+  assert.equal(toolProvider.lastRequest?.tools?.[0].name, 'emit_session_execution_plan');
+
+  const jsonResult = await requestStructuredSessionPlan({
+    provider: new StaticLLMProvider([{ type: 'text', text: JSON.stringify(plan) }]),
+    modelId: 'planner-model',
+    systemPrompt: 'You are a structured planner.',
+    userPrompt: 'Plan the session.',
+  });
+  assert.equal(jsonResult.ok, true);
+  assert.equal(jsonResult.mode, 'json');
+
+  const nonJsonResult = await requestStructuredSessionPlan({
+    provider: new StaticLLMProvider([{ type: 'text', text: '```json\n{}\n```' }]),
+    modelId: 'planner-model',
+    systemPrompt: 'You are a structured planner.',
+    userPrompt: 'Plan the session.',
+  });
+  assert.equal(nonJsonResult.ok, false);
+  assert.ok(nonJsonResult.issues.some(issue => issue.code === 'planner-non-json-response'));
+
+  const invalidPlan = { ...plan, branches: undefined };
+  const invalidResult = await requestStructuredSessionPlan({
+    provider: new StaticLLMProvider([{
+      type: 'tool_use',
+      id: 'tool-1',
+      name: 'emit_session_execution_plan',
+      input: invalidPlan as unknown as Record<string, unknown>,
+    }]),
+    modelId: 'planner-model',
+    systemPrompt: 'You are a structured planner.',
+    userPrompt: 'Plan the session.',
+  });
+  assert.equal(invalidResult.ok, false);
+  assert.ok(invalidResult.issues.some(issue => issue.code === 'missing-branches'));
+});
+
 test('session execution planner uses AI-owned implementation surfaces before keyword fallback', () => {
   const plan = createSessionExecutionPlan({
     runId: 'surface-plan-run',
@@ -480,6 +739,75 @@ test('session execution planner uses AI-owned implementation surfaces before key
   const marketing = plan.branches.find(branch => branch.projectName === 'marketing');
   assert.deepEqual(admin?.tracks.map(track => track.kind), ['backend', 'frontend', 'e2e', 'contract']);
   assert.deepEqual(marketing?.tracks.map(track => track.kind), ['backend', 'contract']);
+});
+
+test('structured requirement ownership drives fanout and track planning before legacy text fallback', () => {
+  const manifest = {
+    requirements: [],
+    projects: [
+      { name: 'marketing-admin', root: 'marketing-admin', buildTool: 'maven', sourceRoots: ['src/main/java'], capabilities: startupCapability({ backend: true }) },
+      { name: 'marketing', root: 'marketing', buildTool: 'maven', sourceRoots: ['src/main/java'], capabilities: startupCapability({ backend: true }) },
+      { name: 'docs', root: 'docs' },
+    ],
+  };
+  const clarified = [
+    '# MRD Clarification',
+    '',
+    '## Feature Inventory',
+    '- 活动命中预览：设置端发起预览并展示命中结果。',
+    '- 用户运行侧命中查询：运行态接口返回命中结果。',
+    '',
+    '## Project Ownership',
+    '- 活动命中预览 -> marketing-admin',
+    '- 用户运行侧命中查询 -> marketing',
+    '',
+    '## Implementation Surfaces',
+    '| 功能项 | 项目 | frontend | backend | contract | e2e | 判断依据 |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+    '| 活动命中预览 | marketing-admin | yes | yes | yes | yes | 设置端页面、预览提交入口和结果展示 |',
+    '| 用户运行侧命中查询 | marketing | no | yes | yes | no | 用户侧运行态判断接口 |',
+    '',
+    '## Implementation Boundaries',
+    '- docs 不参与代码实现。',
+    '',
+    '## Clarification Questions',
+    '无需澄清。',
+    '',
+    '## Clarified Decisions',
+    '- 用户确认按推荐默认决策继续。',
+  ].join('\n');
+  const requirementOwnership = buildRequirementOwnershipArtifact({
+    clarified,
+    manifest,
+    confirmation: {
+      status: 'confirmed',
+      feedback: '确认归属正确。',
+      confirmedAt: '2026-06-28T00:00:01.000Z',
+    },
+  });
+  const fanoutDecision = deriveFanoutDecision({
+    manifest,
+    clarifiedMrd: '# legacy text intentionally lacks project names',
+    requirementOwnership,
+    generatedAt: '2026-06-28T00:00:02.000Z',
+  });
+  const plan = createSessionExecutionPlan({
+    runId: 'structured-ownership-run',
+    decision: fanoutDecision,
+    manifest,
+    clarifiedMrd: '# legacy text intentionally lacks implementation surfaces',
+    requirementOwnership,
+    generatedAt: '2026-06-28T00:00:03.000Z',
+  });
+
+  assert.equal(requirementOwnership.confirmation.status, 'confirmed');
+  assert.equal(requirementOwnership.migration.legacyFallbackUsed, false);
+  assert.ok(requirementOwnership.implementationSurfaces.some(surface => surface.projectName === 'marketing-admin' && surface.frontend && surface.e2e));
+  assert.deepEqual(fanoutDecision.includedProjects.map(project => project.name), ['marketing-admin', 'marketing']);
+  assert.deepEqual(fanoutDecision.excludedProjects.map(project => project.name), ['docs']);
+  assert.ok(plan.sourceArtifacts.includes(REQUIREMENT_OWNERSHIP_ARTIFACT_PATH));
+  assert.deepEqual(plan.branches.find(branch => branch.projectName === 'marketing-admin')?.tracks.map(track => track.kind), ['backend', 'frontend', 'e2e', 'contract']);
+  assert.deepEqual(plan.branches.find(branch => branch.projectName === 'marketing')?.tracks.map(track => track.kind), ['backend', 'contract']);
 });
 
 test('session execution plan validation rejects unsupported catalog entries cycles and missing artifact metadata', () => {
@@ -660,6 +988,86 @@ test('branch controls cancel and rerun only the selected session branch', async 
   assert.ok(eventTypes.includes('branch_cancelled'));
   assert.ok(eventTypes.includes('branch_rerun_scheduled'));
   assert.ok(eventTypes.includes('join_state_updated'));
+
+  await fs.rm(getRunPaths(runId).runDir, { recursive: true, force: true });
+});
+
+test('branch rerun targets dynamic plan revision nodes and preserves sibling artifacts', async () => {
+  const runId = `dynamic-branch-rerun-${Date.now()}`;
+  const workflow = createBuiltInMrdToCodeWorkflow();
+  const executionPlan = createSessionExecutionPlan({
+    runId,
+    decision: fanoutDecisionFixture([{ name: 'fullstack', root: 'fullstack' }]),
+    manifest: {
+      requirements: [],
+      projects: [{
+        name: 'fullstack',
+        root: 'fullstack',
+        buildTool: 'maven',
+        sourceRoots: ['src/main/java', 'src'],
+        testRoots: ['src/test/java', '__tests__'],
+        capabilities: startupCapability({ backend: true, frontend: true }),
+      }],
+    },
+  });
+  const workflowInstance = createInitialSessionWorkflowInstance({
+    runId,
+    templateSnapshot: {
+      workflowId: workflow.id,
+      workflowVersion: workflow.version,
+      capturedAt: '2026-06-28T00:00:00.000Z',
+      definition: workflow,
+    },
+    createdAt: '2026-06-28T00:00:00.000Z',
+  });
+  const branch = createBranchRef({
+    branchId: executionPlan.branches[0].branchId,
+    projectName: 'fullstack',
+    projectRoot: 'fullstack',
+    plan: executionPlan.branches[0],
+    status: 'failed',
+    currentNodeId: 'frontend-test',
+  });
+  branch.artifactIndex = { 'backend-test': ['artifacts/fullstack/test-report.md'] };
+  for (const node of branch.nodes ?? []) {
+    if (['implementation-plan', 'spec-generate', 'java-impl', 'backend-test', 'frontend-impl'].includes(node.id)) {
+      node.status = 'completed';
+    }
+    if (node.id === 'frontend-test') node.status = 'failed';
+  }
+  workflowInstance.branches = [branch];
+  workflowInstance.executionPlan = executionPlan;
+  workflowInstance.joins = [{
+    joinId: 'app-join',
+    waitingForBranchIds: [],
+    completedBranchIds: [],
+    failedBranchIds: [branch.branchId],
+    cancelledBranchIds: [],
+    status: 'failed',
+  }];
+  getStateStore(runId).saveExecutionState({
+    runId,
+    name: 'Dynamic Branch Rerun',
+    status: 'running',
+    currentNodeIndex: 3,
+    nodes: [{ id: 'project-fanout', name: 'Fanout', status: 'completed', failureCount: 0 }],
+    permissionMode: 'default',
+    modelOverrides: {},
+    startedAt: 100,
+    updatedAt: 100,
+    projects: [{ name: 'fullstack', root: 'fullstack', branchId: branch.branchId, status: 'failed', currentNodeId: 'frontend-test', retry: createEmptyRetryState() }],
+    workflowInstance,
+  });
+
+  const rerun = new SessionManager().rerunBranch(runId, branch.branchId, 'frontend-test');
+  const rerunBranch = rerun?.workflowInstance?.branches[0];
+
+  assert.equal(rerunBranch?.nodes?.find(node => node.id === 'backend-test')?.status, 'completed');
+  assert.equal(rerunBranch?.nodes?.find(node => node.id === 'frontend-test')?.status, 'pending');
+  assert.equal(rerunBranch?.nodes?.find(node => node.id === 'e2e-verify')?.status, 'pending');
+  assert.deepEqual(rerunBranch?.artifactIndex?.['backend-test'], ['artifacts/fullstack/test-report.md']);
+  const rerunEvent = getEventLog(runId).getAllEvents().find(event => event.type === 'branch_rerun_scheduled');
+  assert.equal((rerunEvent?.data as Record<string, unknown>)?.planRevisionId, 'rev-1');
 
   await fs.rm(getRunPaths(runId).runDir, { recursive: true, force: true });
 });
@@ -967,6 +1375,133 @@ test('planned branch executor dispatches runners, joins tracks, reruns and cance
   assert.equal(cancelled.nodes['frontend-test'].status, 'interrupted');
 });
 
+test('planned branch executor enforces node resource semaphores from registry contracts', async () => {
+  const plan = createSessionExecutionPlan({
+    runId: 'planned-resource-run',
+    decision: fanoutDecisionFixture([{ name: 'fullstack', root: 'fullstack' }]),
+    manifest: {
+      requirements: [],
+      projects: [{
+        name: 'fullstack',
+        root: 'fullstack',
+        buildTool: 'maven',
+        sourceRoots: ['src/main/java', 'src'],
+        testRoots: ['src/test/java', '__tests__'],
+        capabilities: startupCapability({ backend: true, frontend: true }),
+      }],
+    },
+  });
+  const branchPlan = JSON.parse(JSON.stringify(plan.branches[0])) as typeof plan.branches[0];
+  const e2eClone = {
+    ...branchPlan.nodes.find(node => node.id === 'e2e-verify')!,
+    id: 'e2e-verify-second',
+  };
+  branchPlan.nodes.push(e2eClone);
+  branchPlan.tracks.find(track => track.trackId === 'e2e')?.nodes.push(e2eClone);
+  const branch = createInitialBranchState({
+    branchId: branchPlan.branchId,
+    workflowId: 'mrd-to-code-app-branch',
+    projectName: 'fullstack',
+    projectRoot: 'fullstack',
+    plan: branchPlan,
+  });
+  let activeBrowser = 0;
+  let maxActiveBrowser = 0;
+  const completed = await runPlannedBranch({
+    graphState: createInitialGraphState({
+      runId: 'planned-resource-run',
+      workflowId: BUILTIN_MRD_TO_CODE_WORKFLOW_ID,
+      workflowVersion: 1,
+      nodeIds: ['project-fanout'],
+      permissionMode: 'default',
+    }),
+    branch,
+    plan: branchPlan,
+    concurrencyLimit: 8,
+    resourceSemaphores: createPlanResourceSemaphores({
+      branchConcurrency: 8,
+      modelConcurrency: 8,
+      commandConcurrency: 8,
+      browserConcurrency: 1,
+    }),
+    handlers: {
+      'e2e-verify': async () => {
+        activeBrowser += 1;
+        maxActiveBrowser = Math.max(maxActiveBrowser, activeBrowser);
+        await new Promise(resolve => setTimeout(resolve, 10));
+        activeBrowser -= 1;
+        return { outputArtifacts: ['artifacts/fullstack/e2e/e2e-summary.json'] };
+      },
+    },
+  });
+
+  assert.equal(completed.status, 'completed');
+  assert.equal(maxActiveBrowser, 1);
+  assert.equal(completed.nodes['e2e-verify'].status, 'completed');
+  assert.equal(completed.nodes['e2e-verify-second'].status, 'completed');
+});
+
+test('replan requests lock completed siblings replace remaining nodes and enforce fuse limits', () => {
+  const plan = createSessionExecutionPlan({
+    runId: 'replan-run',
+    decision: fanoutDecisionFixture([{ name: 'fullstack', root: 'fullstack' }]),
+    manifest: {
+      requirements: [],
+      projects: [{
+        name: 'fullstack',
+        root: 'fullstack',
+        buildTool: 'maven',
+        sourceRoots: ['src/main/java', 'src'],
+        testRoots: ['src/test/java', '__tests__'],
+        capabilities: startupCapability({ backend: true, frontend: true }),
+      }],
+    },
+    generatedAt: '2026-06-28T00:00:01.000Z',
+  });
+  const branch = plan.branches[0];
+  const request = createReplanRequest({
+    plan,
+    branchId: branch.branchId,
+    failedNodeIds: ['frontend-test'],
+    reason: 'node-failure',
+    createdAt: '2026-06-28T00:00:02.000Z',
+  });
+  const replacement = JSON.parse(JSON.stringify(branch)) as typeof branch;
+  replacement.nodes.find(node => node.id === 'java-impl')!.label = 'Malicious backend rewrite';
+  replacement.nodes.find(node => node.id === 'frontend-test')!.label = 'Frontend Test Replanned';
+  replacement.tracks.find(track => track.trackId === 'frontend')!.nodes.find(node => node.id === 'frontend-test')!.label = 'Frontend Test Replanned';
+
+  const result = applyReplanRevision({
+    plan,
+    request,
+    replacementBranches: [replacement],
+    createdAt: '2026-06-28T00:00:03.000Z',
+  });
+
+  assert.equal(result.ok, true);
+  assert.ok(request.lockedNodeIds.includes('java-impl'));
+  if (result.ok) {
+    const nextBranch = result.plan.branches[0];
+    assert.equal(result.plan.currentRevisionId, 'rev-2');
+    assert.equal(result.plan.revisions[1].parentRevisionId, 'rev-1');
+    assert.equal(nextBranch.nodes.find(node => node.id === 'java-impl')?.label, 'Backend Implementation');
+    assert.equal(nextBranch.nodes.find(node => node.id === 'frontend-test')?.label, 'Frontend Test Replanned');
+  }
+
+  const exhausted = evaluateReplanFuse({
+    ...plan,
+    revisions: [
+      ...plan.revisions,
+      { ...plan.revisions[0], revisionId: 'rev-2', parentRevisionId: 'rev-1', reason: 'replan', changedNodeIds: ['frontend-test'] },
+      { ...plan.revisions[0], revisionId: 'rev-3', parentRevisionId: 'rev-2', reason: 'replan', changedNodeIds: ['frontend-test'] },
+    ],
+  }, {
+    maxSessionReplans: 2,
+    maxBranchReplans: 2,
+  }, branch.branchId);
+  assert.equal(exhausted.allowed, false);
+});
+
 test('read-model sync maps graph state to ExecutionState', () => {
   const workflow = createBuiltInMrdToCodeWorkflow();
   const graphState = mergeGraphState(createInitialGraphState({
@@ -1063,11 +1598,25 @@ test('workflow UI exposes nested tracks, planner evidence, and track-scoped arti
   assert.ok(appJs.includes('function getBranchTracks('), 'UI should normalize branch tracks');
   assert.ok(appJs.includes('function renderFanoutTrackLane('), 'UI should render nested fanout track lanes');
   assert.ok(appJs.includes('function renderPlannerSnapshotDetails('), 'UI should surface planner details');
+  assert.ok(appJs.includes('function renderSelectedBranchNodeDetails('), 'UI should show selected branch node contract details');
+  assert.ok(appJs.includes('findPlanNodeContractSummary'), 'UI should resolve plan node contract summaries');
+  assert.ok(appJs.includes('plan?.currentRevisionId'), 'UI should display plan revision provenance');
+  assert.ok(appJs.includes('structuredPayload: data.structuredPayload'), 'UI should restore structured confirmation payloads after refresh');
   assert.ok(appJs.includes('selection.trackId'), 'artifact filtering should account for selected track');
   assert.ok(appJs.includes('track?.artifactIndex?.[stageId]'), 'artifact filtering should read track artifact index');
   assert.ok(appCss.includes('.fanout-track-stack'), 'CSS should style nested fanout tracks');
   assert.ok(appCss.includes('.planner-evidence-card'), 'CSS should style planner evidence');
+  assert.ok(appCss.includes('.branch-node-contract-panel'), 'CSS should style selected branch node contract details');
   assert.ok(appCss.includes('.branch-track-node'), 'CSS should style branch track nodes');
+});
+
+test('prompt context labels legacy PRD as optional compatibility context', () => {
+  const promptContext = fsSync.readFileSync(path.resolve('src/pipeline/node-agents/prompt-context.ts'), 'utf-8');
+
+  assert.ok(promptContext.includes('optional legacy compatibility context'));
+  assert.ok(promptContext.includes('Legacy PRD Compatibility Context'));
+  assert.ok(promptContext.includes("proposal: readArtifactForPrompt(paths, 'mrd-clarified.md'"));
+  assert.ok(promptContext.includes("requirement_ownership: readArtifactForPrompt(paths, 'requirement-ownership.json'"));
 });
 
 test('OpenSpec dynamic task sections remain section-scoped when marking completion', async () => {
@@ -1079,16 +1628,18 @@ test('OpenSpec dynamic task sections remain section-scoped when marking completi
     projectRoot: 'fullstack',
     developmentTasks: '- [ ] Implement backend behavior\n- [ ] Keep legacy dev task readable',
     testTasks: '- [ ] Add regression tests',
-    prdSummary: 'PRD summary',
+    proposalSummary: 'Proposal summary',
+    requirementOwnershipSummary: 'marketing-admin owns preview UI; marketing owns runtime API',
     techDesignSummary: 'Tech design summary',
+    nodeContractSummary: '- java-impl requires OpenSpec tasks and produces changed-files.json',
   });
   const tasksPath = path.join(paths.artifactsDir, change.tasksPath);
   let tasks = fsSync.readFileSync(tasksPath, 'utf-8');
   tasks = tasks.replace(
-    'Backend-specific tasks are recorded here when generated by the dynamic planner.',
+    'No backend-specific tasks were identified for this app.',
     '- [ ] Implement backend endpoint\n- [ ] Update backend service'
   ).replace(
-    'No frontend-specific implementation tasks were identified for this app unless generated by the dynamic planner.',
+    'No frontend-specific tasks were identified for this app.',
     '- [ ] Render trace key in UI'
   );
   fsSync.writeFileSync(tasksPath, tasks, 'utf-8');
@@ -1106,6 +1657,54 @@ test('OpenSpec dynamic task sections remain section-scoped when marking completi
   assert.ok(next.includes('## Frontend\n- [ ] Render trace key in UI'));
   assert.ok(next.includes('## Development\n- [ ] Implement backend behavior'));
   assert.ok(next.includes('## Test\n- [ ] Add regression tests'));
+
+  await fs.rm(paths.runDir, { recursive: true, force: true });
+});
+
+test('OpenSpec SDD artifacts map MRD proposal design spec and generated tasks without requiring PRD', async () => {
+  const paths = createTempRunPaths('openspec-sdd-mapping');
+  const change = writeProjectOpenSpecChange({
+    paths,
+    runId: 'openspec-sdd-run',
+    projectName: 'marketing-admin',
+    projectRoot: 'marketing-admin',
+    developmentTasks: [
+      '## Backend',
+      '- [ ] Add preview submission endpoint',
+      '',
+      '## Frontend',
+      '- [ ] Render preview form',
+      '',
+      '## Contract',
+      '- [ ] Document preview payload',
+    ].join('\n'),
+    testTasks: [
+      '## E2E',
+      '- [ ] Verify preview flow in browser',
+      '',
+      '## Test',
+      '- [ ] Add service unit test',
+    ].join('\n'),
+    proposalSummary: 'MRD requires activity hit preview in setting side.',
+    requirementOwnershipSummary: 'marketing-admin owns frontend/backend/contract/e2e surfaces.',
+    techDesignSummary: 'Use controller/service split and static admin page update.',
+    nodeContractSummary: '- frontend-impl produces changed-files.json; e2e-verify produces e2e-summary.json',
+  });
+  const proposal = fsSync.readFileSync(path.join(paths.artifactsDir, change.proposalPath), 'utf-8');
+  const design = fsSync.readFileSync(path.join(paths.artifactsDir, change.designPath), 'utf-8');
+  const spec = fsSync.readFileSync(path.join(paths.artifactsDir, change.specPath), 'utf-8');
+  const tasks = fsSync.readFileSync(path.join(paths.artifactsDir, change.tasksPath), 'utf-8');
+
+  assert.ok(proposal.includes('Primary proposal source: `artifacts/mrd-clarified.md`'));
+  assert.ok(proposal.includes('Requirement ownership source: `artifacts/requirement-ownership.json`'));
+  assert.ok(proposal.includes('Legacy `artifacts/prd.md`: optional compatibility context only when present.'));
+  assert.ok(design.includes('## Node Contracts'));
+  assert.ok(design.includes('e2e-verify produces e2e-summary.json'));
+  assert.ok(spec.includes('ownership=artifacts/requirement-ownership.json'));
+  assert.ok(tasks.includes('## Backend\n- [ ] Add preview submission endpoint'));
+  assert.ok(tasks.includes('## Frontend\n- [ ] Render preview form'));
+  assert.ok(tasks.includes('## Contract\n- [ ] Document preview payload'));
+  assert.ok(tasks.includes('## E2E\n- [ ] Verify preview flow in browser'));
 
   await fs.rm(paths.runDir, { recursive: true, force: true });
 });
@@ -1710,4 +2309,22 @@ function listRelativeFiles(rootDir: string, currentDir = rootDir): string[] {
     if (entry.isDirectory()) return listRelativeFiles(rootDir, entryPath);
     return [path.relative(rootDir, entryPath).replace(/\\/g, '/')];
   }).sort();
+}
+
+class StaticLLMProvider implements LLMProvider {
+  lastRequest?: LLMRequest;
+
+  constructor(private readonly content: LLMContentBlock[]) {}
+
+  async createMessage(req: LLMRequest): Promise<LLMResponse> {
+    this.lastRequest = req;
+    return {
+      content: this.content,
+      stopReason: 'end_turn',
+    };
+  }
+
+  async *createMessageStream(_req: LLMRequest): AsyncGenerator<LLMStreamEvent> {
+    yield { type: 'message_stop', stopReason: 'end_turn' };
+  }
 }

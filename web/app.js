@@ -38,6 +38,7 @@ const state = {
   activeTab: 'artifacts',
   fileTreeCache: {},
   lastEventTimestamp: 0,
+  refreshTimer: null,
 };
 
 const PIPELINE_STAGES = [
@@ -52,6 +53,25 @@ const PIPELINE_STAGES = [
 
 const STAGE_NAMES = Object.fromEntries(PIPELINE_STAGES.map(s => [s.id, s.name]));
 STAGE_NAMES['mrd-clarify'] = '需求归属确认';
+Object.assign(STAGE_NAMES, {
+  'project-fanout': '项目分流',
+  'app-join': '分支汇合',
+  'cross-app-test': '跨应用测试',
+  'backend-impl': '后端实现',
+  'backend-test': '后端测试',
+  'frontend-impl': '前端实现',
+  'frontend-test': '前端测试',
+  'e2e-verify': '端到端验证',
+  'documentation-impl': '文档实现',
+  'documentation-test': '文档验证',
+});
+const TRACK_LABELS = {
+  backend: '后端',
+  frontend: '前端',
+  e2e: '端到端',
+  contract: '接口契约',
+  documentation: '文档',
+};
 const STATUS_LABELS = {
   idle: '空闲',
   pending: '待处理',
@@ -208,7 +228,7 @@ function getPipelineBarNodes() {
   if (Array.isArray(instanceNodes) && instanceNodes.length) {
     return withClarifyNode(instanceNodes).map(node => ({
       id: node.id,
-      name: node.label || node.id,
+      name: stageName(node.id, node.label || node.id),
       sourceNodeId: node.sourceNodeId,
       kind: node.kind,
       status: node.id === 'mrd-clarify' ? getClarifyNodeStatus() : getSessionWorkflowNodeStatus(node),
@@ -245,7 +265,7 @@ function renderSessionWorkflowSummary(nodes) {
   if (!canDisplaySessionWorkflow()) {
     parts.push('需求归属确认前隐藏 workflow');
   } else if (instance) {
-    parts.push(instance.layout === 'legacy-fixed' ? '历史固定节点视图' : '当前 session 动态 workflow');
+    parts.push(instance.layout === 'legacy-fixed' ? '历史固定节点视图' : '当前动态工作流');
   } else {
     parts.push('兼容旧会话节点视图');
   }
@@ -289,7 +309,6 @@ function isBranchStageNode(nodeId) {
     'spec-generate',
     'java-impl',
     'testcode-generate',
-    'app-branch-summary',
   ].includes(nodeId);
 }
 
@@ -390,6 +409,8 @@ function getClarifyNodeStatus() {
 
 function getSessionWorkflowNodeStatus(instanceNode) {
   if (!state.pipeline || !instanceNode) return 'pending';
+  const directSource = state.pipeline.nodes?.find(node => node.id === instanceNode.id);
+  if (directSource?.status) return directSource.status;
   if (instanceNode.sourceNodeId) {
     const source = state.pipeline.nodes?.find(node => node.id === instanceNode.sourceNodeId);
     if (instanceNode.id === 'mrd-render' && source?.status === 'waiting_confirmation') return 'pending';
@@ -398,7 +419,7 @@ function getSessionWorkflowNodeStatus(instanceNode) {
   if (instanceNode.kind === 'fanout') {
     const branches = state.pipeline.workflowInstance?.branches || [];
     const currentId = state.pipeline.currentNodeId;
-    if (branches.length && (isBranchStageNode(currentId) || ['app-join', 'cross-app-code-review', 'cross-app-integration-review', 'archive'].includes(currentId))) {
+    if (branches.length && (isBranchStageNode(currentId) || ['app-join', 'cross-app-test', 'archive'].includes(currentId))) {
       return 'completed';
     }
     if (instanceNode.status && instanceNode.status !== 'waiting_confirmation') return instanceNode.status;
@@ -554,7 +575,7 @@ function renderExecutionTraceEmpty() {
   container.innerHTML = `
     <div class="welcome-screen" id="welcome-screen">
       <h2>⚡ MRD 到代码流水线</h2>
-      <p>上传 MRD、项目与参考资料，配置任务后启动流水线。系统会编排需求渲染、PRD、技术设计、Java 实现、测试运行与归档。</p>
+      <p>上传 MRD、项目与参考资料，配置任务后启动流水线。系统会编排需求归属确认、技术方案、SPEC、代码实现、测试运行与归档。</p>
     </div>
   `;
 }
@@ -939,8 +960,9 @@ function canRerunFromNode(node) {
   return ['completed', 'failed', 'cancelled', 'interrupted', 'suspended', 'waiting_fix'].includes(node.status);
 }
 
-async function refreshCurrentRunView() {
+async function refreshCurrentRunView(options = {}) {
   if (!state.runId) return;
+  const renderTrace = options.renderTrace !== false;
   const runId = state.runId;
   try {
     const res = await fetch(`/api/sessions/${runId}`);
@@ -954,7 +976,11 @@ async function refreshCurrentRunView() {
     renderPipelineBar();
     renderInterruptButton();
     renderSessionInfo();
-    renderExecutionTrace();
+    if (renderTrace) {
+      renderExecutionTrace();
+    } else {
+      refreshSelectedTraceEvents();
+    }
     dismissStaleConfirmationIfNeeded();
     await restorePendingConfirmationIfNeeded();
     loadSessions();
@@ -1202,7 +1228,7 @@ function getWorkflowForView() {
 function sessionWorkflowInstanceToWorkflow(instance) {
   return {
     id: instance.id,
-    name: instance.layout === 'legacy-fixed' ? 'Legacy Session Workflow' : 'Session Workflow',
+    name: instance.layout === 'legacy-fixed' ? '历史会话工作流' : '当前会话工作流',
     version: instance.version || 1,
     locked: true,
     globalConfig: { runtime: state.pipeline?.metadata?.runtime || 'legacy' },
@@ -1214,7 +1240,7 @@ function sessionWorkflowInstanceToWorkflow(instance) {
       type: workflowNodeTypeFromSessionKind(node.kind),
       position: { x: index * 220, y: 80 },
       data: {
-        label: node.label || node.id,
+        label: stageName(node.id, node.label || node.id),
         stageId: node.sourceNodeId,
         runner: node.sourceNodeId || node.id,
         artifactOutputs: node.artifactHints || [],
@@ -1276,12 +1302,12 @@ function renderWorkflowView() {
     state.pipeline?.metadata?.workflow_snapshot
   );
   const selectedNode = workflow.nodes.find(node => node.id === state.selectedWorkflowNodeId) || workflow.nodes[0];
-  const workflowSourceLabel = hasSessionInstance ? '当前 session workflow instance' : hasSnapshot ? '使用运行快照' : '历史/默认定义回退';
+  const workflowSourceLabel = hasSessionInstance ? '当前动态工作流实例' : hasSnapshot ? '使用运行快照' : '历史/默认定义回退';
   return `
     <div class="workflow-view">
       <div class="workflow-toolbar">
         <div>
-          <div class="workflow-title">${esc(workflow.name || 'MRD-to-Code Workflow')}</div>
+          <div class="workflow-title">${esc(workflow.name || 'MRD 到代码工作流')}</div>
           <div class="workflow-subtitle">
             v${esc(workflow.version || 1)} · ${workflow.locked ? '锁定结构' : '可编辑结构'} · ${workflow.globalConfig?.runtime || 'legacy'}
             · ${workflowSourceLabel}
@@ -1359,18 +1385,18 @@ function renderFanoutDecisionPanel() {
     <div class="workflow-fanout-panel">
       <div class="workflow-fanout-head">
         <div>
-          <div class="workflow-section-title">Fanout 决策</div>
+          <div class="workflow-section-title">项目分流决策</div>
           <div class="workflow-section-subtitle">
             confidence: ${esc(decision.confidence || 'unknown')}
             ${decision.fallbackReason ? ` · ${esc(decision.fallbackReason)}` : ''}
           </div>
         </div>
-        <button type="button" class="workflow-artifact-link" onclick="openBranchArtifact('${escAttr(artifact)}', event)">查看 JSON</button>
+        <button type="button" class="workflow-artifact-link" onclick="openBranchArtifact('${escAttr(artifact)}', event)">查看决策 JSON</button>
       </div>
       <div class="workflow-fanout-groups">
-        ${renderFanoutProjectGroup('Included', decision.includedProjects, 'included')}
-        ${renderFanoutProjectGroup('Excluded', decision.excludedProjects, 'excluded')}
-        ${renderFanoutProjectGroup('Unresolved', decision.unresolvedProjects, 'unresolved')}
+        ${renderFanoutProjectGroup('纳入', decision.includedProjects, 'included')}
+        ${renderFanoutProjectGroup('排除', decision.excludedProjects, 'excluded')}
+        ${renderFanoutProjectGroup('未解析', decision.unresolvedProjects, 'unresolved')}
       </div>
     </div>
   `;
@@ -1397,7 +1423,7 @@ function renderWorkflowBranchLanes() {
   if (!branches.length) return '';
   return `
     <div class="workflow-branch-lanes">
-      <div class="workflow-section-title">Branch Lanes</div>
+      <div class="workflow-section-title">应用分支</div>
       ${branches.map(renderWorkflowBranchLane).join('')}
     </div>
   `;
@@ -1448,7 +1474,7 @@ function getBranchWorkflowNodes(branch) {
   if (Array.isArray(branch.nodes) && branch.nodes.length) {
     return branch.nodes.map(node => ({
       id: node.id,
-      label: node.label || stageName(node.id, node.id),
+      label: stageName(node.id, node.label || node.id),
       status: node.status || 'pending',
       trackId: node.trackId,
       plannedType: node.plannedType || node.type,
@@ -1459,7 +1485,7 @@ function getBranchWorkflowNodes(branch) {
   if (branch.nodes && typeof branch.nodes === 'object') {
     return Object.values(branch.nodes).map(node => ({
       id: node.id,
-      label: node.label || stageName(node.id, node.id),
+      label: stageName(node.id, node.label || node.id),
       status: node.status || 'pending',
       trackId: node.trackId,
       plannedType: node.plannedType || node.type,
@@ -1470,7 +1496,7 @@ function getBranchWorkflowNodes(branch) {
   if (Array.isArray(branch.plan?.nodes) && branch.plan.nodes.length) {
     return branch.plan.nodes.map(node => ({
       id: node.id,
-      label: node.label || stageName(node.id, node.id),
+      label: stageName(node.id, node.label || node.id),
       status: 'pending',
       trackId: node.trackId,
       plannedType: node.type,
@@ -1483,7 +1509,6 @@ function getBranchWorkflowNodes(branch) {
     ['spec-generate', 'SPEC生成'],
     ['java-impl', 'Java实现'],
     ['testcode-generate', '测试代码'],
-    ['app-branch-summary', 'Summary'],
   ];
   const currentIndex = sequence.findIndex(([id]) => id === branch.currentNodeId);
   return sequence.map(([id, label], index) => ({
@@ -1506,7 +1531,7 @@ function getBranchTracks(branch, nodes = getBranchWorkflowNodes(branch)) {
     return {
       trackId: track.trackId,
       kind: track.kind,
-      label: track.label || track.kind || track.trackId,
+      label: TRACK_LABELS[track.kind] || track.label || track.kind || track.trackId,
       required: track.required !== false,
       status: track.status || getTrackStatusFromNodes(nodes, nodeIds),
       nodeIds,
@@ -1636,37 +1661,37 @@ function renderWorkflowConfigPanel(node, workflow) {
       <span class="workflow-lock-badge">${locked ? '结构锁定' : '结构可编辑'}</span>
     </div>
     <div class="workflow-field">
-      <label>Stage runner</label>
+      <label>节点执行器</label>
       <input type="text" value="${escAttr(runner)}" disabled>
     </div>
     <div class="workflow-field-grid">
       <div class="workflow-field">
-        <label>Model override key</label>
+        <label>模型覆盖键</label>
         <input type="text" value="${escAttr(draft.modelOverrideKey)}" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'modelOverrideKey', this.value)">
       </div>
       <div class="workflow-field">
-        <label>Max turns</label>
+        <label>最大轮次</label>
         <input type="number" min="1" max="100" value="${escAttr(draft.maxTurns)}" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'maxTurns', this.value)">
       </div>
     </div>
     <div class="workflow-field">
-      <label>Prompt config</label>
+      <label>提示词配置</label>
       <input type="text" value="${escAttr(draft.promptTemplateId)}" placeholder="promptTemplateId" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'promptTemplateId', this.value)">
     </div>
     <div class="workflow-field">
-      <label>System prompt</label>
+      <label>系统提示词</label>
       <textarea rows="4" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'systemPrompt', this.value)">${esc(draft.systemPrompt)}</textarea>
     </div>
     <div class="workflow-field">
-      <label>Tools</label>
+      <label>工具</label>
       <input type="text" value="${escAttr(draft.enabledBuiltins)}" placeholder="read_file, write_file" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'enabledBuiltins', this.value)">
     </div>
     <div class="workflow-field">
-      <label>MCP tools</label>
+      <label>MCP 工具</label>
       <input type="text" value="${escAttr(draft.enabledMcpTools)}" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'enabledMcpTools', this.value)">
     </div>
     <div class="workflow-field">
-      <label>Skills</label>
+      <label>技能</label>
       <input type="text" value="${escAttr(draft.enabledSkills)}" oninput="updateWorkflowDraft('${escAttr(node.id)}', 'enabledSkills', this.value)">
     </div>
     <label class="workflow-check-row">
@@ -1730,7 +1755,8 @@ function renderSelectedNodeExecution() {
   const nodes = getPipelineBarNodes();
   const node = getSelectedNode();
   if (!node) return '<div style="color:var(--text-muted);padding:12px">请选择一个 Pipeline 节点</div>';
-  const summary = summarizeNode(node);
+  const traceNode = getActiveTraceNode(node);
+  const summary = summarizeNode(traceNode);
   return `
     <div class="node-status-board">
       <div class="node-status-header">
@@ -1738,7 +1764,7 @@ function renderSelectedNodeExecution() {
         <span>${nodes.findIndex(n => n.id === node.id) + 1}/${nodes.length}</span>
       </div>
       ${shouldRenderFanoutWorkflowForNode(node.id) ? renderFanoutWorkflowMap(node.id) : renderMultiApplicationPanel(node)}
-      ${renderNodeStatusCard(node, false)}
+      ${renderNodeStatusCard(traceNode, false)}
       <div class="selected-node-stream">
         <div class="selected-node-stream-title">执行内容</div>
         <div id="selected-node-events">${renderSelectedNodeEvents(summary.events)}</div>
@@ -1749,6 +1775,8 @@ function renderSelectedNodeExecution() {
 
 function isFanoutWorkflowNode(nodeId) {
   return [
+    'upload-init',
+    'mrd-clarify',
     'mrd-render',
     'project-fanout',
     'implementation-plan',
@@ -1756,15 +1784,14 @@ function isFanoutWorkflowNode(nodeId) {
     'java-impl',
     'testcode-generate',
     'app-join',
-    'cross-app-code-review',
-    'cross-app-integration-review',
+    'cross-app-test',
     'archive',
   ].includes(nodeId);
 }
 
 function shouldRenderFanoutWorkflowForNode(nodeId) {
   if (!isFanoutWorkflowNode(nodeId)) return false;
-  if (['mrd-render', 'project-fanout', 'app-join', 'cross-app-code-review', 'cross-app-integration-review', 'archive'].includes(nodeId)) {
+  if (['upload-init', 'mrd-clarify', 'mrd-render', 'project-fanout', 'app-join', 'cross-app-test', 'archive'].includes(nodeId)) {
     return true;
   }
   return canDisplaySessionWorkflow();
@@ -1773,32 +1800,27 @@ function shouldRenderFanoutWorkflowForNode(nodeId) {
 function renderFanoutWorkflowMap(activeNodeId = '') {
   const branches = getSessionBranchFlowItems();
   const decision = state.pipeline?.workflowInstance?.fanoutDecision;
-  if (!branches.length && !decision) return '';
+  const isPreludeNode = ['upload-init', 'mrd-clarify', 'mrd-render'].includes(activeNodeId);
+  if (!branches.length && !decision && !isPreludeNode) return '';
   const hasPlannedBranches = branches.length > 0;
-  const included = decision?.includedProjects || [];
-  const excluded = decision?.excludedProjects || [];
-  const unresolved = decision?.unresolvedProjects || [];
   const fanoutStatus = getNodeStatus('project-fanout');
   const joinStatus = getNodeStatus('app-join');
-  const codeReviewStatus = getNodeStatus('cross-app-code-review');
-  const integrationReviewStatus = getNodeStatus('cross-app-integration-review');
+  const crossAppTestStatus = getNodeStatus('cross-app-test');
   const archiveStatus = getNodeStatus('archive');
   return `
     <div class="fanout-workflow-map">
       <div class="fanout-map-header">
         <div>
-          <div class="fanout-map-title">多应用动态 Workflow</div>
+          <div class="fanout-map-title">多应用动态工作流</div>
           <div class="fanout-map-subtitle">
-            Fanout 后按应用泳道并行执行，Join 后进入跨应用审查
+            需求确认后按应用分支执行，分支汇合后进入跨应用测试
           </div>
         </div>
-        ${decision ? `
-          <button type="button" class="workflow-artifact-link" onclick="openBranchArtifact('${escAttr(state.pipeline.workflowInstance?.fanoutDecisionArtifact || 'artifacts/fanout-decision.json')}', event)">Fanout JSON</button>
-        ` : ''}
       </div>
       <div class="fanout-map-canvas">
+        ${renderFanoutPrelude(activeNodeId)}
         <div class="fanout-start-node ${fanoutStatus} ${activeNodeId === 'project-fanout' ? 'active' : ''}" onclick="openPipelineNode('project-fanout')">
-          <strong>应用 Fanout</strong>
+          <strong>项目分流</strong>
           <small>按需求边界生成分支</small>
           <span class="status-badge ${fanoutStatus}">${statusLabel(fanoutStatus)}</span>
         </div>
@@ -1810,21 +1832,15 @@ function renderFanoutWorkflowMap(activeNodeId = '') {
         </div>
         <div class="fanout-review-flow">
           <button type="button" class="fanout-terminal-node join ${joinStatus} ${activeNodeId === 'app-join' ? 'active' : ''}" onclick="openPipelineNode('app-join')">
-            <strong>Join</strong>
+            <strong>分支汇合</strong>
             <small>${renderJoinSummary()}</small>
             <span class="status-badge ${joinStatus}">${statusLabel(joinStatus)}</span>
           </button>
           <span class="fanout-down-arrow"></span>
-          <button type="button" class="fanout-terminal-node review ${codeReviewStatus} ${activeNodeId === 'cross-app-code-review' ? 'active' : ''}" onclick="openPipelineNode('cross-app-code-review')">
-            <strong>跨应用代码审查</strong>
-            <small>字段、接口、边界、重复实现</small>
-            <span class="status-badge ${codeReviewStatus}">${statusLabel(codeReviewStatus)}</span>
-          </button>
-          <span class="fanout-down-arrow"></span>
-          <button type="button" class="fanout-terminal-node review ${integrationReviewStatus} ${activeNodeId === 'cross-app-integration-review' ? 'active' : ''}" onclick="openPipelineNode('cross-app-integration-review')">
-            <strong>跨应用集成审查</strong>
-            <small>端到端链路和兼容性</small>
-            <span class="status-badge ${integrationReviewStatus}">${statusLabel(integrationReviewStatus)}</span>
+          <button type="button" class="fanout-terminal-node review ${crossAppTestStatus} ${activeNodeId === 'cross-app-test' ? 'active' : ''}" onclick="openPipelineNode('cross-app-test')">
+            <strong>跨应用测试</strong>
+            <small>分支产物、链路和兼容性</small>
+            <span class="status-badge ${crossAppTestStatus}">${statusLabel(crossAppTestStatus)}</span>
           </button>
           <span class="fanout-side-arrow"></span>
           <button type="button" class="fanout-terminal-node archive ${archiveStatus} ${activeNodeId === 'archive' ? 'active' : ''}" onclick="openPipelineNode('archive')">
@@ -1834,14 +1850,29 @@ function renderFanoutWorkflowMap(activeNodeId = '') {
           </button>
         </div>
       </div>
-      ${decision ? `
-        <div class="requirement-decision-row">
-          ${renderRequirementDecisionGroup('Included', included, 'included')}
-          ${renderRequirementDecisionGroup('Excluded', excluded, 'excluded')}
-          ${renderRequirementDecisionGroup('Unresolved', unresolved, 'unresolved')}
-        </div>
-      ` : ''}
-      ${renderPlannerSnapshotDetails(branches)}
+    </div>
+  `;
+}
+
+function renderFanoutPrelude(activeNodeId = '') {
+  const steps = [
+    { id: 'upload-init', label: '上传初始化', desc: 'MRD 与项目文件' },
+    { id: 'mrd-clarify', label: '需求归属确认', desc: '确认功能清单、应用归属和实施面向' },
+    { id: 'mrd-render', label: '需求拆解', desc: '生成拆解清单和分流依据' },
+  ];
+  return `
+    <div class="fanout-prelude-flow">
+      ${steps.map((step, index) => {
+        const status = getNodeStatus(step.id);
+        return `
+          <button type="button" class="fanout-prelude-node ${status} ${activeNodeId === step.id ? 'active' : ''}" onclick="openPipelineNode('${escAttr(step.id)}')">
+            <strong>${esc(step.label)}</strong>
+            <small>${esc(step.desc)}</small>
+            <span class="status-badge ${status}">${statusLabel(status)}</span>
+          </button>
+          ${index < steps.length - 1 ? '<span class="fanout-stage-arrow prelude"></span>' : ''}
+        `;
+      }).join('')}
     </div>
   `;
 }
@@ -1862,17 +1893,14 @@ function renderFanoutWorkflowLane(branch) {
   const currentStageId = branch.currentNodeId || state.pipeline?.currentNodeId || 'implementation-plan';
   const laneSelected = state.selectedBranchNode?.branchId === branch.branchId;
   const nodes = getBranchWorkflowNodes(branch);
-  const tracks = getBranchTracks(branch, nodes);
-  const leadingNodes = nodes.filter(node => !node.trackId && ['implementation-plan', 'spec-generate'].includes(node.id));
-  const trailingNodes = nodes.filter(node => !node.trackId && !['implementation-plan', 'spec-generate'].includes(node.id));
+  const orderedStages = getOrderedFanoutStages(nodes);
   const fallbackStages = [
     { id: 'implementation-plan', label: '实施方案' },
-    { id: 'spec-generate', label: 'SPEC' },
+    { id: 'spec-generate', label: 'SPEC 生成' },
     { id: 'java-impl', label: 'Java 实现' },
     { id: 'testcode-generate', label: '测试代码' },
-    { id: 'app-branch-summary', label: '分支汇总' },
   ];
-  const flatStages = nodes.length ? nodes : fallbackStages;
+  const flatStages = orderedStages.length ? orderedStages : fallbackStages;
   return `
     <div class="fanout-app-lane ${branch.status || 'pending'} ${laneSelected ? 'selected' : ''}" onclick="selectBranchNode('${escAttr(branch.branchId)}', '${escAttr(currentStageId)}', event)">
       <button type="button" class="fanout-app-label" onclick="selectBranchNode('${escAttr(branch.branchId)}', '${escAttr(currentStageId)}', event)">
@@ -1881,16 +1909,29 @@ function renderFanoutWorkflowLane(branch) {
         <small>${statusLabel(branch.status || 'pending')}</small>
       </button>
       <div class="fanout-stage-track">
-        ${tracks.length ? `
-          ${leadingNodes.map(stage => renderFanoutStageChip(branch, stage, true)).join('')}
-          <div class="fanout-track-stack">
-            ${tracks.map(track => renderFanoutTrackLane(branch, track)).join('')}
-          </div>
-          ${trailingNodes.map((stage, index) => renderFanoutStageChip(branch, stage, index < trailingNodes.length - 1)).join('')}
-        ` : flatStages.map((stage, index) => renderFanoutStageChip(branch, stage, index < flatStages.length - 1)).join('')}
+        ${flatStages.map((stage, index) => renderFanoutStageChip(branch, stage, index < flatStages.length - 1)).join('')}
       </div>
     </div>
   `;
+}
+
+function getOrderedFanoutStages(nodes) {
+  const order = [
+    'implementation-plan',
+    'spec-generate',
+    'java-impl',
+    'frontend-impl',
+    'backend-test',
+    'frontend-test',
+    'e2e-verify',
+    'documentation-impl',
+    'documentation-test',
+  ];
+  const byId = new Map((nodes || []).map(node => [node.id, {
+    ...node,
+    label: stageName(node.id, node.label || node.id),
+  }]));
+  return order.map(id => byId.get(id)).filter(Boolean);
 }
 
 function renderFanoutStageChip(branch, stage, hasNext) {
@@ -1912,7 +1953,7 @@ function renderFanoutTrackLane(branch, track) {
     <div class="fanout-track-lane ${track.status || 'pending'}">
       <div class="fanout-track-label">
         <span class="branch-status-dot ${track.status || 'pending'}"></span>
-        <strong>${esc(track.label)}</strong>
+        <strong>${esc(TRACK_LABELS[track.kind] || track.label)}</strong>
       </div>
       <div class="fanout-track-nodes">
         ${track.nodes.map((node, index) => renderFanoutStageChip(branch, { ...node, trackId: track.trackId }, index < track.nodes.length - 1)).join('')}
@@ -1921,58 +1962,8 @@ function renderFanoutTrackLane(branch, track) {
   `;
 }
 
-function renderPlannerSnapshotDetails(branches) {
-  const plan = state.pipeline?.workflowInstance?.executionPlan;
-  const validation = state.pipeline?.workflowInstance?.plannerValidation || plan?.validation;
-  if (!plan && !validation) return '';
-  const invalid = validation && validation.valid === false;
-  return `
-    <div class="planner-snapshot">
-      <div class="planner-snapshot-head">
-        <strong>Planner Snapshot</strong>
-        <span>${esc(plan?.plannerVersion || 'unknown')} · ${validation?.valid === false ? 'invalid' : 'valid'}</span>
-      </div>
-      ${plan?.sourceArtifacts?.length ? `
-        <div class="planner-source-row">
-          ${plan.sourceArtifacts.map(artifact => `<button type="button" onclick="openBranchArtifact('${escAttr(artifact)}', event)">${esc(artifact.replace(/^artifacts\//, ''))}</button>`).join('')}
-        </div>
-      ` : ''}
-      ${invalid ? `
-        <div class="planner-validation-errors">
-          ${(validation.issues || []).map(issue => `<div>${esc(issue.code)}: ${esc(issue.message)}</div>`).join('')}
-        </div>
-      ` : ''}
-      <div class="planner-evidence-grid">
-        ${branches.map(branch => renderBranchPlannerEvidence(branch)).join('')}
-      </div>
-    </div>
-  `;
-}
-
-function renderBranchPlannerEvidence(branch) {
-  const plan = branch.plan || state.pipeline?.workflowInstance?.executionPlan?.branches?.find(item => item.branchId === branch.branchId);
-  if (!plan) return '';
-  const capability = plan.capability || {};
-  const flags = [
-    capability.backend ? 'backend' : '',
-    capability.frontend ? 'frontend' : '',
-    capability.contract ? 'contract' : '',
-    capability.documentationOnly ? 'documentation-only' : '',
-    capability.mixedModule ? 'mixed' : '',
-  ].filter(Boolean);
-  const omitted = plan.omittedTracks || [];
-  return `
-    <div class="planner-evidence-card">
-      <strong>${esc(plan.projectName || branch.projectName || branch.branchId)}</strong>
-      <span>${esc(flags.join(' · ') || 'unknown')} · ${esc(capability.confidence || 'unknown')}</span>
-      ${(capability.fallbackReasons || []).map(reason => `<small>${esc(reason)}</small>`).join('')}
-      ${omitted.length ? `<small>omitted: ${esc(omitted.map(item => item.trackKind).join(', '))}</small>` : ''}
-    </div>
-  `;
-}
-
 function getBranchStageFallbackStatus(branch, stageId) {
-  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-branch-summary'];
+  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate'];
   const stageIndex = sequence.indexOf(stageId);
   const currentIndex = sequence.indexOf(branch.currentNodeId || '');
   if (branch.status === 'completed') return 'completed';
@@ -2001,16 +1992,6 @@ function renderRequirementBranchChip(branch, stageId) {
       <span>${esc(branch.projectName || branch.branchId)}</span>
       <small>${statusLabel(status)}</small>
     </button>
-  `;
-}
-
-function renderRequirementDecisionGroup(label, projects, kind) {
-  const items = Array.isArray(projects) ? projects : [];
-  return `
-    <div class="requirement-decision-group ${kind}">
-      <span>${esc(label)} · ${items.length}</span>
-      <strong>${items.length ? items.map(project => esc(getDecisionProjectName(project))).join(', ') : 'none'}</strong>
-    </div>
   `;
 }
 
@@ -2224,7 +2205,7 @@ function renderNodeStatusCard(node, clickable = true) {
           <span class="node-status-name">${esc(stageName(node.id, node.name))}</span>
           <span class="status-badge ${node.status || 'pending'}">${statusLabel(node.status || 'pending')}</span>
         </div>
-        <div class="node-status-desc">${esc(nodeSubtaskLabel(node.id))}</div>
+        <div class="node-status-desc">${esc(nodeSubtaskLabel(node.id, summary))}</div>
         <div class="node-status-meta">
           ${summary.model ? `<span>模型：${esc(summary.model)}</span>` : ''}
           <span>Agent：${summary.agentCount}</span>
@@ -2260,8 +2241,11 @@ function renderSelectedNodeEvents(events) {
 }
 
 function appendEventToSelectedTrace(event) {
-  const effectiveSelectedNodeId = state.selectedNodeId === 'mrd-clarify' ? 'mrd-render' : state.selectedNodeId;
-  if (!effectiveSelectedNodeId || event.nodeId !== effectiveSelectedNodeId) return false;
+  const effectiveSelectedNodeId = getActiveTraceNodeId();
+  const eventNodeId = event.nodeId || event.data?.nodeId || event.data?.stageId;
+  if (!effectiveSelectedNodeId || eventNodeId !== effectiveSelectedNodeId) return false;
+  const selectedProject = state.selectedBranchNode?.stageId === effectiveSelectedNodeId ? state.selectedBranchNode.projectName : '';
+  if (!eventBelongsToSelectedProject(event, selectedProject)) return true;
   if (!isVisibleTraceEvent(event)) return true;
   const container = document.getElementById('selected-node-events');
   if (!container) return false;
@@ -2270,6 +2254,20 @@ function appendEventToSelectedTrace(event) {
   container.innerHTML = renderSelectedNodeEvents(summary.events);
   const stream = container.closest('.selected-node-stream');
   if (stream) stream.scrollTop = stream.scrollHeight;
+  return true;
+}
+
+function refreshSelectedTraceEvents() {
+  const container = document.getElementById('selected-node-events');
+  if (!container) return false;
+  const scrollParent = container.closest('.selected-node-stream');
+  const nearBottom = !scrollParent || scrollParent.scrollHeight - scrollParent.scrollTop - scrollParent.clientHeight < 80;
+  const selected = getSelectedNode();
+  if (!selected) return false;
+  const node = getActiveTraceNode(selected);
+  const summary = summarizeNode(node);
+  container.innerHTML = renderSelectedNodeEvents(summary.events);
+  if (scrollParent && nearBottom) scrollParent.scrollTop = scrollParent.scrollHeight;
   return true;
 }
 
@@ -2381,20 +2379,84 @@ function renderDeferredToolResults() {
 }
 
 function getSelectedNodeEvents() {
-  const nodeId = state.selectedNodeId;
-  const effectiveNodeId = nodeId === 'mrd-clarify' ? 'mrd-render' : nodeId;
-  return (state.events || []).filter(event => event.nodeId === effectiveNodeId || event.data?.nodeId === effectiveNodeId || event.data?.stageId === effectiveNodeId);
+  const effectiveNodeId = getActiveTraceNodeId();
+  const selectedProject = state.selectedBranchNode?.stageId === effectiveNodeId ? state.selectedBranchNode.projectName : '';
+  return (state.events || [])
+    .filter(event => event.nodeId === effectiveNodeId || event.data?.nodeId === effectiveNodeId || event.data?.stageId === effectiveNodeId)
+    .filter(event => eventBelongsToSelectedProject(event, selectedProject));
+}
+
+function eventBelongsToSelectedProject(event, projectName) {
+  if (!projectName) return true;
+  const d = event.data || {};
+  if (d.projectName) return d.projectName === projectName;
+  if (event.agentRunId) {
+    const agent = (state.agents || []).find(item => item.agentRunId === event.agentRunId);
+    if (agent?.projectName) return agent.projectName === projectName;
+  }
+  const input = d.input || {};
+  const candidatePaths = [
+    d.artifactPath,
+    input.file_path,
+    input.path,
+  ].filter(Boolean).map(value => String(value).replace(/\\/g, '/'));
+  if (candidatePaths.length) {
+    return candidatePaths.some(path => pathBelongsToProject(path, projectName));
+  }
+  return ['pipeline_node_start', 'pipeline_node_end', 'model_selected', 'model_switched', 'context_compacted'].includes(event.type);
+}
+
+function pathBelongsToProject(path, projectName) {
+  const normalized = String(path || '').replace(/\\/g, '/');
+  const project = String(projectName || '').replace(/^project\//, '');
+  return normalized === project ||
+    normalized.startsWith(`${project}/`) ||
+    normalized.includes(`/artifacts/${project}/`) ||
+    normalized.includes(`artifacts/${project}/`) ||
+    normalized.includes(`/project/${project}/`) ||
+    normalized.includes(`/workspace/project/${project}/`) ||
+    normalized.includes(`/${project}/`);
+}
+
+function getActiveTraceNodeId() {
+  const selectedStageId = state.selectedBranchNode?.stageId || state.selectedNodeId;
+  return selectedStageId === 'mrd-clarify' ? 'mrd-render' : selectedStageId;
+}
+
+function getActiveTraceNode(fallbackNode) {
+  const branchSelection = state.selectedBranchNode;
+  if (branchSelection) {
+    const branch = findSessionBranch(branchSelection.branchId);
+    const branchNode = getBranchWorkflowNodes(branch || {}).find(node => node.id === branchSelection.stageId);
+    const runNode = getRunNodeById(branchSelection.stageId);
+    return {
+      id: branchSelection.stageId,
+      name: branchNode?.label || runNode?.name || stageName(branchSelection.stageId, branchSelection.stageId),
+      status: branchNode?.status || runNode?.status || 'pending',
+      error: branchNode?.error || runNode?.error,
+      startedAt: runNode?.startedAt,
+      completedAt: runNode?.completedAt,
+      outputArtifacts: branchNode?.outputArtifacts || runNode?.outputArtifacts,
+    };
+  }
+  return fallbackNode;
 }
 
 function summarizeNode(node) {
   const effectiveNodeId = node.id === 'mrd-clarify' ? 'mrd-render' : node.id;
-  const nodeEvents = (state.events || []).filter(event => event.nodeId === effectiveNodeId || event.data?.nodeId === effectiveNodeId || event.data?.stageId === effectiveNodeId);
+  const selectedProject = state.selectedBranchNode?.stageId === effectiveNodeId ? state.selectedBranchNode.projectName : '';
+  const nodeEvents = (state.events || [])
+    .filter(event => event.nodeId === effectiveNodeId || event.data?.nodeId === effectiveNodeId || event.data?.stageId === effectiveNodeId)
+    .filter(event => eventBelongsToSelectedProject(event, selectedProject));
   const runNode = effectiveNodeId === node.id ? node : (state.pipeline?.nodes || []).find(item => item.id === effectiveNodeId) || node;
   const attemptStart = runNode.startedAt || [...nodeEvents].reverse().find(event => event.type === 'pipeline_node_start')?.timestamp || 0;
   const events = attemptStart
     ? nodeEvents.filter(event => (event.timestamp || 0) >= attemptStart)
     : nodeEvents;
-  const agents = (state.agents || []).filter(agent => agent.nodeId === effectiveNodeId);
+  const agents = (state.agents || []).filter(agent =>
+    agent.nodeId === effectiveNodeId &&
+    (!selectedProject || agent.projectName === selectedProject)
+  );
   const modelEvent = [...events].reverse().find(event => event.type === 'model_selected' || event.type === 'model_switched');
   const startedAt = runNode.startedAt || events.find(event => event.type === 'pipeline_node_start')?.timestamp;
   const completedAt = runNode.completedAt || [...events].reverse().find(event => event.type === 'pipeline_node_end')?.timestamp;
@@ -2637,6 +2699,7 @@ async function restorePendingConfirmationIfNeeded() {
     artifactPath: data.artifactPath,
     confirmationKind: data.confirmationKind,
     clarificationOptions: data.clarificationOptions,
+    structuredPayload: data.structuredPayload,
   });
 }
 
@@ -2738,7 +2801,7 @@ function showConfirmation(d) {
     feedback.placeholder = '可选：填写需要调整的开发任务或测试任务...';
   } else if (d.confirmationKind === 'implementation-plan') {
     contentEl.innerHTML = `<pre class="confirm-markdown-preview">${esc(content.slice(0, 9000))}</pre>`;
-    feedback.placeholder = '可选：填写需要调整的 PRD 口径、项目技术方案、风险或边界...';
+    feedback.placeholder = '可选：填写需要调整的技术方案口径、风险或边界...';
   } else if (d.confirmationKind === 'plan') {
     contentEl.innerHTML = `<pre class="confirm-markdown-preview plan-task-preview">${esc(content.slice(0, 9000))}</pre>`;
     feedback.placeholder = '可选：填写需要调整的执行任务、顺序、范围或风险控制点...';
@@ -3392,7 +3455,7 @@ function normalizeArtifactPaths(paths) {
 
 function sortStageArtifacts(nodeId, paths) {
   const priority = {
-    'implementation-plan': ['prd.md', 'tech-design.md', 'implementation-plan-manifest.json'],
+    'implementation-plan': ['proposal.md', 'tech-design.md', 'implementation-plan-manifest.json'],
     'spec-generate': ['openspec-task.md', 'openspec-test-task.md', 'spec-manifest.json'],
     'java-impl': ['changed-files/', 'changed-files.json', 'code-preview-manifest.json', 'code-review.md', 'review-findings.json'],
     'backend-impl': ['changed-files/', 'changed-files.json', 'code-preview-manifest.json', 'code-review.md', 'review-findings.json'],
@@ -3400,7 +3463,6 @@ function sortStageArtifacts(nodeId, paths) {
     'testcode-generate': ['changed-test-files/', 'test-file-list.md', 'testcode-generation-report.md', 'test-code-preview-manifest.json', 'test-report.md', 'surefire-summary.json', 'coverage-summary.json', 'failure-classification.json', 'autofix-history.md'],
     'backend-test': ['test-report.md', 'surefire-summary.json', 'coverage-summary.json', 'failure-classification.json'],
     'frontend-test': ['frontend-test-report.md', 'test-report.md', 'coverage-summary.json'],
-    'api-contract-check': ['api-contract-results.json', 'contract'],
     'e2e-verify': ['e2e-summary.json', 'screenshots/', 'trace', 'startup-manifest.json'],
     'documentation-impl': ['documentation-implementation.md'],
     'documentation-test': ['documentation-test-report.md'],
@@ -3611,14 +3673,24 @@ function renderModelSwitchHistory(history) {
   </div>`;
 }
 
-function nodeSubtaskLabel(nodeId) {
+function nodeSubtaskLabel(nodeId, summary = null) {
+  const activeAgent = summary?.agents
+    ?.filter(agent => ['running', 'waiting_tool', 'waking', 'compacting'].includes(agent.status))
+    ?.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+  const task = activeAgent?.taskDescription || '';
+  if (nodeId === 'java-impl' && /评审|审查|review/i.test(task)) {
+    return '后端代码审查中，完成后才会进入后端测试';
+  }
+  if (nodeId === 'java-impl' && /写|实现|code/i.test(task)) {
+    return '后端代码实现中，编译通过后进入代码审查';
+  }
   return {
     'upload-init': '上传文件、初始化运行目录和项目空间',
     'mrd-clarify': '确认需求清单、应用归属和实现边界',
     'mrd-render': '拆解需求、确认功能归属和实施面向',
-    'implementation-plan': '生成 PRD 验收口径和项目技术方案',
+    'implementation-plan': '生成项目技术方案和验收口径',
     'spec-generate': '并发生成开发 OpenSpec 任务清单和测试任务清单',
-    'java-impl': '读取项目、写代码、编译修复',
+    'java-impl': '后端实现、编译验证和代码审查',
     'testcode-generate': '生成单元测试代码并真实执行 Maven 单测',
     'archive': '汇总产物并生成归档报告',
   }[nodeId] || '阶段子任务';
@@ -3906,10 +3978,14 @@ function handleWSMessage(msg) {
     if (msg.event.type === 'artifact_written' && state.selectedNodeId) {
       addLiveArtifactToPipelineIndex(msg.nodeId, msg.event.artifactPath);
       loadFileTree('artifacts');
+      scheduleCurrentRunRefresh(350, { renderTrace: false });
     }
     const appended = appendEventToSelectedTrace(state.events[state.events.length - 1]);
     if (!appended && msg.nodeId === state.selectedNodeId && msg.event.type !== 'text') {
       renderExecutionTrace();
+    }
+    if (['branch_transition', 'join_state_updated', 'fanout_decision'].includes(msg.event.type)) {
+      scheduleCurrentRunRefresh(250);
     }
   }
 
@@ -3917,6 +3993,15 @@ function handleWSMessage(msg) {
     currentConfirmNode = msg.nodeId;
     showConfirmation(msg);
   }
+}
+
+function scheduleCurrentRunRefresh(delay = 300, options = {}) {
+  if (!state.runId) return;
+  if (state.refreshTimer) clearTimeout(state.refreshTimer);
+  state.refreshTimer = setTimeout(() => {
+    state.refreshTimer = null;
+    refreshCurrentRunView(options);
+  }, delay);
 }
 
 function addLiveArtifactToPipelineIndex(nodeId, artifactPath) {
@@ -3932,6 +4017,36 @@ function addLiveArtifactToPipelineIndex(nodeId, artifactPath) {
     const outputArtifacts = node.outputArtifacts || node.output_artifacts || [];
     if (!outputArtifacts.includes(normalized)) {
       node.outputArtifacts = [...outputArtifacts, normalized];
+    }
+  }
+  addLiveArtifactToBranchIndex(nodeId, normalized);
+}
+
+function addLiveArtifactToBranchIndex(nodeId, artifactPath) {
+  const branches = state.pipeline?.workflowInstance?.branches || [];
+  const normalized = normalizeArtifactPaths([artifactPath])[0];
+  if (!normalized) return;
+  for (const branch of branches) {
+    const projectTokens = [branch.projectName, branch.projectRoot, branch.branchId]
+      .filter(Boolean)
+      .map(token => String(token).replace(/^project\//, ''));
+    const belongsToBranch = projectTokens.some(token =>
+      normalized === token ||
+      normalized.startsWith(`${token}/`) ||
+      normalized.includes(`/${token}/`)
+    );
+    if (!belongsToBranch) continue;
+    branch.artifactIndex = branch.artifactIndex || {};
+    const existing = branch.artifactIndex[nodeId] || [];
+    if (!existing.includes(normalized)) {
+      branch.artifactIndex[nodeId] = [...existing, normalized];
+    }
+    const branchNode = (branch.nodes || []).find(item => item.id === nodeId);
+    if (branchNode) {
+      const outputArtifacts = branchNode.outputArtifacts || [];
+      if (!outputArtifacts.includes(normalized)) {
+        branchNode.outputArtifacts = [...outputArtifacts, normalized];
+      }
     }
   }
 }
@@ -3952,7 +4067,7 @@ async function pollEvents() {
       }
     }
     if (data.events?.length) {
-      renderExecutionTrace();
+      refreshSelectedTraceEvents();
       await restorePendingConfirmationIfNeeded();
     }
   } catch(e) {}

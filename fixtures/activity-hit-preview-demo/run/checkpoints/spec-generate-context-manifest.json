@@ -1,0 +1,43 @@
+{
+  "nodeId": "spec-generate",
+  "outputArtifacts": [
+    {
+      "path": "artifacts/marketing/openspec-test-task.md",
+      "summary": "marketing 测试任务清单 Phase 1: 测试结构与依赖梳理 [ ] 在 src/test/java/com/ump/marketing/application/service/RuntimePreviewServiceTest.java、src/test/java/com/ump/marketing/web/controller/RuntimePreviewControllerTest.java、src/test/java/com/ump/marketing/integration/RuntimePreviewIntegrationTest.java 建立测试类骨架，对齐被测 RuntimePreviewService、RuntimePreviewController 与 POST /api/runtimepreview/query 契约。 [ ] 复用 src/test/java/com/ump/marketing/integration/BaseIntegrationTest.java 的 Spring Boot + H2 上下文，为 RuntimePreviewInt...",
+      "size": 6821
+    },
+    {
+      "path": "artifacts/marketing-admin/openspec-task.md",
+      "summary": "marketingadmin 开发任务清单 Phase 1: 代码结构与现状梳理 [ ] 对照 src/main/java/com/ump/marketing/web/controller/ActivityController.java、src/main/java/com/ump/marketing/web/controller/ProductController.java、src/main/java/com/ump/marketing/api/dto/BaseRequest.java 与 src/main/java/com/ump/marketing/web/controller/GlobalExceptionHandler.java，确定 PreviewController.java、PreviewQueryRequest.java 和 RpcResult<PreviewResponseDTO 的接口签名、@Valid 校验方式与异常返回口径。 [ ] 对照 src/main/java/com/ump/marketing/application/service/ProductSer...",
+      "size": 7517
+    },
+    {
+      "path": "artifacts/marketing-admin/openspec-test-task.md",
+      "summary": "marketingadmin 测试任务清单 Phase 1: 测试结构与依赖梳理 [ ] 对齐 pom.xml 现有 springbootstartertest、junitjupiter、mockitojunitjupiter 与 Surefire /Test.java 规则，确认 PreviewControllerTest、PreviewServiceTest、ActivityPreviewIntegrationTest、MarketingRuntimePreviewClientTest 可直接纳入现有测试编排；仅在 MarketingRuntimePreviewClientTest 无法完成 HTTP 桩验证时再补最小测试依赖。 [ ] 在 src/test/resources/application.yml 或 src/main/resources/applicationtest.yml 为 PreviewRuntimeProperties 增加 preview.runtime.baseurl、preview.runtime.connecttimeoutms、preview.ru...",
+      "size": 8178
+    },
+    {
+      "path": "artifacts/marketing/openspec-task.md",
+      "summary": "marketing 开发任务清单 Phase 1: 代码结构与现状梳理 [ ] 新增 src/main/java/com/ump/marketing/web/controller/RuntimePreviewController.java、src/main/java/com/ump/marketing/application/service/RuntimePreviewService.java、src/main/java/com/ump/marketing/api/dto/RuntimePreviewRequest.java、src/main/java/com/ump/marketing/api/dto/RuntimePreviewResponse.java、src/main/java/com/ump/marketing/api/dto/RuntimePreviewHitDTO.java 文件骨架，并保持包路径分别落在 web/controller、application/service、api/dto。 [ ] 修改 src/main/java/com/ump/marketing/a...",
+      "size": 7501
+    }
+  ],
+  "importantDecisions": [
+    "# Spec 确认"
+  ],
+  "riskNotes": [],
+  "nextNodeInputs": [
+    "artifacts/mrd-clarified.md",
+    "artifacts/requirement-breakdown.md",
+    "artifacts/mrd-clarify-questions.md",
+    "artifacts/requirement-ownership.json",
+    "artifacts/fanout-decision.json",
+    "artifacts/marketing-admin/tech-design.md",
+    "artifacts/marketing/tech-design.md",
+    "artifacts/marketing/openspec-test-task.md",
+    "artifacts/marketing-admin/openspec-task.md",
+    "artifacts/marketing-admin/openspec-test-task.md",
+    "artifacts/marketing/openspec-task.md",
+    "artifacts/project-manifest.json"
+  ]
+}

@@ -93,6 +93,7 @@ function toExecutionNodeState(
     childAgentIds: graphNode?.childAgentIds,
     error: graphNode?.error,
     failureCount: graphNode?.failureCount ?? 0,
+    resourceWaitReason: graphNode?.resourceWaitReason,
   };
 }
 

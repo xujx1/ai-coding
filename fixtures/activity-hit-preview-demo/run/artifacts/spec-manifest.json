@@ -1,0 +1,34 @@
+{
+  "nodeId": "spec-generate",
+  "implementationPlanManifest": "artifacts/implementation-plan-manifest.json",
+  "projects": [
+    {
+      "project": "marketing",
+      "devSpec": "artifacts/marketing/openspec-task.md",
+      "testSpec": "artifacts/marketing/openspec-test-task.md",
+      "openSpecChange": {
+        "changeId": "run-pdrby_ai59-marketing",
+        "proposal": "artifacts/marketing/openspec/changes/run-pdrby_ai59-marketing/proposal.md",
+        "design": "artifacts/marketing/openspec/changes/run-pdrby_ai59-marketing/design.md",
+        "tasks": "artifacts/marketing/openspec/changes/run-pdrby_ai59-marketing/tasks.md",
+        "spec": "artifacts/marketing/openspec/changes/run-pdrby_ai59-marketing/specs/marketing/spec.md"
+      },
+      "devSummary": "marketing 开发任务清单 Phase 1: 代码结构与现状梳理 [ ] 新增 src/main/java/com/ump/marketing/web/controller/RuntimePreviewController.java、src/main/java/com/ump/marketing/application/service/RuntimePreviewService.java、src/main/java/com/ump/marketing/api/dto/RuntimePreviewRequest.java、src/main/java/com/ump/marketing/api/dto/RuntimePreview...",
+      "testSummary": "marketing 测试任务清单 Phase 1: 测试结构与依赖梳理 [ ] 在 src/test/java/com/ump/marketing/application/service/RuntimePreviewServiceTest.java、src/test/java/com/ump/marketing/web/controller/RuntimePreviewControllerTest.java、src/test/java/com/ump/marketing/integration/RuntimePreviewIntegrationTest.java 建立测试类骨架，对齐被测 RuntimePreviewService、..."
+    },
+    {
+      "project": "marketing-admin",
+      "devSpec": "artifacts/marketing-admin/openspec-task.md",
+      "testSpec": "artifacts/marketing-admin/openspec-test-task.md",
+      "openSpecChange": {
+        "changeId": "run-pdrby_ai59-marketing-admin",
+        "proposal": "artifacts/marketing-admin/openspec/changes/run-pdrby_ai59-marketing-admin/proposal.md",
+        "design": "artifacts/marketing-admin/openspec/changes/run-pdrby_ai59-marketing-admin/design.md",
+        "tasks": "artifacts/marketing-admin/openspec/changes/run-pdrby_ai59-marketing-admin/tasks.md",
+        "spec": "artifacts/marketing-admin/openspec/changes/run-pdrby_ai59-marketing-admin/specs/marketing-admin/spec.md"
+      },
+      "devSummary": "marketingadmin 开发任务清单 Phase 1: 代码结构与现状梳理 [ ] 对照 src/main/java/com/ump/marketing/web/controller/ActivityController.java、src/main/java/com/ump/marketing/web/controller/ProductController.java、src/main/java/com/ump/marketing/api/dto/BaseRequest.java 与 src/main/java/com/ump/marketing/web/controller/GlobalExceptionHandler.ja...",
+      "testSummary": "marketingadmin 测试任务清单 Phase 1: 测试结构与依赖梳理 [ ] 对齐 pom.xml 现有 springbootstartertest、junitjupiter、mockitojunitjupiter 与 Surefire /Test.java 规则，确认 PreviewControllerTest、PreviewServiceTest、ActivityPreviewIntegrationTest、MarketingRuntimePreviewClientTest 可直接纳入现有测试编排；仅在 MarketingRuntimePreviewClientTest 无法完成 HTTP 桩验证时再补最小测试依赖。..."
+    }
+  ]
+}

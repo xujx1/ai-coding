@@ -1,0 +1,19 @@
+{
+  "nodeId": "archive",
+  "projects": [
+    {
+      "project": "marketing",
+      "report": "artifacts/marketing/archive-report.md"
+    },
+    {
+      "project": "marketing-admin",
+      "report": "artifacts/marketing-admin/archive-report.md"
+    }
+  ],
+  "crossAppTest": {
+    "testResults": "artifacts/cross-app/test-results.json",
+    "deliveryMetadata": "artifacts/cross-app/delivery-metadata.json"
+  },
+  "download": "artifacts/downloads/PDRbY_AI59-projects.zip",
+  "generatedAt": "2026-06-30T08:45:52.331Z"
+}

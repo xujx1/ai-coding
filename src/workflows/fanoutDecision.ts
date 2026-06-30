@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ProjectManifest } from '../pipeline/node-agents/upload-init.js';
 import { RunPaths } from '../runtime/paths.js';
+import type { RequirementOwnershipArtifact } from './requirementOwnership.js';
 
 export interface FanoutProjectCandidate {
   name: string;
@@ -35,6 +36,7 @@ export const FANOUT_DECISION_ARTIFACT_PATH = `artifacts/${FANOUT_DECISION_ARTIFA
 export function deriveFanoutDecision(args: {
   manifest: ProjectManifest;
   clarifiedMrd?: string;
+  requirementOwnership?: RequirementOwnershipArtifact;
   generatedAt?: string;
 }): FanoutDecision {
   const candidates = args.manifest.projects.map(project => ({
@@ -42,7 +44,19 @@ export function deriveFanoutDecision(args: {
     root: project.root,
   }));
   const ownershipSection = extractProjectOwnershipSection(args.clarifiedMrd ?? '');
-  const evidence = ownershipSection ? [ownershipSection.slice(0, 4000)] : [];
+  const structuredEvidence = args.requirementOwnership
+    ? [
+      JSON.stringify({
+        projectOwnership: args.requirementOwnership.projectOwnership,
+        implementationSurfaces: args.requirementOwnership.implementationSurfaces,
+      }).slice(0, 4000),
+    ]
+    : [];
+  const evidence = structuredEvidence.length
+    ? structuredEvidence
+    : ownershipSection
+      ? [ownershipSection.slice(0, 4000)]
+      : [];
 
   if (!candidates.length) {
     return {
@@ -58,8 +72,12 @@ export function deriveFanoutDecision(args: {
     };
   }
 
-  const referencedNames = findReferencedProjectNames(ownershipSection || args.clarifiedMrd || '', candidates);
-  const unresolvedProjects = findUnresolvedProjectNames(ownershipSection, candidates);
+  const referencedNames = args.requirementOwnership
+    ? findStructuredReferencedProjectNames(args.requirementOwnership, candidates)
+    : findReferencedProjectNames(ownershipSection || args.clarifiedMrd || '', candidates);
+  const unresolvedProjects = args.requirementOwnership
+    ? findStructuredUnresolvedProjectNames(args.requirementOwnership, candidates)
+    : findUnresolvedProjectNames(ownershipSection, candidates);
 
   if (!referencedNames.size) {
     return {
@@ -73,7 +91,9 @@ export function deriveFanoutDecision(args: {
       unresolvedProjects,
       confidence: 'low',
       evidence,
-      fallbackReason: 'MRD ownership did not confidently match uploaded project names.',
+      fallbackReason: args.requirementOwnership
+        ? 'Structured requirement ownership did not confidently match uploaded project names.'
+        : 'MRD ownership did not confidently match uploaded project names.',
       generatedAt: args.generatedAt ?? new Date().toISOString(),
     };
   }
@@ -82,13 +102,17 @@ export function deriveFanoutDecision(args: {
     .filter(project => referencedNames.has(normalizeProjectName(project.name)))
     .map(project => ({
       ...project,
-      reason: 'Included because MRD ownership references this uploaded project.',
+        reason: args.requirementOwnership
+          ? 'Included because structured requirement ownership references this uploaded project.'
+          : 'Included because MRD ownership references this uploaded project.',
     }));
   const excludedProjects = candidates
     .filter(project => !referencedNames.has(normalizeProjectName(project.name)))
     .map(project => ({
       ...project,
-      reason: 'Excluded because MRD ownership does not reference this uploaded project.',
+        reason: args.requirementOwnership
+          ? 'Excluded because structured requirement ownership does not reference this uploaded project.'
+          : 'Excluded because MRD ownership does not reference this uploaded project.',
     }));
 
   return {
@@ -101,6 +125,50 @@ export function deriveFanoutDecision(args: {
     evidence,
     generatedAt: args.generatedAt ?? new Date().toISOString(),
   };
+}
+
+function findStructuredReferencedProjectNames(
+  ownership: RequirementOwnershipArtifact,
+  candidates: FanoutProjectCandidate[]
+): Set<string> {
+  const referenced = new Set<string>();
+  const structuredNames = [
+    ...ownership.projectOwnership.map(item => item.projectName),
+    ...ownership.implementationSurfaces
+      .filter(surface => surface.frontend || surface.backend || surface.contract || surface.e2e || surface.documentation)
+      .map(surface => surface.projectName),
+  ];
+  for (const candidate of candidates) {
+    const normalizedName = normalizeProjectName(candidate.name);
+    const normalizedRootName = normalizeProjectName(path.basename(candidate.root));
+    if (structuredNames.some(name => {
+      const normalized = normalizeProjectName(name);
+      return normalized === normalizedName || normalized === normalizedRootName;
+    })) {
+      referenced.add(normalizedName);
+    }
+  }
+  return referenced;
+}
+
+function findStructuredUnresolvedProjectNames(
+  ownership: RequirementOwnershipArtifact,
+  candidates: FanoutProjectCandidate[]
+): FanoutUnresolvedProject[] {
+  const candidateNames = new Set(candidates.flatMap(project => [
+    normalizeProjectName(project.name),
+    normalizeProjectName(path.basename(project.root)),
+  ]));
+  const names = new Set([
+    ...ownership.projectOwnership.map(item => item.projectName),
+    ...ownership.implementationSurfaces.map(item => item.projectName),
+  ].map(normalizeProjectName).filter(Boolean));
+  return [...names]
+    .filter(name => name !== 'unresolved' && !candidateNames.has(name))
+    .map(name => ({
+      name,
+      reason: 'Structured requirement ownership references this project but it was not uploaded.',
+    }));
 }
 
 export function writeFanoutDecisionArtifact(args: {

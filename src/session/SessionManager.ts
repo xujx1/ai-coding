@@ -258,6 +258,7 @@ export class SessionManager {
       branchId,
       projectName: branch.projectName,
       fromNodeId: requestedNodeId,
+      planRevisionId: instance.executionPlan?.currentRevisionId,
     }, undefined, requestedNodeId);
     if (previousJoin !== JSON.stringify(instance.joins[0] ?? null)) {
       getEventLog(runId).logEvent('join_state_updated', { join: instance.joins[0] }, undefined, 'app-join');
@@ -289,6 +290,7 @@ export class SessionManager {
       branchId,
       projectName: branch.projectName,
       currentNodeId: branch.currentNodeId,
+      planRevisionId: instance.executionPlan?.currentRevisionId,
     }, undefined, branch.currentNodeId);
     if (previousJoin !== JSON.stringify(instance.joins[0] ?? null)) {
       getEventLog(runId).logEvent('join_state_updated', { join: instance.joins[0] }, undefined, 'app-join');
@@ -498,7 +500,7 @@ function backfillBranchRuntimeState(branch: SessionWorkflowBranchRef, state: Exe
     }
   }
   if (branch.status === 'completed') {
-    branch.currentNodeId = 'app-branch-summary';
+    branch.currentNodeId = branch.nodes?.at(-1)?.id ?? branch.currentNodeId;
   }
 }
 
@@ -531,17 +533,15 @@ function inferBranchNodeStatus(
 
 function branchNodeIdForStage(nodeId?: string): string | undefined {
   if (!nodeId) return undefined;
-  if (nodeId === 'archive') return 'app-branch-summary';
-  if (nodeId === 'e2e-verify' || nodeId === 'api-contract-check' || nodeId === 'frontend-test') return 'app-integration-test';
-  return ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-integration-test'].includes(nodeId)
+  if (nodeId === 'archive') return undefined;
+  if (nodeId === 'e2e-verify' || nodeId === 'frontend-test') return nodeId;
+  return ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'backend-test', 'frontend-impl'].includes(nodeId)
     ? nodeId
     : undefined;
 }
 
 function stageIdForBranchNode(branchNodeId: string): string | undefined {
-  if (branchNodeId === 'app-branch-summary') return 'archive';
-  if (branchNodeId === 'app-integration-test') return 'app-integration-test';
-  return ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'app-integration-test'].includes(branchNodeId)
+  return ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate', 'backend-test', 'frontend-impl', 'frontend-test', 'e2e-verify'].includes(branchNodeId)
     ? branchNodeId
     : undefined;
 }

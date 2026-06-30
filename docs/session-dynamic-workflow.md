@@ -8,11 +8,11 @@ The reusable workflow template remains immutable. A run captures the template sn
 
 ```text
 upload-init
+  -> mrd-clarify
   -> mrd-render
   -> project-fanout
   -> app-join
-  -> cross-app-code-review
-  -> cross-app-integration-review
+  -> cross-app-test
   -> archive
 ```
 
@@ -78,9 +78,6 @@ implementation-plan
   -> backend: java-impl -> backend-test
   -> frontend: frontend-impl -> frontend-test
   -> e2e: e2e-verify
-  -> contract: api-contract-check
-  -> app-track-join
-  -> app-branch-summary
 ```
 
 Backend-only apps omit frontend and E2E tracks. Frontend-only apps omit backend
@@ -139,7 +136,7 @@ Dynamic workflow execution remains guarded by runtime selection:
 AI_CODING_WORKFLOW_RUNTIME=legacy|langgraph
 ```
 
-`legacy` is still the default. Session workflow instance rendering and fanout decision read models are available in legacy runs, while full branch-local execution remains behind the LangGraph runtime migration.
+`legacy` is still the default. Session workflow instance rendering, fanout decision read models, branch state, track state, cross-app-test, and artifact filtering are available in legacy runs. LangGraph remains the migration path for deeper graph-native execution.
 
 ## Branch Controls
 

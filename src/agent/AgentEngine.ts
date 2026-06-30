@@ -226,6 +226,11 @@ export class AgentEngine {
     let repeatedReadOnlyCount = 0;
     let shouldNudgeStopRepeatedReads = false;
     let lastProgressChecklist = '';
+    let hasSuccessfulImplementationWrite = false;
+    let hasSuccessfulVerification = false;
+    let requestedFinalAfterVerification = false;
+    let readOnlyReviewBatchCount = 0;
+    let requestedFinalAfterReviewReads = false;
 
     for (let turn = 0; turn < maxTurns; turn++) {
       if (this.aborted) {
@@ -421,6 +426,47 @@ export class AgentEngine {
         this.running = false;
         return;
       }
+      if (requestedFinalAfterVerification && hasSuccessfulImplementationWrite && hasSuccessfulVerification) {
+        const message = finalText.trim() || [
+          'Implementation changes were written and the required Maven verification passed.',
+          'The agent attempted additional tool calls after the completion signal, so the node was closed to avoid an unbounded ReAct loop.',
+        ].join(' ');
+        this.updateStatus('completed');
+        this.state.completedAt = Date.now();
+        this.saveState();
+        eventLog.logEvent(
+          'agent_end',
+          { finalText: message.slice(0, 500), turns: this.state.turnCount, reason: 'verification_complete_forced_stop' },
+          this.config.agentRunId
+        );
+        yield { type: 'completed', finalText: message };
+        this.running = false;
+        return;
+      }
+      if (requestedFinalAfterReviewReads && isReviewTask(this.config.taskDescription) && toolUseCount > 0) {
+        const message = [
+          `# ${this.config.projectName || this.config.nodeId} 代码评审`,
+          '',
+          '结果: WARN',
+          '',
+          '评审 Agent 已完成多轮只读上下文收集，但在收尾提示后仍继续请求更多只读工具。',
+          '系统为避免 java-impl 节点无限停留，按有界审查策略结束本次 review。',
+          '',
+          '警告问题数量: 1',
+          '- Review reached the bounded read-only inspection limit before producing a final report. Please inspect the changed-files and code-preview artifacts if stricter review is required.',
+        ].join('\n');
+        this.updateStatus('completed');
+        this.state.completedAt = Date.now();
+        this.saveState();
+        eventLog.logEvent(
+          'agent_end',
+          { finalText: message.slice(0, 500), turns: this.state.turnCount, reason: 'review_read_limit_forced_stop' },
+          this.config.agentRunId
+        );
+        yield { type: 'completed', finalText: message };
+        this.running = false;
+        return;
+      }
 
       // ── Partition and execute tools ───────────────────────────────
       this.updateStatus('waiting_tool');
@@ -428,7 +474,7 @@ export class AgentEngine {
 
       // Partition: read-only tools concurrent, write tools serial
       const { readTools, writeTools } = partitionToolCalls(toolUseBlocks, this.config.registry);
-      const toolResults: Array<{ tool_use_id: string; content: string; isError?: boolean }> = [];
+      const toolResults: Array<{ tool_use_id: string; name: string; content: string; isError?: boolean }> = [];
 
       // Create a deferred permission resolver so canUseTool can wait without yielding
       let pendingPermission: { requestId: string; resolve: (d: PermissionDecision) => void } | null = null;
@@ -489,7 +535,7 @@ export class AgentEngine {
           for (const artifact of result.artifacts ?? []) {
             yield { type: 'artifact_written', ...artifact };
           }
-          toolResults.push({ tool_use_id: block.id, content: result.content, isError: result.isError });
+          toolResults.push({ tool_use_id: block.id, name: block.name, content: result.content, isError: result.isError });
         }
         if (writeTools.length === 0) {
           const signature = JSON.stringify(readResults.map(({ block, result }) => ({
@@ -529,12 +575,13 @@ export class AgentEngine {
         for (const artifact of result.artifacts ?? []) {
           yield { type: 'artifact_written', ...artifact };
         }
-        toolResults.push({ tool_use_id: block.id, content: result.content, isError: result.isError });
+        toolResults.push({ tool_use_id: block.id, name: block.name, content: result.content, isError: result.isError });
       }
       if (writeTools.length > 0) {
         repeatedReadOnlySignature = '';
         repeatedReadOnlyCount = 0;
         shouldNudgeStopRepeatedReads = false;
+        readOnlyReviewBatchCount = 0;
       }
 
       // Add tool results to message history
@@ -546,6 +593,38 @@ export class AgentEngine {
           content: r.content,
         })),
       });
+
+      if (toolResults.some(r => isSuccessfulImplementationWriteTool(r.name, r.isError))) {
+        hasSuccessfulImplementationWrite = true;
+      }
+      if (toolResults.some(r => isSuccessfulTerminalVerificationTool(this.config.nodeId, r.name, r.isError))) {
+        hasSuccessfulVerification = true;
+      }
+      if (hasSuccessfulImplementationWrite && hasSuccessfulVerification && !requestedFinalAfterVerification) {
+        this.messages.push({
+          role: 'user',
+          content: [
+            'Completion signal reached for this node: implementation files were changed and the required Maven verification passed.',
+            'Do not call more tools unless the successful verification result is invalid.',
+            'Return the final concise completion summary now.',
+          ].join('\n'),
+        });
+        requestedFinalAfterVerification = true;
+      }
+      if (isReviewTask(this.config.taskDescription) && writeTools.length === 0) {
+        readOnlyReviewBatchCount++;
+        if (!requestedFinalAfterReviewReads && (readOnlyReviewBatchCount >= 3 || this.state.toolCallCount >= 24)) {
+          this.messages.push({
+            role: 'user',
+            content: [
+              'You have enough read-only context for this code review.',
+              'Stop reading files now and return the final review report.',
+              'The report must include one explicit line: 结果: PASS, 结果: WARN, or 结果: BLOCK.',
+            ].join('\n'),
+          });
+          requestedFinalAfterReviewReads = true;
+        }
+      }
       if (shouldNudgeStopRepeatedReads) {
         this.messages.push({
           role: 'user',
@@ -582,12 +661,27 @@ export class AgentEngine {
   }
 }
 
+function isSuccessfulImplementationWriteTool(toolName: string, isError?: boolean): boolean {
+  return !isError && ['write_file', 'edit_file'].includes(toolName);
+}
+
+function isSuccessfulTerminalVerificationTool(nodeId: string, toolName: string, isError?: boolean): boolean {
+  if (isError) return false;
+  if (nodeId === 'java-impl') return toolName === 'maven_compile';
+  if (nodeId === 'testcode-generate' || nodeId === 'maven-test-runner') return toolName === 'maven_test';
+  return false;
+}
+
+function isReviewTask(taskDescription?: string): boolean {
+  return /review|评审|审查/i.test(taskDescription || '');
+}
+
 function defaultAgentInputArtifacts(nodeId: string, projectName?: string): string[] {
   const project = projectName || '{project}';
   const inputs: Record<string, string[]> = {
     'mrd-render': ['input/*', 'artifacts/project-manifest.json'],
-    'implementation-plan': ['artifacts/mrd-clarified.md', 'artifacts/mrd-clarify-questions.md', 'artifacts/project-manifest.json'],
-    'spec-generate': ['artifacts/prd.md', `artifacts/${project}/tech-design.md`, 'artifacts/implementation-plan-manifest.json'],
+    'implementation-plan': ['artifacts/mrd-clarified.md', 'artifacts/requirement-ownership.json', 'artifacts/project-manifest.json'],
+    'spec-generate': ['artifacts/mrd-clarified.md', 'artifacts/requirement-ownership.json', `artifacts/${project}/tech-design.md`, 'artifacts/implementation-plan-manifest.json'],
     'java-impl': [`artifacts/${project}/openspec-task.md`, `artifacts/${project}/tech-design.md`],
     'java-review': [`artifacts/${project}/changed-files.json`, `artifacts/${project}/code-preview-manifest.json`],
     'testcode-generate': [`artifacts/${project}/openspec-test-task.md`, `artifacts/${project}/code-review.md`],
@@ -600,10 +694,10 @@ function defaultAgentInputArtifacts(nodeId: string, projectName?: string): strin
 function defaultAgentOutputArtifacts(nodeId: string, projectName?: string): string[] {
   const project = projectName || '{project}';
   const outputs: Record<string, string[]> = {
-    'mrd-render': ['artifacts/mrd-clarified.md', 'artifacts/mrd-clarify-questions.md'],
+    'mrd-render': ['artifacts/mrd-clarified.md', 'artifacts/requirement-breakdown.md', 'artifacts/mrd-clarify-questions.md'],
     'implementation-plan': projectName
       ? [`artifacts/${project}/tech-design.md`]
-      : ['artifacts/prd.md', 'artifacts/implementation-plan-manifest.json'],
+      : ['artifacts/implementation-plan-manifest.json'],
     'spec-generate': [`artifacts/${project}/openspec-task.md`, `artifacts/${project}/openspec-test-task.md`],
     'java-impl': [`artifacts/${project}/changed-files.json`, `artifacts/${project}/code-preview-manifest.json`],
     'java-review': [`artifacts/${project}/code-review.md`, `artifacts/${project}/review-findings.json`],

@@ -13,9 +13,9 @@ Implement the current project's production Java changes.
 
 {{mrd_clarified}}
 
-### PRD
+### Source Proposal / MRD
 
-{{prd}}
+{{proposal}}
 
 ### Implementation Plan Manifest
 
@@ -54,3 +54,5 @@ Implement the current project's production Java changes.
 Use read/search tools first, then edit or write production code under this project only. Treat the OpenSpec change `tasks.md` development section as the execution checklist, and keep implementation aligned with `proposal.md`, `design.md`, and `spec.md`. Run `maven_compile` before finishing when the project is Maven based. Final response must summarize changed production files and verification result.
 
 Do not stop after saying what you will do. This node is successful only if production files under `src/main` or `pom.xml` are actually changed and compilation is verified. If you believe no change is needed, prove it with tool reads and compilation; otherwise implement the requested behavior now.
+
+Hard convergence rule: first tool round reads artifacts and locates candidate files; second tool round reads no more than 8 source/config/frontend files; third tool round must edit/write production files. Do not read `artifacts/prd.md`; use the MRD/proposal, generated tech design, OpenSpec `proposal.md`, `design.md`, `spec.md`, and `tasks.md` as the source of truth.

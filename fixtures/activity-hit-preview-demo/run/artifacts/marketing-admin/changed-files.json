@@ -1,0 +1,133 @@
+{
+  "project": "marketing-admin",
+  "generatedAt": "2026-06-30T07:31:22.354Z",
+  "changedFiles": [
+    {
+      "path": "src/main/java/com/ump/marketing/api/dto/PreviewActivityDTO.java",
+      "status": "modified",
+      "size": 751,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewActivityDTO.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewActivityDTO.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/api/dto/PreviewHintDTO.java",
+      "status": "modified",
+      "size": 407,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewHintDTO.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewHintDTO.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/api/dto/PreviewQueryRequest.java",
+      "status": "modified",
+      "size": 874,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewQueryRequest.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewQueryRequest.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/api/dto/PreviewResponseDTO.java",
+      "status": "modified",
+      "size": 991,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewResponseDTO.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewResponseDTO.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/api/dto/PreviewSideResultDTO.java",
+      "status": "modified",
+      "size": 654,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewSideResultDTO.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewSideResultDTO.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/application/service/PreviewService.java",
+      "status": "modified",
+      "size": 17999,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewService.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewService.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/infrastructure/client/dto/RuntimePreviewRequest.java",
+      "status": "modified",
+      "size": 551,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/RuntimePreviewRequest.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/RuntimePreviewRequest.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/infrastructure/client/dto/RuntimePreviewResponse.java",
+      "status": "modified",
+      "size": 683,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/RuntimePreviewResponse.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/RuntimePreviewResponse.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/infrastructure/client/MarketingRuntimePreviewClient.java",
+      "status": "modified",
+      "size": 7719,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/MarketingRuntimePreviewClient.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/MarketingRuntimePreviewClient.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/infrastructure/client/PreviewRuntimeClientException.java",
+      "status": "added",
+      "size": 334,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewRuntimeClientException.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewRuntimeClientException.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/infrastructure/config/PreviewRuntimeConfig.java",
+      "status": "modified",
+      "size": 1039,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewRuntimeConfig.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewRuntimeConfig.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/infrastructure/config/PreviewRuntimeProperties.java",
+      "status": "modified",
+      "size": 446,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewRuntimeProperties.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewRuntimeProperties.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/infrastructure/mapper/PreviewQueryMapper.java",
+      "status": "modified",
+      "size": 832,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewQueryMapper.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewQueryMapper.java"
+    },
+    {
+      "path": "src/main/java/com/ump/marketing/web/controller/PreviewController.java",
+      "status": "modified",
+      "size": 1450,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/PreviewController.java",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewController.java"
+    },
+    {
+      "path": "src/main/resources/application-test.yml",
+      "status": "modified",
+      "size": 740
+    },
+    {
+      "path": "src/main/resources/application.yml",
+      "status": "modified",
+      "size": 690
+    },
+    {
+      "path": "src/main/resources/mapper/PreviewQueryMapper.xml",
+      "status": "modified",
+      "size": 3740
+    },
+    {
+      "path": "src/main/resources/static/app.js",
+      "status": "modified",
+      "size": 42780,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/src__main__resources__static__app.js",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/src__main__resources__static__app.js"
+    },
+    {
+      "path": "src/main/resources/static/styles.css",
+      "status": "modified",
+      "size": 12058,
+      "previewArtifact": "artifacts/marketing-admin/changed-files/src__main__resources__static__styles.css",
+      "absolutePreviewArtifact": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/src__main__resources__static__styles.css"
+    }
+  ]
+}

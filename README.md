@@ -1,57 +1,84 @@
 # AI Coding Pipeline
 
-一个 Web 版 AI Coding 工作台：上传需求文档和 Java/Maven 项目后，系统按固定流水线完成需求拆解、实施方案、Spec 任务清单、Java 实现、测试代码生成、单元测试执行和归档交付。
+一个 Web 版 AI Coding 工作台：上传需求文档和一个或多个项目后，系统会在当前 session 内生成动态工作流，完成需求归属确认、项目分流、应用分支开发、测试验证、跨应用测试和归档交付。
 
-项目内置了一个真实跑通的完整 Demo：营销项目“活动软删除”需求。服务启动后默认自动加载这个 Demo，新用户打开页面就能看到完整执行轨迹、工具调用、产物和最终归档。
+当前默认演示 case 已固化为真实上传并跑通的“活动命中预览”双项目流程：
 
-![完整流程](docs/png/完整的任务流程.png)
+- MRD：`example/activity-hit-preview-mrd.md`
+- 项目：`marketing`、`marketing-admin`
+- 快照：`fixtures/activity-hit-preview-demo/run`
+- 结果：2 个应用分支完成，`marketing-admin` 额外完成前端和 E2E 验证，最终生成归档报告和项目下载包
+
+![动态多应用流程](docs/png/activity-hit-preview-dynamic-workflow.png)
 
 ## 文档导航
 
-- [产品演示流程](docs/product-demo-flow.md)：面向演示和讲解，按截图串起完整产品链路。
-- [架构设计](docs/architecture.md)：说明前端、服务端、流水线、Agent、工具和运行态存储的整体关系。
-- [节点设计](docs/node-design.md)：说明每个固定节点的输入、执行方式、确认门和产物契约。
-- [节点流转设计](docs/node-transition.md)：说明启动、确认、重跑、回退、自动重试和中断的状态流转。
-- [上下文压缩设计](docs/context-compression.md)：说明 Agent 内部压缩和跨节点瘦上下文的边界。
+- [产品演示流程](docs/product-demo-flow.md)：按活动命中预览 case 串起演示讲解和截图。
+- [GitHub 分享稿](docs/activity-hit-preview-demo.md)：面向 README/社区分享的完整 case 说明。
+- [架构设计](docs/architecture.md)：说明 session workflow、动态分支、Agent、工具、事件和运行态存储。
+- [节点设计](docs/node-design.md)：说明顶层节点、应用分支节点、track 节点和产物契约。
+- [节点流转设计](docs/node-transition.md)：说明确认门、fanout、join、分支重跑、跨应用测试和归档状态。
+- [动态工作流读模型](docs/session-dynamic-workflow.md)：说明 `workflowInstance`、fanout decision、execution plan 和 UI 读模型。
+- [上下文压缩设计](docs/context-compression.md)：说明 Agent 长任务上下文压缩机制。
 
 ## 核心能力
 
-- 需求上传：支持上传 MRD/需求文件和项目源码目录。
-- 需求拆解：读取需求与项目结构，生成 `mrd-clarified.md` 和 `mrd-clarify-questions.md`。
-- 人工确认：需求拆解和实施方案支持确认门，用户可确认或反馈重跑。
-- 实施方案：生成 `prd.md`、`implementation-plan-manifest.json` 和项目级 `tech-design.md`。
-- Spec 任务清单：生成项目级 `openspec-task.md` 和 `openspec-test-task.md`。
-- Java 实现与代码审查：同一节点内调用真实工具读写代码、编译、自审并产出变更清单和 review 报告。
-- 测试代码与单元测试：同一节点内生成测试代码、执行 Maven 测试、分类失败并支持自动回退修复。
-- 执行轨迹：中间区域持久化展示 Agent、工具调用、重试、回退、确认门和上下文压缩事件。
-- 产物实时刷新：工具写入产物后，右侧产物区域可看到最新文件。
-- 归档交付：生成项目归档报告和可下载项目包。
+- 多文件输入：支持上传 MRD、背景材料、参考资料和多个项目文件夹。
+- 需求归属确认：先把需求拆成业务范围、应用归属、实施边界和需要确认的问题。
+- 动态项目分流：根据 MRD 和项目 manifest 生成 `fanout-decision.json`，只纳入相关项目。
+- 应用分支执行：每个应用分支拥有独立节点、状态、Agent、产物索引和失败信息。
+- 能力驱动 track：根据项目能力生成 backend、frontend、E2E 或 documentation track。
+- 真实代码修改：实现节点通过工具读写项目文件，保留工具轨迹和变更预览。
+- 测试验证：后端执行 Maven 编译/测试，前端执行构建/静态检查，E2E 由平台 Playwright runner 验证。
+- 跨应用测试：分支全部结束后汇总跨应用交付状态、测试结果和兼容性风险。
+- 实时产物：工具写入文件后右侧产物树即时刷新，并按节点、应用、track 过滤。
+- 归档交付：生成项目级归档报告、跨应用交付元数据和最终项目包。
 
-## 流水线
+## 当前流程
 
-固定流程定义在 `src/pipeline/definition.ts`：
+新 session 保存一个 `workflowInstance`，顶层流程是：
 
-1. `Upload / Init`：初始化运行目录，处理上传需求与项目。
-2. `需求拆解`：拆解需求、识别项目归属、生成澄清问题。
-3. `实施方案`：生成 PRD 和项目级技术方案。
-4. `SPEC生成`：生成开发任务清单和测试任务清单。
-5. `Java Impl`：实现 Java 代码并执行代码审查。
-6. `Test Code Generate`：生成测试代码并执行 Maven 单元测试。
-7. `Archive`：汇总产物、执行指标、工具耗时和 token 消耗。
+```text
+上传初始化
+  -> 需求归属确认
+  -> 需求拆解
+  -> 项目分流
+  -> 应用分支并行执行
+  -> 分支汇合
+  -> 跨应用测试
+  -> 归档
+```
 
-![需求拆解](docs/png/需求拆解.png)
+活动命中预览 case 的真实分支：
 
-![Java 实现轨迹和产出物](docs/png/java实现轨迹和产出物.png)
+```text
+marketing
+  -> 实施方案
+  -> SPEC 生成
+  -> backend: Java 实现 -> Backend Test
+
+marketing-admin
+  -> 实施方案
+  -> SPEC 生成
+  -> backend: Java 实现 -> Backend Test
+  -> frontend: Frontend Implementation -> Frontend Test
+  -> e2e: E2E Verify
+```
+
+![工作流实例](docs/png/activity-hit-preview-workflow-instance.png)
+
+![分支 tracks](docs/png/activity-hit-preview-branch-tracks.png)
 
 ## 内置 Demo
 
 默认启动时会自动克隆真实快照：
 
-- 快照目录：`fixtures/full-flow-demo/run`
-- 页面名称：`完整流程演示 Demo`
-- 示例需求：营销活动软删除
-- 示例项目：Spring Boot + MyBatis + Maven
-- 示例结果：完成需求拆解、PRD、技术方案、Spec、Java 代码修改、测试代码、Maven 测试和归档报告
+- 快照目录：`fixtures/activity-hit-preview-demo/run`
+- 页面名称：`活动命中预览 Demo`
+- 原始 run：`PDRbY_AI59`
+- 示例需求：营销活动命中预览
+- 示例项目：`marketing` + `marketing-admin`
+- 示例结果：需求拆解、分流决策、双应用分支实现、后端测试、前端测试、E2E 验证、跨应用测试和归档报告
 
 如果不希望启动时自动注入 Demo：
 
@@ -59,7 +86,7 @@
 AI_CODING_AUTO_DEMO=0 npm start
 ```
 
-Demo 会被克隆到运行态目录，不会直接修改 `fixtures/full-flow-demo/run`。
+Demo 会被克隆到运行态目录，不会直接修改 `fixtures/activity-hit-preview-demo/run`。
 
 ## 快速开始
 
@@ -68,7 +95,7 @@ Demo 会被克隆到运行态目录，不会直接修改 `fixtures/full-flow-dem
 - Node.js 20+
 - npm
 - Java/JDK，执行 Java 实现和测试节点时使用
-- Maven，执行编译和单元测试时使用
+- Maven，执行编译、单元测试和部分 Spring Boot 启动验证时使用
 
 ### 安装和启动
 
@@ -102,31 +129,25 @@ LLM_BASE_URL=https://your-model-endpoint/v1
 LLM_API_KEY=your-api-key
 JAVA_HOME=/path/to/jdk
 MAVEN_HOME=/path/to/maven-or-mvn
+AI_CODING_WORKFLOW_RUNTIME=legacy
+AI_CODING_E2E_VERIFY=1
 ```
 
 也可以在页面“设置”里配置模型、JDK 路径和 Maven 路径。
 
-![基础配置](docs/png/基础配置.png)
-
-![动态模型切换](docs/png/动态模型切换.png)
-
 ## 使用方式
 
-1. 打开页面，查看自动加载的 `完整流程演示 Demo`。
-2. 点击“新建任务”，上传需求文档和项目源码。
-3. 进入 `Upload / Init` 后查看上传内容。
-4. 等待 `需求拆解` 完成，回答澄清问题并确认。
-5. 查看并确认 `实施方案`。
-6. 查看 `SPEC生成` 的开发/测试任务清单。
-7. 观察 `Java Impl` 和 `Test Code Generate` 的工具调用轨迹。
-8. 查看测试报告和归档报告。
-9. 下载最终项目包。
+1. 打开页面，查看自动加载的 `活动命中预览 Demo`。
+2. 点击 `项目分流`，查看 MRD 如何命中 `marketing` 和 `marketing-admin`。
+3. 展开应用分支，查看 backend、frontend、E2E track 的完成状态。
+4. 点击分支节点，查看当前应用/track 过滤后的产物和 Agent 轨迹。
+5. 点击 `跨应用测试`，查看分支汇总和交付元数据。
+6. 点击 `归档`，查看归档报告并下载最终项目包。
+7. 新建任务时上传自己的 MRD 和多个项目文件夹，按同样机制生成本次 session 的动态 workflow。
 
-![新建任务](docs/png/新建任务.png)
+![跨应用测试](docs/png/activity-hit-preview-cross-app-test.png)
 
-![上传内容查看](docs/png/上传内容查看.png)
-
-![下载项目结果](docs/png/下载项目结果.png)
+![归档下载](docs/png/activity-hit-preview-archive.png)
 
 ## 运行态目录
 
@@ -142,29 +163,36 @@ runtime-projects/
 
 ## 重要产物
 
-典型运行会生成：
+典型动态运行会生成：
 
 - `artifacts/input-summary.md`
 - `artifacts/project-manifest.json`
 - `artifacts/mrd-clarified.md`
 - `artifacts/mrd-clarify-questions.md`
-- `artifacts/prd.md`
+- `artifacts/requirement-ownership.json`
+- `artifacts/fanout-decision.json`
 - `artifacts/implementation-plan-manifest.json`
 - `artifacts/<project>/tech-design.md`
-- `artifacts/<project>/openspec-task.md`
-- `artifacts/<project>/openspec-test-task.md`
+- `artifacts/<project>/openspec/changes/run-<runId>-<project>/tasks.md`
 - `artifacts/<project>/changed-files.json`
 - `artifacts/<project>/code-preview-manifest.json`
 - `artifacts/<project>/code-review.md`
 - `artifacts/<project>/changed-test-files/*`
 - `artifacts/<project>/test-report.md`
+- `artifacts/<project>/frontend-implementation-report.md`
+- `artifacts/<project>/frontend-test-report.md`
+- `artifacts/<project>/e2e/verification-summary.md`
+- `artifacts/<project>/e2e/screenshots/*`
+- `artifacts/<project>/branch-summary.json`
+- `artifacts/cross-app/test-results.json`
+- `artifacts/cross-app/delivery-metadata.json`
 - `artifacts/<project>/archive-report.md`
-
-![产出物](docs/png/产出物.png)
+- `artifacts/archive-manifest.json`
+- `artifacts/downloads/<runId>-projects.zip`
 
 ## 工具与安全
 
-Agent 可使用内置工具读取、搜索、编辑和写入项目文件，也可以调用 Java/Maven 工具执行编译与测试。工具执行范围限制在当前 run 的 workspace/project 和 artifacts 内。
+Agent 可使用内置工具读取、搜索、编辑和写入当前 run 的项目文件，也可以调用 Java/Maven 工具执行编译与测试。工具执行范围限制在当前 run 的 workspace/project 和 artifacts 内。
 
 关键工具包括：
 
@@ -182,15 +210,9 @@ Agent 可使用内置工具读取、搜索、编辑和写入项目文件，也�
 
 系统会记录工具开始、结束、失败、耗时和输出摘要，方便复盘。
 
-![Java 实现与代码审查全工具轨迹](docs/png/java实现与代码审查全工具轨迹.png)
-
 ## 上下文压缩
 
-长任务执行过程中，Agent 会持续读取文件、编辑代码、运行 Maven 测试并把工具结果回灌给模型。为了避免上下文无限膨胀，系统在接近模型上下文窗口时会自动压缩历史消息：保留任务目标、关键文件、代码变更、测试结果、待办状态和阻塞信息，同时保留最近几轮原始上下文继续执行。
-
-压缩过程会写入执行轨迹，用户可以看到压缩前后的 token 变化。例如下图中测试代码节点在长轮次工具调用后触发压缩，将上下文从 `105K` 压缩到 `15K tokens`，随后继续执行 `maven_test`。
-
-![上下文压缩](docs/png/上下文压缩.png)
+长任务执行过程中，Agent 会持续读取文件、编辑代码、运行 Maven 测试并把工具结果回灌给模型。系统在接近模型上下文窗口时会自动压缩历史消息：保留任务目标、关键文件、代码变更、测试结果、待办状态和阻塞信息，同时保留最近几轮原始上下文继续执行。
 
 更多设计细节见 [上下文压缩设计](docs/context-compression.md)。
 
@@ -200,35 +222,41 @@ Agent 可使用内置工具读取、搜索、编辑和写入项目文件，也�
 npm test
 ```
 
-当前测试覆盖固定流水线 mock 闭环、需求拆解多文件输入、确认门恢复和大文件需求处理。
+当前测试覆盖固定兼容链路、动态 session workflow 读模型、fanout 决策、分支状态同步、真实示例流程、E2E 验证降级和上下文压缩。
 
 ## 项目结构
 
 ```text
 src/
   agent/              # Agent loop、上下文压缩、token 预算
+  e2e/                # 平台 E2E 能力检测、启动、契约和 Playwright runner
   events/             # 事件类型和事件日志
+  langgraph/          # LangGraph runtime、分支 runner、join、rollback 读模型同步
   models/             # 模型注册和 provider
   persistence/        # execution-state、agent state 存储
-  pipeline/           # 固定流水线、节点编排和 node agent
+  pipeline/           # 兼容流水线、节点编排和动态分支执行器
   runtime/            # run 目录、上传处理
   server/             # Hono HTTP API 和 WebSocket
+  session/            # session 创建、恢复、分支控制和 demo 注入
   tools/              # 内置工具和安全校验
+  workflows/          # workflow 定义、session instance、fanout、planner、validation
 web/                  # 单页前端
 prompts/              # 节点 prompt
-prompts/template/     # 输出模板和兜底模板
-fixtures/full-flow-demo/run/ # 真实完整流程 Demo 快照
+fixtures/activity-hit-preview-demo/run/ # 真实双项目动态流程 Demo 快照
 docs/png/             # README 和演示文档截图
 ```
 
 ## 设计原则
 
-- 主流程只负责状态流转、确认门、回退、重试和事件持久化。
-- 业务 prompt 放在 `prompts/`，输出模板放在 `prompts/template/`。
+- 可复用 workflow 模板保持不可变，真实拓扑保存在每个 session 的 `workflowInstance`。
+- 动态分支只改变本次 run 的执行计划，不修改全局模板。
 - 下游节点优先读取正式产物和 context manifest，不把 Agent transcript 当作业务输入。
-- Java 实现和测试节点必须通过工具真实读写项目文件。
-- 回退和重试保留历史工具轨迹，便于用户确认每一轮发生了什么。
+- 应用分支状态、track 状态和产物索引彼此隔离，失败不会覆盖其他分支的完成结果。
+- Java、前端和 E2E 验证必须通过工具真实读写项目或运行验证，不能只生成说明性文本。
+- 回退、重试和上下文压缩保留历史轨迹，便于用户复盘。
 
 ## 交流方式
-  邮箱：153268908@qq.com 
+
+邮箱：153268908@qq.com
+
 ![wechat.jpg](wechat.jpg)

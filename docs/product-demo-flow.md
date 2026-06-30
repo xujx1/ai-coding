@@ -1,250 +1,215 @@
 # 产品演示流程
 
-相关文档：[README](../README.md) ｜ [架构设计](architecture.md) ｜ [节点设计](node-design.md) ｜ [节点流转设计](node-transition.md) ｜ [上下文压缩设计](context-compression.md)
+相关文档：[README](../README.md) ｜ [GitHub 分享稿](activity-hit-preview-demo.md) ｜ [架构设计](architecture.md) ｜ [节点设计](node-design.md) ｜ [节点流转设计](node-transition.md) ｜ [动态工作流读模型](session-dynamic-workflow.md)
 
-本文档用于演示 AI Coding Pipeline 的完整产品链路。演示数据来自真实跑通的“营销活动软删除”需求，服务启动后默认显示为 `完整流程演示 Demo`。
+本文档用于演示 AI Coding Pipeline 的当前产品链路。演示数据来自真实上传并跑通的“活动命中预览”需求，涉及 `marketing` 和 `marketing-admin` 两个项目。服务启动后默认注入为 `活动命中预览 Demo`。
 
 ## 1. 打开首页
 
-启动服务后进入首页，左侧会话列表默认出现 `完整流程演示 Demo`。点击会话后，可以看到完整流水线已经执行到 `Archive`。
+启动服务后进入首页，左侧会话列表出现 `活动命中预览 Demo`。选择会话后，可以看到本次 session 的动态工作流已经完成到 `归档`。
 
-![完整的任务流程](png/完整的任务流程.png)
+![动态多应用工作流](png/activity-hit-preview-dynamic-workflow.png)
 
 演示讲解点：
 
 - 这是一次真实运行快照，不是前端写死的假数据。
-- 节点、事件、Agent 状态、工具调用、产物都来自同一个 run。
-- 新用户不用先配置模型，也能先理解产品价值和交互方式。
+- 节点、事件、Agent 状态、工具调用、产物、E2E 截图都来自同一个 run。
+- 当前主流程不是旧的单项目固定流水线，而是 session 内动态生成的多应用工作流。
 
-## 2. 基础配置和模型设置
+## 2. 输入与上传初始化
 
-进入设置页，可以配置模型服务、JDK 和 Maven。
+本 case 的输入包括：
 
-![基础配置](png/基础配置.png)
+- `activity-hit-preview-mrd.md`
+- `marketing`
+- `marketing-admin`
 
-模型支持动态切换，不同阶段可以使用不同模型。
+`上传初始化` 会写入：
 
-![动态模型切换](png/动态模型切换.png)
+- `artifacts/input-summary.md`
+- `artifacts/project-manifest.json`
 
-演示讲解点：
+`project-manifest.json` 不只记录项目列表，还会记录 Java/Maven、Spring Boot、前端资源、启动命令、readiness 端点、API base URL 约定和 Playwright 配置等能力证据。
 
-- 真实执行时需要配置模型 API。
-- Java 实现和测试节点会使用 JDK/Maven 路径。
-- 配置保存在本地 `.ai-coding/`，不会进入 Git。
+## 3. 需求归属确认
 
-## 3. 新建任务
-
-点击新建任务，上传需求文件和项目源码。
-
-![新建任务](png/新建任务.png)
-
-上传完成后，在 `Upload / Init` 节点可以查看输入内容，包括 MRD 和项目包。
-
-![上传内容查看](png/上传内容查看.png)
-
-演示讲解点：
-
-- 需求文件进入 `workspace/input`。
-- 项目代码进入 `workspace/project`。
-- 系统会生成 `artifacts/input-summary.md` 和 `artifacts/project-manifest.json`。
-
-## 4. 需求拆解
-
-`需求拆解` 节点会读取需求文档和项目结构，生成最终需求拆解清单。
-
-![需求拆解](png/需求拆解.png)
-
-节点执行轨迹会展示读取文件、写入产物和确认门事件。
-
-![需求拆解执行轨迹](png/需求拆解执行轨迹.png)
-
-如果模型判断仍有需要用户确认的问题，会以分页方式展示澄清问题。用户可以逐题选择默认答案，也可以补充说明。
-
-![需求澄清](png/需求澄清.png)
-
-![需求澄清额外补充](png/需求澄清额外补充.png)
-
-确认后的需求清单会成为下游唯一业务输入。
-
-![需求清单确认](png/需求清单确认.png)
+需求拆解阶段会先形成需求边界、项目归属和需要用户确认的问题。确认后，系统把用户反馈写回节点上下文，再产出正式的需求事实。
 
 核心产物：
 
 - `artifacts/mrd-clarified.md`
 - `artifacts/mrd-clarify-questions.md`
+- `artifacts/requirement-ownership.json`
 
 演示讲解点：
 
-- 这个节点不是复述 MRD 原文，而是拆出功能列表、项目归属、边界和待确认问题。
-- 用户反馈会写回节点上下文，当前节点重跑后再继续下游。
+- 需求归属确认不是简单复述 MRD，而是把功能范围、项目归属、包含/不包含项和风险明确下来。
+- 下游节点读取正式产物，不依赖临时对话 transcript。
 
-## 5. 实施方案
+## 4. 项目分流
 
-`实施方案` 节点会基于澄清后的需求生成 PRD 和项目级技术方案。
-
-![实施方案执行轨迹和产出物](png/实施方案执行轨迹和产出物.png)
-
-方案会进入确认门，用户确认后才继续生成 Spec。
-
-![prd确认](png/prd确认.png)
-
-产物会以结构化 Markdown 展示，便于阅读和复核。
-
-![实施方案执行规则和产出物](png/实施方案执行规则和产出物.png)
+`项目分流` 根据 MRD 归属和上传项目 manifest 生成 fanout 决策。
 
 核心产物：
 
-- `artifacts/prd.md`
-- `artifacts/implementation-plan-manifest.json`
-- `artifacts/<project>/tech-design.md`
+- `artifacts/fanout-decision.json`
+
+本 case 的决策：
+
+- 纳入：`marketing`、`marketing-admin`
+- 排除：无
+- 未解析：无
+- confidence：`high`
+
+![工作流实例](png/activity-hit-preview-workflow-instance.png)
 
 演示讲解点：
 
-- PRD 描述验收口径。
-- 技术方案描述项目内的实现边界、候选文件、测试策略和风险。
-- 下游不依赖对话 transcript，而是读取这些正式产物。
+- `workflowInstance` 是 run 级别读模型，保存本次 session 的真实拓扑。
+- 可复用 workflow 模板不会因为分支生成而被修改。
+- 历史旧 run 仍可通过 legacy fallback 渲染。
 
-## 6. Spec 任务清单
+## 5. 应用分支和 Tracks
 
-`SPEC生成` 节点会产出面向开发和测试的任务清单。
+项目分流后，每个应用生成独立分支。分支内根据项目能力生成 track。
 
-任务清单使用类似 OpenSpec `task.md` 的格式：
+本 case 的分支结构：
 
-```md
-## Phase 1: 现状梳理
-- [ ] 阅读 PRD 和技术方案
-- [ ] 定位 Controller、Service、Mapper、DTO 改动点
+```text
+marketing
+  -> 实施方案
+  -> SPEC 生成
+  -> backend: Java 实现 -> Backend Test
 
-## Phase 2: 业务实现
-- [ ] 补齐请求参数校验
-- [ ] 实现软删除、幂等和审计
+marketing-admin
+  -> 实施方案
+  -> SPEC 生成
+  -> backend: Java 实现 -> Backend Test
+  -> frontend: Frontend Implementation -> Frontend Test
+  -> e2e: E2E Verify
 ```
 
+![分支 tracks](png/activity-hit-preview-branch-tracks.png)
+
+演示讲解点：
+
+- `marketing` 是后端服务，只生成 backend track。
+- `marketing-admin` 同仓包含后端接口和静态前端，因此生成 backend、frontend、E2E track。
+- 分支和 track 都有独立状态，某一条 track 失败不会覆盖其他 track 的完成产物。
+
+## 6. 实施方案与 OpenSpec
+
+每个应用分支都会生成项目级技术方案和 OpenSpec 任务。
+
 核心产物：
 
+- `artifacts/implementation-plan-manifest.json`
+- `artifacts/<project>/tech-design.md`
 - `artifacts/<project>/openspec-task.md`
 - `artifacts/<project>/openspec-test-task.md`
-- `artifacts/spec-manifest.json`
+- `artifacts/<project>/openspec/changes/run-<runId>-<project>/tasks.md`
 
 演示讲解点：
 
-- Java 实现节点会根据 `openspec-task.md` 工作。
-- 测试代码节点会根据 `openspec-test-task.md` 工作。
-- 后续实现完成后会在原任务清单上打勾，而不是另产出一份重复任务文件。
+- 技术方案按应用隔离，避免多项目需求互相污染。
+- OpenSpec 任务在同一份 `tasks.md` 内保留 Development、Test、Backend、Frontend、E2E 等 section。
+- 实现和测试完成后会在原任务清单上打勾。
 
-## 7. Java 实现与代码审查
+## 7. 代码实现和审查
 
-`Java Impl` 节点负责真实修改代码，并在同一节点内完成代码审查。
+`Java Impl`、`frontend-impl` 等节点会通过工具真实读写项目代码。
 
-![java实现轨迹和产出物](png/java实现轨迹和产出物.png)
-
-工具轨迹会展示读文件、搜索、编辑、写入、编译和 review 过程。
-
-![java实现与代码审查全工具轨迹](png/java实现与代码审查全工具轨迹.png)
-
-代码审查报告会以中文 Markdown 输出。
-
-![代码审查报告](png/代码审查报告.png)
-
-核心产物：
+典型产物：
 
 - `artifacts/<project>/changed-files.json`
-- `artifacts/<project>/code-preview-manifest.json`
 - `artifacts/<project>/changed-files/*`
+- `artifacts/<project>/code-preview-manifest.json`
 - `artifacts/<project>/code-review.md`
 - `artifacts/<project>/review-findings.json`
+- `artifacts/<project>/frontend-implementation-report.md`
 
 演示讲解点：
 
-- 变更代码会反映到右侧产物列表。
-- review 发现 BLOCK 时会自动回退到 `Java Impl` 修复。
-- 回退不会覆盖上一轮工具轨迹，页面会保留每一轮执行记录。
+- 页面中间展示 Agent 文本、工具调用、编译和审查轨迹。
+- 右侧产物树会按当前应用/track 自动过滤。
+- review 发现 BLOCK 时会触发当前分支内的回退修复。
 
-## 8. 测试代码生成和单元测试执行
+## 8. 测试和 E2E 验证
 
-`Test Code Generate` 节点负责生成测试代码，并直接运行 Maven 单元测试。
+后端 track 执行 Maven 编译和单元测试。前端 track 执行前端实现/测试报告。E2E track 由平台 runner 启动应用并执行 Playwright 验证。
 
-![生成单元测试代码](png/生成单元测试代码.png)
+典型产物：
 
-执行 Maven 测试时会展示命令、输出和结果分类。
-
-![执行单元测试](png/执行单元测试.png)
-
-测试通过后展示测试报告。
-
-![单测执行通过](png/单测执行通过.png)
-
-![单测执行报告](png/单测执行报告.png)
-
-核心产物：
-
-- `artifacts/<project>/changed-test-files/*`
-- `artifacts/<project>/test-file-list.md`
-- `artifacts/<project>/testcode-generation-report.md`
 - `artifacts/<project>/test-report.md`
 - `artifacts/<project>/surefire-summary.json`
 - `artifacts/<project>/coverage-summary.json`
 - `artifacts/<project>/failure-classification.json`
-- `artifacts/<project>/autofix-history.md`
+- `artifacts/<project>/frontend-test-report.md`
+- `artifacts/<project>/frontend-test-summary.json`
+- `artifacts/<project>/e2e/verification-summary.md`
+- `artifacts/<project>/e2e/screenshots/home.png`
+- `artifacts/<project>/e2e/e2e-summary.json`
 
 演示讲解点：
 
-- 测试失败会分类：实现问题回退到 `Java Impl`，测试问题回退到当前节点。
-- 自动重试有上限，超过后进入等待人工修复状态。
-- 测试报告会记录 Maven 结果、用例数量、失败分类和覆盖率可用性。
+- `marketing-admin` 的 E2E 验证会记录后端启动、前端启动、API smoke、Playwright 输出和截图。
+- 如果浏览器二进制不可用，平台会记录有限 HTTP fallback，而不是把环境问题当成产品缺陷。
 
-## 9. 产物实时刷新
+## 9. 跨应用测试
 
-工具写入产物后，右侧产物区域会刷新，用户可以及时看到新增或修改文件。
-
-![edit hook 触发产出物页面刷新](png/edit hook 触发产出物页面刷新.png)
-
-![产出物](png/产出物.png)
-
-演示讲解点：
-
-- 产物不是流程结束后一次性展示。
-- `write_file`、`edit_file` 等工具事件会驱动产物索引更新。
-- 用户可以在节点执行中确认模型是否真的写了文件。
-
-## 10. 归档
-
-`Archive` 节点会汇总需求、方案、Spec、代码变更、测试报告、工具耗时、节点耗时和 token 消耗。
-
-![归档执行轨迹](png/归档执行轨迹.png)
-
-最终可以下载修改后的项目包。
-
-![下载项目结果](png/下载项目结果.png)
+所有分支完成后进入 `跨应用测试`，汇总分支交付状态、测试结果和跨应用风险。
 
 核心产物：
 
-- `artifacts/<project>/archive-report.md`
-- `artifacts/archive-manifest.json`
-- `downloads/<runId>-projects.zip`
+- `artifacts/marketing/branch-summary.json`
+- `artifacts/marketing-admin/branch-summary.json`
+- `artifacts/cross-app/test-results.json`
+- `artifacts/cross-app/delivery-metadata.json`
+
+![跨应用测试](png/activity-hit-preview-cross-app-test.png)
 
 演示讲解点：
 
-- 归档报告是交付说明，不只是文件索引。
-- 报告内会记录每个节点的执行时间、工具调用时间和 token 消耗。
-- 最终下载包来自当前 run 的 workspace/project。
+- join 节点会等待所有分支进入终态。
+- 跨应用测试读取分支 summary，而不是重新扫描所有 transcript。
+- delivery metadata 说明当前交付是否 ready。
+
+## 10. 归档和下载
+
+`归档` 生成项目级报告、跨应用 manifest 和最终项目包。
+
+核心产物：
+
+- `artifacts/marketing/archive-report.md`
+- `artifacts/marketing-admin/archive-report.md`
+- `artifacts/archive-manifest.json`
+- `artifacts/downloads/<runId>-projects.zip`
+
+![归档下载](png/activity-hit-preview-archive.png)
+
+演示讲解点：
+
+- 归档报告包含需求摘要、技术方案、变更文件、测试结果、风险和执行指标。
+- 下载包来自当前 run 的 `workspace/project`，不是 fixture 原目录。
+- 归档不会抹掉前面节点的工具轨迹。
 
 ## 11. 演示话术建议
 
 建议按下面顺序演示：
 
-1. 先打开自动加载的 `完整流程演示 Demo`，展示最终全链路结果。
-2. 点击每个节点，说明左侧是流程状态，中间是执行轨迹，右侧是节点产物。
-3. 展示需求拆解确认页，说明用户如何参与澄清。
-4. 展示 Java 实现节点的工具轨迹，强调是真实读写代码。
-5. 展示测试节点的 Maven 执行和报告。
-6. 展示归档报告和项目下载。
-7. 最后新建一个任务，说明用户自己的 MRD 和项目可以走同样流程。
+1. 先打开自动加载的 `活动命中预览 Demo`，说明这是双项目真实运行快照。
+2. 点击 `项目分流`，解释 MRD 如何映射到 `marketing` 和 `marketing-admin`。
+3. 展开应用分支，说明 backend、frontend、E2E track 的差异。
+4. 点击某个分支节点，展示按应用和 track 过滤后的产物。
+5. 展示 `marketing-admin/e2e` 下的验证摘要和截图。
+6. 点击 `跨应用测试`，说明 join 后如何汇总分支结果。
+7. 点击 `归档`，展示项目报告和下载包。
+8. 最后点击 `新建任务`，说明用户自己的 MRD 和多个项目会生成新的 session workflow。
 
 ## 12. 当前产品边界
 
-- 当前是固定 MRD-to-Code 流水线，不是通用工作流编排器。
-- 主要面向 Java/Maven 项目。
+- 当前不是通用拖拽工作流编辑器，而是面向 MRD-to-Code 的动态应用工作流。
+- `legacy` runtime 仍是默认执行器，`workflowInstance` 负责 session 读模型和动态 UI；LangGraph runtime 仍按配置灰度。
+- 主要验证路径覆盖 Java/Maven、Spring Boot、静态前端和平台 E2E。
+- Track 级 rerun/cancel 已在运行态表示，完整 UI/API 控制仍在演进。
 - 自动 Demo 默认开启，可用 `AI_CODING_AUTO_DEMO=0` 关闭。
-- 运行态数据位于 `runtime-projects/` 或 `RUNTIME_DIR` 指定目录，不应提交到 Git。
-- 模型 API Key 和本地配置位于 `.ai-coding/`，不应提交到 Git。

@@ -1,6 +1,0 @@
---- /private/tmp/ai-coding-real-marketing-confirm-flow-4301/runs/XOjoDRmUAx/artifacts/project/test-file-list.md (lines 1-5 of 5) ---
-   1	# project 测试文件清单
-   2	
-   3	- src/test/java/com/ump/marketing/application/service/ActivityServiceTest.java
-   4	- src/test/java/com/ump/marketing/web/controller/ActivityControllerTest.java
-   5	

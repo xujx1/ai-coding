@@ -1,0 +1,34 @@
+{
+  "agentRunId": "imVyWkxy",
+  "runId": "PDRbY_AI59",
+  "nodeId": "spec-generate",
+  "projectName": "marketing",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing",
+  "taskDescription": "生成 marketing 项目的测试 OpenSpec 测试任务清单",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 5,
+  "tokenUsage": {
+    "input": 128780,
+    "output": 2533
+  },
+  "compactCount": 0,
+  "toolCallCount": 20,
+  "inputArtifacts": [
+    "artifacts/mrd-clarified.md",
+    "artifacts/requirement-ownership.json",
+    "artifacts/marketing/tech-design.md",
+    "artifacts/implementation-plan-manifest.json"
+  ],
+  "outputArtifacts": [
+    "artifacts/marketing/openspec-task.md",
+    "artifacts/marketing/openspec-test-task.md"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782794658110,
+  "updatedAt": 1782794821376,
+  "completedAt": 1782794821376
+}

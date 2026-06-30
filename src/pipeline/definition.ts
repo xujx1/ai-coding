@@ -5,7 +5,7 @@
  * Pipeline stages:
  *   Upload / Init -> 需求拆解 -> Implementation Plan
  *   -> Spec Generate -> Java Impl(+Review)
- *   -> Test Code Generate(+Unit Test Runner) -> Archive
+ *   -> Test Code Generate(+Unit Test Runner) -> Cross App Test -> Archive
  */
 
 export interface PipelineNode {
@@ -118,6 +118,19 @@ export const PIPELINE_NODES: PipelineNode[] = [
       '{project}/coverage-summary.json',
       '{project}/failure-classification.json',
       '{project}/autofix-history.md',
+    ],
+  },
+  {
+    id: 'cross-app-test',
+    name: '跨应用测试',
+    description: 'Run cross-application integration checks after all application branches complete',
+    hasConfirmationGate: false,
+    usesReActLoop: false,
+    maxTurns: 5,
+    planModeRequired: false,
+    artifactOutputs: [
+      'cross-app/test-results.json',
+      'cross-app/delivery-metadata.json',
     ],
   },
   {

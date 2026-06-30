@@ -1,0 +1,32 @@
+{
+  "agentRunId": "pI__7ZHB",
+  "runId": "PDRbY_AI59",
+  "nodeId": "mrd-render",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project",
+  "taskDescription": "根据用户回答生成最终需求归属确认结果",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 2,
+  "tokenUsage": {
+    "input": 6897,
+    "output": 984
+  },
+  "compactCount": 0,
+  "toolCallCount": 1,
+  "inputArtifacts": [
+    "input/*",
+    "artifacts/project-manifest.json"
+  ],
+  "outputArtifacts": [
+    "artifacts/mrd-clarified.md",
+    "artifacts/requirement-breakdown.md",
+    "artifacts/mrd-clarify-questions.md"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782794191034,
+  "updatedAt": 1782794244097,
+  "completedAt": 1782794244097
+}

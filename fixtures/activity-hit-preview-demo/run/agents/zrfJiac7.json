@@ -1,0 +1,32 @@
+{
+  "agentRunId": "zrfJiac7",
+  "runId": "PDRbY_AI59",
+  "nodeId": "java-impl",
+  "projectName": "marketing",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing",
+  "taskDescription": "写 marketing 项目文件夹的代码",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 5,
+  "tokenUsage": {
+    "input": 191745,
+    "output": 4213
+  },
+  "compactCount": 0,
+  "toolCallCount": 26,
+  "inputArtifacts": [
+    "artifacts/marketing/openspec-task.md",
+    "artifacts/marketing/tech-design.md"
+  ],
+  "outputArtifacts": [
+    "artifacts/marketing/changed-files.json",
+    "artifacts/marketing/code-preview-manifest.json"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782796226293,
+  "updatedAt": 1782796558773,
+  "completedAt": 1782796558773
+}

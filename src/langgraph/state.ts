@@ -41,6 +41,7 @@ export interface GraphNodeState {
   error?: string;
   failureCount: number;
   idempotencyKeys?: string[];
+  resourceWaitReason?: string;
 }
 
 export interface GraphProjectState {

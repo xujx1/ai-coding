@@ -1,0 +1,34 @@
+{
+  "nodeId": "upload-init",
+  "outputArtifacts": [
+    {
+      "path": "artifacts/input-summary.md",
+      "summary": "上传初始化摘要 输入文件 activityhitpreviewmrd.md (5.4KB) 项目空间 MRD 内容摘录",
+      "size": 5880
+    },
+    {
+      "path": "artifacts/project-manifest.json",
+      "summary": "{ \"requirements\": [ { \"name\": \"activityhitpreviewmrd.md\", \"path\": \"input/activityhitpreviewmrd.md\", \"size\": 5562 } ], \"projects\": [ { \"name\": \"marketing\", \"root\": \"project/marketing\", \"buildTool\": \"maven\", \"pomPath\": \"project/marketing/pom.xml\", \"sourceRoots\": [ \"src/main/java\" ], \"testRoots\": [ \"src/test/java\" ], \"capabilities\": { \"projectRoot\": \"project/marketing\", \"backend\": { \"kind\": \"backend\", \"command\": \"mvn springboot:run\", \"workingDirectory\": \"/Users/xu/IdeaProjects/aicoding/runtimeproje...",
+      "size": 3826
+    }
+  ],
+  "importantDecisions": [
+    "当前营销管理台已经支持运营人员创建活动、配置活动玩法并关联商品或 SKU。活动配置完成后，运营人员通常需要确认某个商品在指定区域下是否真的能够命中目标活动，否则容易在上线后才发现范围配置错误、SKU 漏绑、Region 选错、活动状态不符合预期或同步结果异常。",
+    "- 帮助运营快速发现商品范围、SKU、Region、活动状态等配置问题。",
+    "- 支持上线后确认用户侧运行结果是否符合预期。",
+    "## 3. 业务范围",
+    "- 支持运营输入商品、SKU、活动范围、区域等条件发起预览。",
+    "作为运营人员，我希望在活动配置完成后输入一个商品或 SKU，快速确认该商品是否能命中我刚配置的活动，以便在提交审批或上线前发现配置错误。",
+    "作为运营人员，我希望活动上线后再次用相同商品或 SKU 校验用户侧是否已经能命中活动，以便确认活动已经同步并生效。",
+    "- 活动范围类型：例如全场、类目、商品、SKU。",
+    "管理配置侧结果用于帮助运营确认“活动配置是否正确”。它更关注活动配置、商品绑定和区域范围是否符合预期。",
+    "用户运行侧结果用于帮助运营确认“用户实际请求是否能命中活动”。它更关注活动上线后在用户侧是否已经生效。",
+    "如果管理配置侧和用户运行侧都无结果，系统应提示优先检查活动范围、商品绑定和区域配置。",
+    "## 6. 验收口径"
+  ],
+  "riskNotes": [],
+  "nextNodeInputs": [
+    "artifacts/input-summary.md",
+    "artifacts/project-manifest.json"
+  ]
+}

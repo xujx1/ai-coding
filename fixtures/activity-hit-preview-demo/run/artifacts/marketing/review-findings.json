@@ -1,0 +1,11 @@
+{
+  "project": "marketing",
+  "result": "WARN",
+  "blockers": [],
+  "warnings": [
+    {
+      "file": "见 code-review.md",
+      "reason": "评审报告包含 WARN 结论"
+    }
+  ]
+}

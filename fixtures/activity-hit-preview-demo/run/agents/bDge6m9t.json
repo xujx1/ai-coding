@@ -1,0 +1,32 @@
+{
+  "agentRunId": "bDge6m9t",
+  "runId": "PDRbY_AI59",
+  "nodeId": "java-impl",
+  "projectName": "marketing-admin",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+  "taskDescription": "写 marketing-admin 项目文件夹的代码",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 6,
+  "tokenUsage": {
+    "input": 257035,
+    "output": 5699
+  },
+  "compactCount": 0,
+  "toolCallCount": 28,
+  "inputArtifacts": [
+    "artifacts/marketing-admin/openspec-task.md",
+    "artifacts/marketing-admin/tech-design.md"
+  ],
+  "outputArtifacts": [
+    "artifacts/marketing-admin/changed-files.json",
+    "artifacts/marketing-admin/code-preview-manifest.json"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782796226332,
+  "updatedAt": 1782796536901,
+  "completedAt": 1782796536901
+}

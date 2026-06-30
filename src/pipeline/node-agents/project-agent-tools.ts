@@ -38,6 +38,10 @@ export function getProjectTaskDescription(nodeId: string, projectName: string): 
   const taskMap: Record<string, string> = {
     'java-impl': `写 ${projectName} 项目文件夹的代码`,
     'java-review': `评审 ${projectName} 项目文件夹的代码`,
+    'frontend-impl': `写 ${projectName} 项目文件夹的前端代码`,
+    'backend-test': `写 ${projectName} 项目文件夹的后端测试代码`,
+    'frontend-test': `执行 ${projectName} 项目文件夹的前端测试`,
+    'e2e-verify': `执行 ${projectName} 项目文件夹的端到端验证`,
     'testcode-generate': `写 ${projectName} 项目文件夹的测试代码`,
     'maven-test-runner': `执行 ${projectName} 项目文件夹的单元测试`,
     archive: `归档 ${projectName} 项目文件夹的修改结果`,

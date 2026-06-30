@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "appName": "marketing-admin",
+  "liveFrontendUrl": "http://127.0.0.1:58267",
+  "liveBackendUrl": "http://127.0.0.1:58266",
+  "usedProjectPlaywrightConfig": false,
+  "artifactPaths": [
+    "artifacts/marketing-admin/e2e/api-contract-results.json",
+    "artifacts/marketing-admin/e2e/api-smoke-results.json",
+    "artifacts/marketing-admin/e2e/console-network-summary.json",
+    "artifacts/marketing-admin/e2e/verification-summary.md",
+    "artifacts/marketing-admin/e2e/startup-manifest.json",
+    "artifacts/marketing-admin/e2e/backend-startup.log",
+    "artifacts/marketing-admin/e2e/frontend-startup.log",
+    "artifacts/marketing-admin/e2e/generated-playwright.spec.js",
+    "artifacts/marketing-admin/e2e/playwright-report/generated-playwright-output.json",
+    "artifacts/marketing-admin/e2e/screenshots/home.png"
+  ],
+  "generatedAt": "2026-06-30T08:47:22.364Z"
+}

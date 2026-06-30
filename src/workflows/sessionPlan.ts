@@ -1,5 +1,10 @@
 import type { ProjectManifest } from '../pipeline/node-agents/upload-init.js';
 import type { FanoutDecision } from './fanoutDecision.js';
+import type { PlanMigrationMetadata, PlanRevision } from './planSchemas.js';
+import { getPlanNodeContract, isRegisteredPlanNodeType, listPlanNodeContracts } from './planNodeRegistry.js';
+import { validateStructuredPlanDocument } from './planValidation.js';
+import type { RequirementOwnershipArtifact } from './requirementOwnership.js';
+import { summarizeProjectSurfaceDecision } from './requirementOwnership.js';
 
 export const SESSION_PLAN_SCHEMA_VERSION = 1;
 export const SESSION_PLAN_PLANNER_VERSION = 'plan-and-executor-v1';
@@ -12,6 +17,7 @@ export type PlannedTrackKind =
   | 'documentation';
 
 export type PlannedNodeType =
+  | 'requirement-ownership-confirmation'
   | 'implementation-plan'
   | 'spec-generate'
   | 'backend-impl'
@@ -19,12 +25,11 @@ export type PlannedNodeType =
   | 'frontend-impl'
   | 'backend-test'
   | 'frontend-test'
-  | 'api-contract-check'
   | 'e2e-verify'
   | 'documentation-impl'
   | 'documentation-test'
-  | 'app-track-join'
-  | 'app-branch-summary';
+  | 'cross-app-test'
+  | 'archive';
 
 export interface SessionExecutionPlan {
   schemaVersion: 1;
@@ -34,6 +39,27 @@ export interface SessionExecutionPlan {
   sourceArtifacts: string[];
   branches: ApplicationBranchPlan[];
   validation: PlanValidationResult;
+  currentRevisionId: string;
+  revisions: PlanRevision[];
+  migration: PlanMigrationMetadata;
+  nodeContracts: PlanNodeContractSummary[];
+}
+
+export interface PlanNodeContractSummary {
+  nodeType: PlannedNodeType;
+  runner: string;
+  requiredArtifacts: string[];
+  producedArtifacts: string[];
+  resources: {
+    branchSlots?: number;
+    modelSlots?: number;
+    commandSlots?: number;
+    browserSlots?: number;
+    toolSlots?: Record<string, number>;
+  };
+  confirmationRequired: boolean;
+  replannable: boolean;
+  maxReplanAttempts: number;
 }
 
 export interface ApplicationBranchPlan {
@@ -105,22 +131,6 @@ export interface PlanValidationIssue {
   severity: 'error' | 'warning';
 }
 
-const ALLOWED_NODE_TYPES: ReadonlySet<PlannedNodeType> = new Set([
-  'implementation-plan',
-  'spec-generate',
-  'backend-impl',
-  'java-impl',
-  'frontend-impl',
-  'backend-test',
-  'frontend-test',
-  'api-contract-check',
-  'e2e-verify',
-  'documentation-impl',
-  'documentation-test',
-  'app-track-join',
-  'app-branch-summary',
-]);
-
 const ALLOWED_TRACK_KINDS: ReadonlySet<PlannedTrackKind> = new Set([
   'backend',
   'frontend',
@@ -134,6 +144,7 @@ export function createSessionExecutionPlan(args: {
   decision: FanoutDecision;
   manifest?: ProjectManifest;
   clarifiedMrd?: string;
+  requirementOwnership?: RequirementOwnershipArtifact;
   sourceArtifacts?: string[];
   generatedAt?: string;
 }): SessionExecutionPlan {
@@ -145,7 +156,11 @@ export function createSessionExecutionPlan(args: {
       branchId: createStablePlanBranchId(args.runId, project.name),
       projectName: project.name,
       projectRoot: project.root,
-      capability: deriveProjectCapabilityShape(manifestProject, impactText),
+      capability: deriveProjectCapabilityShape(
+        manifestProject,
+        impactText,
+        summarizeProjectSurfaceDecision(args.requirementOwnership, project.name)
+      ),
       fanoutReason: project.reason,
     });
   });
@@ -157,6 +172,7 @@ export function createSessionExecutionPlan(args: {
     sourceArtifacts: args.sourceArtifacts ?? [
       'artifacts/project-manifest.json',
       'artifacts/mrd-clarified.md',
+      ...(args.requirementOwnership ? ['artifacts/requirement-ownership.json'] : []),
       'artifacts/fanout-decision.json',
     ],
     branches,
@@ -165,10 +181,36 @@ export function createSessionExecutionPlan(args: {
       issues: [],
       validatedAt: generatedAt,
     },
+    currentRevisionId: 'rev-1',
+    revisions: [],
+    migration: {
+      source: 'structured',
+      legacyFallbackUsed: false,
+      warnings: [],
+    },
+    nodeContracts: listPlanNodeContracts().map(contract => ({
+      nodeType: contract.nodeType,
+      runner: contract.runner,
+      requiredArtifacts: contract.artifacts.requiredArtifacts,
+      producedArtifacts: contract.artifacts.producedArtifacts,
+      resources: contract.resources,
+      confirmationRequired: contract.confirmation.required,
+      replannable: contract.replan.replannable,
+      maxReplanAttempts: contract.replan.maxAttempts,
+    })),
   };
+  const validation = validateSessionExecutionPlan(plan, generatedAt);
   return {
     ...plan,
-    validation: validateSessionExecutionPlan(plan, generatedAt),
+    validation,
+    revisions: [{
+      revisionId: 'rev-1',
+      reason: 'initial',
+      createdAt: generatedAt,
+      changedNodeIds: plan.branches.flatMap(branch => branch.nodes.map(node => node.id)),
+      lockedNodeIds: [],
+      validation,
+    }],
   };
 }
 
@@ -180,15 +222,10 @@ export function createApplicationBranchPlan(args: {
   fanoutReason?: string;
 }): ApplicationBranchPlan {
   const baseNodes: PlannedNode[] = [
-    plannedNode('implementation-plan', 'implementation-plan', 'Implementation Plan'),
-    plannedNode('spec-generate', 'spec-generate', 'Spec Generate', ['implementation-plan']),
+    plannedNode('implementation-plan', 'implementation-plan', '实施方案'),
+    plannedNode('spec-generate', 'spec-generate', 'SPEC 生成', ['implementation-plan']),
   ];
   const tracks = createTracks(args.projectName, args.capability);
-  const trackJoin = plannedNode('app-track-join', 'app-track-join', 'Track Join', [
-    'spec-generate',
-    ...tracks.flatMap(track => track.nodes.map(node => node.id)),
-  ]);
-  const summary = plannedNode('app-branch-summary', 'app-branch-summary', 'Branch Summary', ['app-track-join']);
   return {
     branchId: args.branchId,
     projectName: args.projectName,
@@ -203,21 +240,42 @@ export function createApplicationBranchPlan(args: {
     ],
     omittedTracks: omittedTracks(args.capability),
     tracks,
-    nodes: [...baseNodes, ...tracks.flatMap(track => track.nodes), trackJoin, summary],
+    nodes: [...baseNodes, ...orderBranchTrackNodes(tracks.flatMap(track => track.nodes))],
   };
+}
+
+function orderBranchTrackNodes(nodes: PlannedNode[]): PlannedNode[] {
+  const preferredOrder = [
+    'java-impl',
+    'frontend-impl',
+    'backend-test',
+    'frontend-test',
+    'e2e-verify',
+    'documentation-impl',
+    'documentation-test',
+  ];
+  return [...nodes].sort((a, b) => {
+    const left = preferredOrder.indexOf(a.id);
+    const right = preferredOrder.indexOf(b.id);
+    const leftIndex = left >= 0 ? left : preferredOrder.length;
+    const rightIndex = right >= 0 ? right : preferredOrder.length;
+    if (leftIndex !== rightIndex) return leftIndex - rightIndex;
+    return a.id.localeCompare(b.id);
+  });
 }
 
 export function deriveProjectCapabilityShape(
   project?: ProjectManifest['projects'][number],
-  impactText = ''
+  impactText = '',
+  structuredSurface?: Partial<Record<PlannedTrackKind, boolean>>
 ): ProjectCapabilityShape {
   const startup = project?.capabilities;
   const projectImpact = collectProjectImpactContext(project?.name || '', impactText);
   const surfaceDecision = parseProjectSurfaceDecision(project?.name || '', impactText);
-  const frontendImpact = surfaceDecision.frontend ?? hasFrontendImpact(projectImpact);
-  const backendImpact = surfaceDecision.backend ?? hasBackendImpact(projectImpact);
-  const contractImpact = surfaceDecision.contract ?? hasContractImpact(projectImpact);
-  const e2eImpact = surfaceDecision.e2e ?? false;
+  const frontendImpact = structuredSurface?.frontend ?? surfaceDecision.frontend ?? hasFrontendImpact(projectImpact);
+  const backendImpact = structuredSurface?.backend ?? surfaceDecision.backend ?? hasBackendImpact(projectImpact);
+  const contractImpact = structuredSurface?.contract ?? surfaceDecision.contract ?? hasContractImpact(projectImpact);
+  const e2eImpact = structuredSurface?.e2e ?? surfaceDecision.e2e ?? false;
   const backend = Boolean(
     backendImpact ||
     startup?.backend ||
@@ -239,7 +297,7 @@ export function deriveProjectCapabilityShape(
     startup?.apiBaseUrlConventions?.length
   );
   const testable = Boolean(project?.testRoots?.length || backend || frontend);
-  const documentationOnly = !backend && !frontend && !contract;
+  const documentationOnly = Boolean(structuredSurface?.documentation) || (!backend && !frontend && !contract);
   const mixedModule = backend && frontend;
   const confidence = startup?.confidence === 'high'
     ? 'high'
@@ -358,7 +416,7 @@ export function validateSessionExecutionPlan(
   plan: SessionExecutionPlan,
   validatedAt = new Date().toISOString()
 ): PlanValidationResult {
-  const issues: PlanValidationIssue[] = [];
+  const issues: PlanValidationIssue[] = [...validateStructuredPlanDocument(plan)];
   for (const branch of plan.branches) {
     const nodeIds = new Set(branch.nodes.map(node => node.id));
     if (!branch.tracks.length) {
@@ -373,10 +431,16 @@ export function validateSessionExecutionPlan(
       }
     }
     for (const node of branch.nodes) {
-      if (!ALLOWED_NODE_TYPES.has(node.type)) {
+      const registeredNodeType = isRegisteredPlanNodeType(node.type);
+      if (!registeredNodeType) {
         issues.push(error('unsupported-node-type', `Unsupported planned node type '${node.type}'.`, branch.branchId, node.trackId, node.id));
       }
-      if (nodeRequiresArtifacts(node.type) && (!Array.isArray(node.requiredArtifacts) || !node.requiredArtifacts.length)) {
+      const contract = registeredNodeType ? getPlanNodeContract(node.type) : undefined;
+      if (contract && node.runner !== contract.runner) {
+        issues.push(error('runner-contract-mismatch', `Node '${node.id}' runner '${node.runner}' does not match registered runner '${contract.runner}'.`, branch.branchId, node.trackId, node.id));
+      }
+      const requiresArtifacts = registeredNodeType ? nodeRequiresArtifacts(node.type) : true;
+      if (requiresArtifacts && (!Array.isArray(node.requiredArtifacts) || !node.requiredArtifacts.length)) {
         issues.push(error('missing-required-artifacts', `Node '${node.id}' does not declare required artifacts.`, branch.branchId, node.trackId, node.id));
       }
       for (const dependency of node.dependsOn) {
@@ -397,7 +461,7 @@ export function validateSessionExecutionPlan(
 }
 
 function nodeRequiresArtifacts(nodeType: PlannedNodeType): boolean {
-  return !['app-track-join', 'app-branch-summary'].includes(nodeType);
+  return true;
 }
 
 export function createStablePlanBranchId(runId: string, projectName: string): string {
@@ -414,13 +478,13 @@ function createTracks(projectName: string, capability: ProjectCapabilityShape): 
     return [{
       trackId: 'documentation',
       kind: 'documentation',
-      label: 'Documentation fallback',
+      label: '文档兜底',
       required: true,
       dependsOn: ['spec-generate'],
       fallbackReason: capability.fallbackReasons.join('\n') || 'No executable capability was detected.',
       nodes: [
-        plannedNode('documentation-impl', 'documentation-impl', 'Documentation Implementation', ['spec-generate'], 'documentation', projectName),
-        plannedNode('documentation-test', 'documentation-test', 'Documentation Test', ['documentation-impl'], 'documentation', projectName),
+        plannedNode('documentation-impl', 'documentation-impl', '文档实现', ['spec-generate'], 'documentation', projectName),
+        plannedNode('documentation-test', 'documentation-test', '文档验证', ['documentation-impl'], 'documentation', projectName),
       ],
     }];
   }
@@ -430,12 +494,12 @@ function createTracks(projectName: string, capability: ProjectCapabilityShape): 
     tracks.push({
       trackId: 'backend',
       kind: 'backend',
-      label: 'Backend',
+      label: '后端',
       required: true,
       dependsOn: ['spec-generate'],
       nodes: [
-        plannedNode('java-impl', 'java-impl', 'Backend Implementation', ['spec-generate'], 'backend', projectName),
-        plannedNode('backend-test', 'backend-test', 'Backend Test', ['java-impl'], 'backend', projectName),
+        plannedNode('java-impl', 'java-impl', '后端实现', ['spec-generate'], 'backend', projectName),
+        plannedNode('backend-test', 'backend-test', '后端测试', ['java-impl'], 'backend', projectName),
       ],
     });
   }
@@ -443,34 +507,22 @@ function createTracks(projectName: string, capability: ProjectCapabilityShape): 
     tracks.push({
       trackId: 'frontend',
       kind: 'frontend',
-      label: 'Frontend',
+      label: '前端',
       required: true,
       dependsOn: ['spec-generate'],
       nodes: [
-        plannedNode('frontend-impl', 'frontend-impl', 'Frontend Implementation', ['spec-generate'], 'frontend', projectName),
-        plannedNode('frontend-test', 'frontend-test', 'Frontend Test', ['frontend-impl'], 'frontend', projectName),
+        plannedNode('frontend-impl', 'frontend-impl', '前端实现', ['spec-generate'], 'frontend', projectName),
+        plannedNode('frontend-test', 'frontend-test', '前端测试', ['frontend-impl'], 'frontend', projectName),
       ],
     });
     tracks.push({
       trackId: 'e2e',
       kind: 'e2e',
-      label: 'E2E Verification',
+      label: '端到端验证',
       required: false,
       dependsOn: ['frontend-test'],
       nodes: [
-        plannedNode('e2e-verify', 'e2e-verify', 'E2E Verify', ['frontend-test'], 'e2e', projectName),
-      ],
-    });
-  }
-  if (capability.contract) {
-    tracks.push({
-      trackId: 'contract',
-      kind: 'contract',
-      label: 'API Contract',
-      required: capability.backend && capability.frontend,
-      dependsOn: ['spec-generate'],
-      nodes: [
-        plannedNode('api-contract-check', 'api-contract-check', 'API Contract Check', ['spec-generate'], 'contract', projectName),
+        plannedNode('e2e-verify', 'e2e-verify', '端到端验证', ['frontend-test'], 'e2e', projectName),
       ],
     });
   }
@@ -481,7 +533,6 @@ function omittedTracks(capability: ProjectCapabilityShape): OmittedTrackReason[]
   const omitted: OmittedTrackReason[] = [];
   if (!capability.backend) omitted.push({ trackKind: 'backend', reason: 'Backend capability was not detected.' });
   if (!capability.frontend) omitted.push({ trackKind: 'frontend', reason: 'Frontend capability was not detected.' });
-  if (!capability.contract) omitted.push({ trackKind: 'contract', reason: 'API/contract impact was not detected.' });
   if (!capability.frontend) omitted.push({ trackKind: 'e2e', reason: 'E2E requires a frontend-capable app.' });
   return omitted;
 }
@@ -507,41 +558,22 @@ function plannedNode(
 }
 
 function requiredArtifactsForNode(nodeType: PlannedNodeType, projectName: string): string[] {
-  const project = projectName || '{project}';
-  return {
-    'implementation-plan': ['artifacts/mrd-clarified.md', 'artifacts/project-manifest.json'],
-    'spec-generate': ['artifacts/mrd-clarified.md', `artifacts/${project}/tech-design.md`],
-    'backend-impl': [`artifacts/${project}/openspec/changes/*/tasks.md`],
-    'java-impl': [`artifacts/${project}/openspec/changes/*/tasks.md`],
-    'frontend-impl': [`artifacts/${project}/openspec/changes/*/tasks.md`],
-    'backend-test': [`artifacts/${project}/changed-files.json`],
-    'frontend-test': [`artifacts/${project}/frontend-implementation-summary.json`],
-    'api-contract-check': [`artifacts/${project}/openspec/changes/*/tasks.md`],
-    'e2e-verify': [`artifacts/${project}/e2e/startup-manifest.json`],
-    'documentation-impl': [`artifacts/${project}/openspec/changes/*/tasks.md`],
-    'documentation-test': [`artifacts/${project}/documentation-implementation.md`],
-    'app-track-join': [],
-    'app-branch-summary': [],
-  }[nodeType] ?? [];
+  return materializeProjectArtifacts(
+    getPlanNodeContract(nodeType)?.artifacts.requiredArtifacts ?? [],
+    projectName
+  );
 }
 
 function artifactHintsForNode(nodeType: PlannedNodeType, projectName: string): string[] {
+  return materializeProjectArtifacts(
+    getPlanNodeContract(nodeType)?.artifacts.artifactHints ?? [],
+    projectName
+  );
+}
+
+function materializeProjectArtifacts(artifacts: string[], projectName: string): string[] {
   const project = projectName || '{project}';
-  return {
-    'implementation-plan': [`artifacts/${project}/tech-design.md`],
-    'spec-generate': [`artifacts/${project}/openspec/changes/*/tasks.md`],
-    'backend-impl': [`artifacts/${project}/changed-files.json`],
-    'java-impl': [`artifacts/${project}/changed-files.json`],
-    'frontend-impl': [`artifacts/${project}/frontend-implementation-summary.json`],
-    'backend-test': [`artifacts/${project}/test-report.md`],
-    'frontend-test': [`artifacts/${project}/frontend-test-report.md`],
-    'api-contract-check': [`artifacts/${project}/e2e/api-contract-results.json`],
-    'e2e-verify': [`artifacts/${project}/e2e/e2e-summary.json`],
-    'documentation-impl': [`artifacts/${project}/documentation-implementation.md`],
-    'documentation-test': [`artifacts/${project}/documentation-test-report.md`],
-    'app-track-join': [],
-    'app-branch-summary': [`artifacts/${project}/branch-summary.json`],
-  }[nodeType] ?? [];
+  return artifacts.map(artifact => artifact.replace(/\{project\}/g, project));
 }
 
 function hasDependencyCycle(nodes: PlannedNode[]): boolean {

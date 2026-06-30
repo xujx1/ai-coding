@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "baseUrl": "http://127.0.0.1:58266",
+  "checks": [
+    {
+      "name": "readiness /health",
+      "method": "GET",
+      "url": "http://127.0.0.1:58266/health",
+      "status": 404,
+      "ok": true
+    }
+  ],
+  "generatedAt": "2026-06-30T08:47:17.372Z"
+}

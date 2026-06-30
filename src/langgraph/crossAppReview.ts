@@ -51,7 +51,7 @@ export function runCrossAppCodeReview(args: {
   const result = buildReviewResult(args.state, summaries, findings, 'app-code-impl');
   const artifactPaths = writeReviewArtifacts(
     args.paths,
-    args.nodeId ?? 'cross-app-code-review',
+    args.nodeId ?? 'cross-app-test',
     'code-review',
     result,
     summaries
@@ -75,7 +75,7 @@ export function runCrossAppIntegrationReview(args: {
   const result = buildReviewResult(args.state, summaries, findings, 'app-integration-test');
   const artifactPaths = writeReviewArtifacts(
     args.paths,
-    args.nodeId ?? 'cross-app-integration-review',
+    args.nodeId ?? 'cross-app-test',
     'integration-review',
     result,
     summaries

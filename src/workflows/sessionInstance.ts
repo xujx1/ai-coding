@@ -5,6 +5,7 @@ import {
   BUILTIN_MRD_TO_CODE_WORKFLOW_ID,
 } from './builtinDefinitions.js';
 import type { FanoutDecision } from './fanoutDecision.js';
+import type { RequirementOwnershipArtifact } from './requirementOwnership.js';
 import type { WorkflowSnapshot } from './types.js';
 import type { ProjectManifest } from '../pipeline/node-agents/upload-init.js';
 import {
@@ -21,8 +22,22 @@ export const SESSION_BRANCH_NODE_SEQUENCE = [
   'java-impl',
   'testcode-generate',
   'app-integration-test',
-  'app-branch-summary',
 ];
+
+const DEPRECATED_BRANCH_NODE_IDS = new Set([
+  'api-contract-check',
+  'app-track-join',
+  'app-branch-summary',
+]);
+
+const DEPRECATED_BRANCH_TRACK_IDS = new Set([
+  'contract',
+]);
+
+const DEPRECATED_TOP_LEVEL_NODE_IDS = new Set([
+  'cross-app-code-review',
+  'cross-app-integration-review',
+]);
 
 export type SessionWorkflowLayout = 'dynamic-fanout' | 'legacy-fixed';
 
@@ -121,9 +136,11 @@ export interface SessionWorkflowTrackRef {
   label: string;
   required: boolean;
   status: SessionWorkflowRuntimeStatus;
+  currentNodeId?: string;
   nodeIds: string[];
   dependsOn?: string[];
   fallbackReason?: string;
+  error?: string;
 }
 
 export interface SessionWorkflowInstance {
@@ -244,28 +261,23 @@ function createDynamicTopLevelNodes(): SessionWorkflowNode[] {
     },
     {
       id: 'project-fanout',
-      label: '项目 Fanout',
+      label: '项目分流',
       kind: 'fanout',
       branchIds: [],
       artifactHints: ['artifacts/fanout-decision.json'],
     },
     {
       id: 'app-join',
-      label: '分支 Join',
+      label: '分支汇合',
       kind: 'join',
       joinId: 'app-join',
     },
     {
-      id: 'cross-app-code-review',
-      label: '跨应用代码审查',
+      id: 'cross-app-test',
+      label: '跨应用测试',
       kind: 'aggregate_review',
-      artifactHints: ['artifacts/cross-app/code-review-findings.json'],
-    },
-    {
-      id: 'cross-app-integration-review',
-      label: '跨应用集成审查',
-      kind: 'aggregate_review',
-      artifactHints: ['artifacts/cross-app/integration-review-findings.json'],
+      sourceNodeId: 'cross-app-test',
+      artifactHints: ['artifacts/cross-app/test-results.json'],
     },
     {
       id: 'archive',
@@ -343,6 +355,7 @@ export function applyFanoutDecisionToSessionWorkflowInstance(args: {
   decision: FanoutDecision;
   manifest?: ProjectManifest;
   clarifiedMrd?: string;
+  requirementOwnership?: RequirementOwnershipArtifact;
   artifactPath?: string;
   updatedAt?: string;
 }): void {
@@ -351,9 +364,11 @@ export function applyFanoutDecisionToSessionWorkflowInstance(args: {
     decision: args.decision,
     manifest: args.manifest,
     clarifiedMrd: args.clarifiedMrd,
+    requirementOwnership: args.requirementOwnership,
     sourceArtifacts: [
       'artifacts/project-manifest.json',
       'artifacts/mrd-clarified.md',
+      ...(args.requirementOwnership ? ['artifacts/requirement-ownership.json'] : []),
       args.artifactPath ?? 'artifacts/fanout-decision.json',
     ],
     generatedAt: args.updatedAt,
@@ -403,13 +418,17 @@ export function resetSessionBranchFromNode(
   branch: SessionWorkflowBranchRef,
   fromNodeId: string
 ): void {
-  const startIndex = SESSION_BRANCH_NODE_SEQUENCE.indexOf(fromNodeId);
+  normalizeSessionBranchExecutionShape(branch);
+  const nodeOrder = branch.nodes?.length
+    ? branch.nodes.map(node => node.id)
+    : SESSION_BRANCH_NODE_SEQUENCE;
+  const startIndex = nodeOrder.indexOf(fromNodeId);
   if (startIndex < 0) return;
+  const resetNodeIds = new Set(nodeOrder.slice(startIndex));
   branch.status = 'pending';
   branch.currentNodeId = fromNodeId;
   for (const node of branch.nodes ?? []) {
-    const index = SESSION_BRANCH_NODE_SEQUENCE.indexOf(node.id);
-    if (index >= startIndex) {
+    if (resetNodeIds.has(node.id)) {
       node.status = 'pending';
       node.error = undefined;
       node.failureCount = 0;
@@ -418,9 +437,67 @@ export function resetSessionBranchFromNode(
     }
   }
   if (branch.artifactIndex) {
-    for (const nodeId of SESSION_BRANCH_NODE_SEQUENCE.slice(startIndex)) {
+    for (const nodeId of resetNodeIds) {
       delete branch.artifactIndex[nodeId];
     }
+  }
+  for (const track of branch.tracks ?? []) {
+    if (track.nodeIds.some(nodeId => resetNodeIds.has(nodeId))) {
+      track.status = 'pending';
+      track.currentNodeId = track.nodeIds.find(nodeId => resetNodeIds.has(nodeId));
+      track.error = undefined;
+    }
+  }
+}
+
+export function normalizeSessionWorkflowInstanceShape(instance: SessionWorkflowInstance): void {
+  const hasDeprecatedTopLevel = instance.nodes.some(node => DEPRECATED_TOP_LEVEL_NODE_IDS.has(node.id));
+  if (hasDeprecatedTopLevel) {
+    instance.nodes = instance.nodes.filter(node => !DEPRECATED_TOP_LEVEL_NODE_IDS.has(node.id));
+    const archiveIndex = instance.nodes.findIndex(node => node.id === 'archive');
+    if (!instance.nodes.some(node => node.id === 'cross-app-test')) {
+      const crossAppTestNode: SessionWorkflowNode = {
+        id: 'cross-app-test',
+        label: '跨应用测试',
+        kind: 'aggregate_review',
+        sourceNodeId: 'cross-app-test',
+        artifactHints: ['artifacts/cross-app/test-results.json'],
+      };
+      if (archiveIndex >= 0) {
+        instance.nodes.splice(archiveIndex, 0, crossAppTestNode);
+      } else {
+        instance.nodes.push(crossAppTestNode);
+      }
+    }
+    instance.edges = createDynamicTopLevelEdges(instance.nodes);
+  }
+  const crossAppTestNode = instance.nodes.find(node => node.id === 'cross-app-test');
+  if (crossAppTestNode && !crossAppTestNode.sourceNodeId) {
+    crossAppTestNode.sourceNodeId = 'cross-app-test';
+  }
+  for (const branch of instance.branches ?? []) {
+    normalizeSessionBranchExecutionShape(branch);
+  }
+  instance.updatedAt = new Date().toISOString();
+}
+
+function normalizeSessionBranchExecutionShape(branch: SessionWorkflowBranchRef): void {
+  if (branch.nodes?.length) {
+    branch.nodes = branch.nodes.filter(node => !DEPRECATED_BRANCH_NODE_IDS.has(node.id));
+  }
+  if (branch.tracks?.length) {
+    branch.tracks = branch.tracks
+      .filter(track => !DEPRECATED_BRANCH_TRACK_IDS.has(track.trackId))
+      .map(track => ({
+        ...track,
+        nodeIds: track.nodeIds.filter(nodeId => !DEPRECATED_BRANCH_NODE_IDS.has(nodeId)),
+      }));
+  }
+  for (const nodeId of DEPRECATED_BRANCH_NODE_IDS) {
+    delete branch.artifactIndex?.[nodeId];
+  }
+  if (branch.currentNodeId && DEPRECATED_BRANCH_NODE_IDS.has(branch.currentNodeId)) {
+    branch.currentNodeId = branch.nodes?.at(-1)?.id ?? branch.currentNodeId;
   }
 }
 
@@ -457,6 +534,51 @@ export function syncSessionWorkflowJoinFromBranches(instance: SessionWorkflowIns
         ? 'failed'
         : 'completed',
   };
+}
+
+export function syncSessionBranchRuntimeFromNodes(branch: SessionWorkflowBranchRef): void {
+  const nodes = branch.nodes ?? [];
+  if (!nodes.length) return;
+
+  const failed = nodes.find(node => ['failed', 'waiting_fix', 'interrupted', 'cancelled'].includes(node.status));
+  if (failed) {
+    branch.currentNodeId = failed.id;
+    branch.status = failed.status === 'waiting_fix'
+      ? 'waiting_fix'
+      : failed.status === 'cancelled'
+        ? 'cancelled'
+        : failed.status === 'interrupted'
+          ? 'interrupted'
+          : 'failed';
+    return;
+  }
+
+  const waitingConfirmation = nodes.find(node => node.status === 'waiting_confirmation');
+  if (waitingConfirmation) {
+    branch.currentNodeId = waitingConfirmation.id;
+    branch.status = 'waiting_confirmation';
+    return;
+  }
+
+  const running = nodes.find(node => ['running', 'suspended'].includes(node.status));
+  if (running) {
+    branch.currentNodeId = running.id;
+    branch.status = running.status;
+    return;
+  }
+
+  const firstPending = nodes.find(node => node.status === 'pending');
+  if (firstPending) {
+    branch.currentNodeId = firstPending.id;
+    branch.status = 'pending';
+    return;
+  }
+
+  const completed = nodes.every(node => ['completed', 'skipped'].includes(node.status));
+  if (completed) {
+    branch.currentNodeId = nodes.at(-1)?.id ?? branch.currentNodeId;
+    branch.status = 'completed';
+  }
 }
 
 function resolveFanoutNodeStatus(decision: FanoutDecision): SessionWorkflowNode['status'] {
@@ -513,7 +635,10 @@ function branchNodeLabel(nodeId: string): string {
     'spec-generate': 'SPEC生成',
     'java-impl': 'Java实现',
     'testcode-generate': '测试代码',
-    'app-integration-test': 'E2E Verify',
-    'app-branch-summary': 'Summary',
+    'backend-test': '后端测试',
+    'frontend-impl': '前端实现',
+    'frontend-test': '前端测试',
+    'e2e-verify': '端到端验证',
+    'app-integration-test': '端到端验证',
   }[nodeId] ?? nodeId;
 }

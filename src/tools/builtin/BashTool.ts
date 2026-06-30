@@ -1,10 +1,9 @@
 import { z } from 'zod';
 import { exec, ExecOptions } from 'child_process';
 import * as path from 'path';
-import * as fs from 'fs';
 import { Tool, ToolContext, ToolResult } from '../base.js';
-import { getConfig } from '../../config/index.js';
 import { analyzeBashCommand } from '../security/bashSafety.js';
+import { createJavaProcessEnv } from './javaRuntime.js';
 
 export const BashTool: Tool = {
   definition: {
@@ -38,23 +37,11 @@ export const BashTool: Tool = {
       };
     }
 
-    const config = getConfig();
     const execTimeout = timeout ?? 120000;
     const analysis = analyzeBashCommand(command);
 
     // System PATH is preferred; configured Java/Maven bins are appended only if present.
-    const pathParts: string[] = [];
-    const javaBin = config.java.javaHome ? path.join(config.java.javaHome, 'bin') : '';
-    const mavenBin = resolveMavenBin(config.java.mavenHome);
-    if (javaBin && fs.existsSync(javaBin)) pathParts.push(javaBin);
-    if (mavenBin && fs.existsSync(mavenBin)) pathParts.push(mavenBin);
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      PATH: [...pathParts, process.env.PATH || ''].filter(Boolean).join(path.delimiter),
-    };
-    if (config.java.javaHome && fs.existsSync(config.java.javaHome)) env.JAVA_HOME = config.java.javaHome;
-    const mavenHome = resolveMavenHome(config.java.mavenHome);
-    if (mavenHome && fs.existsSync(mavenHome)) env.MAVEN_HOME = mavenHome;
+    const env = createJavaProcessEnv();
 
     const execOptions: ExecOptions = {
       cwd: workingDir,
@@ -92,19 +79,3 @@ export const BashTool: Tool = {
     });
   },
 };
-
-function resolveMavenBin(configuredPath: string): string {
-  if (!configuredPath) return '';
-  if (fs.existsSync(configuredPath) && fs.statSync(configuredPath).isFile()) {
-    return path.dirname(configuredPath);
-  }
-  return path.join(configuredPath, 'bin');
-}
-
-function resolveMavenHome(configuredPath: string): string {
-  if (!configuredPath) return '';
-  if (fs.existsSync(configuredPath) && fs.statSync(configuredPath).isFile()) {
-    return path.dirname(path.dirname(configuredPath));
-  }
-  return configuredPath;
-}

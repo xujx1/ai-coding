@@ -1,0 +1,32 @@
+{
+  "agentRunId": "__ECscCb",
+  "runId": "PDRbY_AI59",
+  "nodeId": "java-impl",
+  "projectName": "marketing-admin",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+  "taskDescription": "评审 marketing-admin 项目文件夹的 Java 变更",
+  "status": "cancelled",
+  "currentModelId": "gpt-5.4",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 4,
+  "tokenUsage": {
+    "input": 89153,
+    "output": 1442
+  },
+  "compactCount": 0,
+  "toolCallCount": 19,
+  "inputArtifacts": [
+    "artifacts/marketing-admin/openspec-task.md",
+    "artifacts/marketing-admin/tech-design.md"
+  ],
+  "outputArtifacts": [
+    "artifacts/marketing-admin/changed-files.json",
+    "artifacts/marketing-admin/code-preview-manifest.json"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782800500690,
+  "updatedAt": 1782800740687,
+  "completedAt": 1782800650966
+}

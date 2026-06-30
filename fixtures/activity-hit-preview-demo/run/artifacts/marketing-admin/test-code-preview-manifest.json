@@ -1,0 +1,131 @@
+{
+  "project": "marketing-admin",
+  "files": [
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/application/service/ActivityServiceTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__application__service__ActivityServiceTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__application__service__ActivityServiceTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/application/service/PreviewServiceTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__application__service__PreviewServiceTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__application__service__PreviewServiceTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/domain/ActivityStateMachineTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__ActivityStateMachineTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__ActivityStateMachineTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/domain/CouponStateMachineTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__CouponStateMachineTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__CouponStateMachineTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/domain/OrderOccupyTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__OrderOccupyTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__OrderOccupyTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/domain/RuleValidatorTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__RuleValidatorTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__RuleValidatorTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/domain/ScopeKeyGeneratorTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__ScopeKeyGeneratorTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__ScopeKeyGeneratorTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/infrastructure/client/MarketingRuntimePreviewClientTest.java",
+      "status": "added",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__infrastructure__client__MarketingRuntimePreviewClientTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__infrastructure__client__MarketingRuntimePreviewClientTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/integration/ActivityLifecycleIntegrationTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityLifecycleIntegrationTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityLifecycleIntegrationTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/integration/ActivityPreviewIntegrationTest.java",
+      "status": "added",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityPreviewIntegrationTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityPreviewIntegrationTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/integration/BaseIntegrationTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__BaseIntegrationTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__BaseIntegrationTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/integration/CouponLifecycleIntegrationTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__CouponLifecycleIntegrationTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__CouponLifecycleIntegrationTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/integration/DlqIntegrationTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__DlqIntegrationTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__DlqIntegrationTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/integration/ProductScopeIntegrationTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ProductScopeIntegrationTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ProductScopeIntegrationTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/integration/QuotaIntegrationTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__QuotaIntegrationTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__QuotaIntegrationTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/integration/RegionIsolationIntegrationTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__RegionIsolationIntegrationTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__RegionIsolationIntegrationTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/web/controller/ActivityControllerTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__web__controller__ActivityControllerTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__web__controller__ActivityControllerTest.java"
+    },
+    {
+      "sourcePath": "src/test/java/com/ump/marketing/web/controller/PreviewControllerTest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__web__controller__PreviewControllerTest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__web__controller__PreviewControllerTest.java"
+    }
+  ]
+}

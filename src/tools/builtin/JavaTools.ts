@@ -10,7 +10,7 @@ import { exec, ExecOptions } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Tool, ToolContext, ToolResult } from '../base.js';
-import { getConfig } from '../../config/index.js';
+import { createJavaProcessEnv, resolveJavaToolCommand } from './javaRuntime.js';
 
 const flexibleBoolean = z.preprocess((value) => {
   if (typeof value === 'boolean' || value === undefined) return value;
@@ -22,56 +22,6 @@ const flexibleBoolean = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
-function javaEnv(): NodeJS.ProcessEnv {
-  const config = getConfig();
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-  };
-  const pathParts: string[] = [];
-  if (config.java.javaHome && fs.existsSync(config.java.javaHome)) {
-    env.JAVA_HOME = config.java.javaHome;
-    pathParts.push(path.join(config.java.javaHome, 'bin'));
-  }
-  const mavenPath = resolveMavenConfigPath(config.java.mavenHome);
-  if (mavenPath) {
-    env.MAVEN_HOME = mavenPath.mavenHome;
-    pathParts.push(mavenPath.binDir);
-  }
-  env.PATH = [...pathParts, process.env.PATH || ''].filter(Boolean).join(path.delimiter);
-  return env;
-}
-
-function resolveToolCommand(tool: 'java' | 'javac' | 'mvn'): string {
-  const config = getConfig();
-  if (tool === 'mvn') {
-    const mavenPath = resolveMavenConfigPath(config.java.mavenHome);
-    if (mavenPath?.executable) return `"${mavenPath.executable}"`;
-    return tool;
-  }
-  const candidate = config.java.javaHome ? path.join(config.java.javaHome, 'bin', tool) : '';
-  if (candidate && fs.existsSync(candidate)) return `"${candidate}"`;
-  return tool;
-}
-
-function resolveMavenConfigPath(configuredPath: string): { mavenHome: string; binDir: string; executable?: string } | null {
-  if (!configuredPath || !fs.existsSync(configuredPath)) return null;
-  const stat = fs.statSync(configuredPath);
-  if (stat.isFile()) {
-    const binDir = path.dirname(configuredPath);
-    return {
-      mavenHome: path.dirname(binDir),
-      binDir,
-      executable: configuredPath,
-    };
-  }
-  const executable = path.join(configuredPath, 'bin', 'mvn');
-  return {
-    mavenHome: configuredPath,
-    binDir: path.join(configuredPath, 'bin'),
-    executable: fs.existsSync(executable) ? executable : undefined,
-  };
-}
-
 function runCommand(
   cmd: string,
   args: string[],
@@ -80,7 +30,7 @@ function runCommand(
   extraArgs?: Record<string, string>
 ): Promise<ToolResult> {
   const cwd = ctx.projectDir;
-  const env = javaEnv();
+  const env = createJavaProcessEnv();
   const fullCmd = `${cmd} ${args.join(' ')}`;
 
   return new Promise((resolve) => {
@@ -120,7 +70,7 @@ export const JdkJavaTool: Tool = {
     const { classpath, mainClass, args, timeout } = input as any;
     const cp = classpath ?? 'target/classes:target/dependency/*';
     const argStr = (args ?? []).join(' ');
-    return runCommand(resolveToolCommand('java'), ['-cp', cp, mainClass, argStr], ctx, timeout ?? 30000);
+    return runCommand(resolveJavaToolCommand('java'), ['-cp', cp, mainClass, argStr], ctx, timeout ?? 30000);
   },
 };
 
@@ -145,7 +95,7 @@ export const JdkJavacTool: Tool = {
     const args = ['-d', outDir, '-encoding', 'UTF-8'];
     if (classpath) args.push('-cp', classpath);
     args.push(...sourceFiles);
-    return runCommand(resolveToolCommand('javac'), args, ctx, 60000);
+    return runCommand(resolveJavaToolCommand('javac'), args, ctx, 60000);
   },
 };
 
@@ -167,7 +117,7 @@ export const MavenCompileTool: Tool = {
     const args = ['compile', '-B', '-q'];
     if (skipTests) args.push('-DskipTests=true');
     if (extraArgs) args.push(extraArgs);
-    return runCommand(resolveToolCommand('mvn'), args, ctx, 180000);
+    return runCommand(resolveJavaToolCommand('mvn'), args, ctx, 180000);
   },
 };
 
@@ -190,7 +140,7 @@ export const MavenTestTool: Tool = {
     if (testClass) args.push(`-Dtest=${testClass}`);
     if (extraArgs) args.push(extraArgs);
 
-    const result = await runCommand(resolveToolCommand('mvn'), args, ctx, 300000);
+    const result = await runCommand(resolveJavaToolCommand('mvn'), args, ctx, 300000);
 
     // Save test report to artifacts
     try {
@@ -229,7 +179,7 @@ export const MavenDependencyTreeTool: Tool = {
     const { args: extraArgs } = input as any;
     const args = ['dependency:tree', '-B'];
     if (extraArgs) args.push(extraArgs);
-    return runCommand(resolveToolCommand('mvn'), args, ctx, 120000);
+    return runCommand(resolveJavaToolCommand('mvn'), args, ctx, 120000);
   },
 };
 
@@ -248,7 +198,7 @@ export const MavenEffectivePomTool: Tool = {
     const { outputFile } = input as any;
     const outFile = outputFile ?? 'target/effective-pom.xml';
     const args = ['help:effective-pom', `-Doutput=${outFile}`, '-B'];
-    const result = await runCommand(resolveToolCommand('mvn'), args, ctx, 120000);
+    const result = await runCommand(resolveJavaToolCommand('mvn'), args, ctx, 120000);
     if (!result.isError) {
       const pomPath = path.join(ctx.projectDir, outFile);
       if (fs.existsSync(pomPath)) {

@@ -54,9 +54,9 @@ loadConfig();
 const config = getConfig();
 const sessionManager = getSessionManager();
 const wsHub = getWebSocketHub();
-const FULL_FLOW_DEMO_VERSION = 16;
-const FULL_FLOW_DEMO_SOURCE_RUN_ID = 'XOjoDRmUAx';
-const FULL_FLOW_DEMO_SOURCE_RUNTIME_DIR = '/private/tmp/ai-coding-real-marketing-confirm-flow-4301';
+const FULL_FLOW_DEMO_VERSION = 17;
+const FULL_FLOW_DEMO_SOURCE_RUN_ID = 'PDRbY_AI59';
+const FULL_FLOW_DEMO_SOURCE_RUNTIME_DIR = '/Users/xu/IdeaProjects/ai-coding/runtime-projects';
 // 默认启动时注入一个完整演示会话；部署方如需纯空白环境，可设置 AI_CODING_AUTO_DEMO=0。
 if (process.env.AI_CODING_AUTO_DEMO !== '0') {
   ensureFullFlowDemoSession();
@@ -621,29 +621,40 @@ app.post('/api/demo/full-flow', (c) => {
 });
 
 function ensureFullFlowDemoSession(): void {
-  const existing = findFullFlowDemoSession();
+  const existing = findCurrentFullFlowDemoSession();
   if (!existing) {
-    createFullFlowDemoSession(false);
-    return;
-  }
-  if ((existing.state?.metadata?.demoVersion as number | undefined) !== FULL_FLOW_DEMO_VERSION) {
-    sessionManager.deleteSession(existing.runId);
     createFullFlowDemoSession(false);
   }
 }
 
-function findFullFlowDemoSession(): { runId: string; state: any } | undefined {
+function listFullFlowDemoSessions(): Array<{ runId: string; state: any }> {
+  const demos: Array<{ runId: string; state: any }> = [];
   for (const session of sessionManager.listSessions()) {
     const state = getStateStore(session.runId).loadExecutionState();
     if (state?.metadata?.demo === true && state?.metadata?.demoType === 'full-flow') {
-      return { runId: session.runId, state };
+      demos.push({ runId: session.runId, state });
     }
   }
-  return undefined;
+  return demos;
+}
+
+function findCurrentFullFlowDemoSession(): { runId: string; state: any } | undefined {
+  const demos = listFullFlowDemoSessions();
+  const current = demos.find(
+    demo => (demo.state?.metadata?.demoVersion as number | undefined) === FULL_FLOW_DEMO_VERSION
+  );
+
+  for (const demo of demos) {
+    if (!current || demo.runId !== current.runId) {
+      sessionManager.deleteSession(demo.runId);
+    }
+  }
+
+  return current;
 }
 
 function fullFlowDemoFixtureDir(): string {
-  return path.join(process.cwd(), 'fixtures', 'full-flow-demo');
+  return path.join(process.cwd(), 'fixtures', 'activity-hit-preview-demo');
 }
 
 function fullFlowDemoSnapshotRunDir(): string {
@@ -666,10 +677,13 @@ function copyDirectoryContents(sourceDir: string, targetDir: string): void {
 }
 
 function createFullFlowDemoSession(forceNew = false): { runId: string; state: unknown } {
-  if (!forceNew) {
-    const existing = findFullFlowDemoSession();
-    if (existing && existing.state?.metadata?.demoVersion === FULL_FLOW_DEMO_VERSION) {
-      return { runId: existing.runId, state: existing.state };
+  const existing = findCurrentFullFlowDemoSession();
+  if (!forceNew && existing) {
+    return { runId: existing.runId, state: existing.state };
+  }
+  if (forceNew) {
+    for (const demo of listFullFlowDemoSessions()) {
+      sessionManager.deleteSession(demo.runId);
     }
   }
 
@@ -705,21 +719,31 @@ function normalizeRecordedDemoRun(runDir: string, runId: string): void {
   ].filter(([from, to]) => from && from !== to);
 
   rewriteTextFiles(runDir, replacements);
+  renameRecordedDemoZip(runDir, runId);
 
   const statePath = path.join(runDir, 'execution-state.json');
   const state = JSON.parse(fs.readFileSync(statePath, 'utf-8')) as Record<string, unknown>;
   state.runId = runId;
-  state.name = '完整流程演示 Demo';
-  state.description = '基于真实营销项目活动软删除需求的完整流程演示';
+  state.name = '活动命中预览 Demo';
+  state.description = '基于真实上传 MRD、marketing、marketing-admin 双项目的动态多应用完整流程演示';
   state.status = 'completed';
   state.metadata = {
     ...((state.metadata as Record<string, unknown> | undefined) || {}),
     demo: true,
     demoType: 'full-flow',
     demoVersion: FULL_FLOW_DEMO_VERSION,
-    sourceSnapshot: 'recorded-full-flow',
+    sourceSnapshot: 'activity-hit-preview',
   };
   fs.writeFileSync(statePath, JSON.stringify(state, null, 2), 'utf-8');
+}
+
+function renameRecordedDemoZip(runDir: string, runId: string): void {
+  const downloadsDir = path.join(runDir, 'artifacts', 'downloads');
+  const sourceZip = path.join(downloadsDir, `${FULL_FLOW_DEMO_SOURCE_RUN_ID}-projects.zip`);
+  const targetZip = path.join(downloadsDir, `${runId}-projects.zip`);
+  if (!fs.existsSync(sourceZip) || sourceZip === targetZip) return;
+  fs.mkdirSync(downloadsDir, { recursive: true });
+  fs.renameSync(sourceZip, targetZip);
 }
 
 function detectSnapshotRunRoot(runDir: string): string {

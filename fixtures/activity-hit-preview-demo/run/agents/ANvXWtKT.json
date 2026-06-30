@@ -1,0 +1,32 @@
+{
+  "agentRunId": "ANvXWtKT",
+  "runId": "PDRbY_AI59",
+  "nodeId": "archive",
+  "projectName": "marketing-admin",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+  "taskDescription": "归档 marketing-admin 项目文件夹的修改结果",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-mini",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 3,
+  "modelSwitchHistory": [],
+  "turnCount": 4,
+  "tokenUsage": {
+    "input": 74531,
+    "output": 2188
+  },
+  "compactCount": 0,
+  "toolCallCount": 5,
+  "inputArtifacts": [
+    "artifacts/implementation-plan-manifest.json",
+    "artifacts/marketing-admin/test-report.md"
+  ],
+  "outputArtifacts": [
+    "artifacts/marketing-admin/archive-report.md",
+    "artifacts/archive-manifest.json"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782809079086,
+  "updatedAt": 1782809152120,
+  "completedAt": 1782809152120
+}

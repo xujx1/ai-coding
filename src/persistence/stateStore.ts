@@ -22,6 +22,7 @@ export interface NodeState {
   outputArtifacts?: string[];
   childAgentIds?: string[];
   error?: string;
+  resourceWaitReason?: string;
   confirmation?: {
     waiting: boolean;
     content?: string;
@@ -128,6 +129,7 @@ export interface ProjectState {
     childAgentIds?: string[];
     error?: string;
     failureCount: number;
+    resourceWaitReason?: string;
   }>;
   tracks?: Record<string, {
     trackId: string;

@@ -1,0 +1,6 @@
+{
+  "classification": "backend",
+  "reason": "Timed out waiting for service readiness at http://127.0.0.1:52575: fetch failed",
+  "source": "startup",
+  "generatedAt": "2026-06-30T08:15:18.666Z"
+}

@@ -1,0 +1,46 @@
+{
+  "nodeId": "java-impl",
+  "outputArtifacts": [
+    {
+      "path": "artifacts/marketing/changed-files/RuntimePreviewController.java",
+      "summary": "package com.ump.marketing.web.controller; import com.ump.marketing.api.dto.RuntimePreviewRequest; import com.ump.marketing.api.dto.RuntimePreviewResponse; import com.ump.marketing.api.result.RpcResult; import com.ump.marketing.application.service.RuntimePreviewService; import org.springframework.validation.BindingResult; import org.springframework.validation.FieldError; import org.springframework.web.bind.annotation.PostMapping; import org.springframework.web.bind.annotation.RequestBody; import ...",
+      "size": 2475
+    },
+    {
+      "path": "artifacts/marketing/changed-files.json",
+      "summary": "{ \"project\": \"marketing\", \"generatedAt\": \"20260630T06:36:59.112Z\", \"changedFiles\": [ { \"path\": \"src/main/java/com/ump/marketing/api/dto/RuntimePreviewHitDTO.java\", \"status\": \"modified\", \"size\": 3264, \"previewArtifact\": \"artifacts/marketing/changedfiles/RuntimePreviewHitDTO.java\", \"absolutePreviewArtifact\": \"/Users/xu/IdeaProjects/aicoding/runtimeprojects/runs/PDRbYAI59/artifacts/marketing/changedfiles/RuntimePreviewHitDTO.java\" }, { \"path\": \"src/main/java/com/ump/marketing/api/dto/RuntimePreview...",
+      "size": 5371
+    },
+    {
+      "path": "artifacts/marketing-admin/changed-files/PreviewQueryMapper.xml",
+      "summary": "<?xml version=\"1.0\" encoding=\"UTF8\"? <!DOCTYPE mapper PUBLIC \"//mybatis.org//DTD Mapper 3.0//EN\" \"http://mybatis.org/dtd/mybatis3mapper.dtd\" <mapper namespace=\"com.ump.marketing.infrastructure.mapper.PreviewQueryMapper\" <resultMap id=\"PreviewActivityResultMap\" type=\"com.ump.marketing.api.dto.PreviewActivityDTO\" <result column=\"activityid\" property=\"activityId\"/ <result column=\"activityname\" property=\"activityName\"/ <result column=\"status\" property=\"status\"/ <result column=\"tooltype\" property=\"to...",
+      "size": 3740
+    },
+    {
+      "path": "artifacts/marketing-admin/changed-files.json",
+      "summary": "{ \"project\": \"marketingadmin\", \"generatedAt\": \"20260630T06:37:34.952Z\", \"changedFiles\": [ { \"path\": \"src/main/java/com/ump/marketing/api/dto/PreviewActivityDTO.java\", \"status\": \"modified\", \"size\": 751, \"previewArtifact\": \"artifacts/marketingadmin/changedfiles/PreviewActivityDTO.java\", \"absolutePreviewArtifact\": \"/Users/xu/IdeaProjects/aicoding/runtimeprojects/runs/PDRbYAI59/artifacts/marketingadmin/changedfiles/PreviewActivityDTO.java\" }, { \"path\": \"src/main/java/com/ump/marketing/api/dto/Previe...",
+      "size": 6473
+    },
+    {
+      "path": "artifacts/marketing-admin/changed-files/PreviewService.java",
+      "summary": "package com.ump.marketing.application.service; import com.ump.marketing.api.dto.PreviewActivityDTO; import com.ump.marketing.api.dto.PreviewHintDTO; import com.ump.marketing.api.dto.PreviewQueryRequest; import com.ump.marketing.api.dto.PreviewResponseDTO; import com.ump.marketing.api.dto.PreviewResponseDTO.PreviewQuerySummaryDTO; import com.ump.marketing.api.dto.PreviewSideResultDTO; import com.ump.marketing.api.result.RpcResult; import com.ump.marketing.domain.service.RuleValidator; import com....",
+      "size": 17999
+    }
+  ],
+  "importantDecisions": [],
+  "riskNotes": [],
+  "nextNodeInputs": [
+    "artifacts/marketing-admin/tech-design.md",
+    "artifacts/marketing/tech-design.md",
+    "artifacts/marketing/openspec-test-task.md",
+    "artifacts/marketing-admin/openspec-task.md",
+    "artifacts/marketing-admin/openspec-test-task.md",
+    "artifacts/marketing/openspec-task.md",
+    "artifacts/marketing/changed-files/RuntimePreviewController.java",
+    "artifacts/marketing/changed-files.json",
+    "artifacts/marketing-admin/changed-files/PreviewQueryMapper.xml",
+    "artifacts/marketing-admin/changed-files.json",
+    "artifacts/marketing-admin/changed-files/PreviewService.java",
+    "artifacts/project-manifest.json"
+  ]
+}

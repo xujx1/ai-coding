@@ -80,7 +80,7 @@ export function buildSpecGeneratePrompt(
   }
   const prdPath = path.join(paths.artifactsDir, 'prd.md');
   const prdSection = fs.existsSync(prdPath)
-    ? `- path: artifacts/prd.md\n\n${fs.readFileSync(prdPath, 'utf-8').slice(0, 30000)}`
+    ? `- path: artifacts/prd.md\n- role: optional legacy compatibility context\n\n${fs.readFileSync(prdPath, 'utf-8').slice(0, 30000)}`
     : clarifiedMrdSection;
 
   return renderPromptTemplate(loadPromptFile('spec-generate-user.md'), {
@@ -133,7 +133,7 @@ export function buildStagePrompt(
 
   const prdPath = path.join(paths.artifactsDir, 'prd.md');
   if (fs.existsSync(prdPath) && !['mrd-render', 'mrd-clarify', 'implementation-plan'].includes(node.id)) {
-    parts.push(`\n## PRD\n${fs.readFileSync(prdPath, 'utf-8').slice(0, 10000)}\n`);
+    parts.push(`\n## Legacy PRD Compatibility Context\n${fs.readFileSync(prdPath, 'utf-8').slice(0, 10000)}\n`);
   }
 
   if (['spec-generate', 'java-impl', 'java-review', 'testcode-generate', 'maven-test-runner', 'archive'].includes(node.id)) {
@@ -203,6 +203,9 @@ export function buildProjectStagePromptVariables(
     test_code_preview_manifest_path: path.join(paths.artifactsDir, project.name, 'test-code-preview-manifest.json'),
     changed_test_files_preview_dir: path.join(paths.artifactsDir, project.name, 'changed-test-files'),
     mrd_clarified: readArtifactForPrompt(paths, 'mrd-clarified.md', 30000),
+    proposal: readArtifactForPrompt(paths, 'mrd-clarified.md', 30000),
+    requirement_ownership: readArtifactForPrompt(paths, 'requirement-ownership.json', 16000),
+    legacy_prd: readArtifactForPrompt(paths, 'prd.md', 24000),
     prd: readArtifactForPrompt(paths, 'prd.md', 24000) || readArtifactForPrompt(paths, 'mrd-clarified.md', 24000),
     implementation_manifest: readArtifactForPrompt(paths, 'implementation-plan-manifest.json', 12000),
     spec_manifest: readArtifactForPrompt(paths, 'spec-manifest.json', 12000),

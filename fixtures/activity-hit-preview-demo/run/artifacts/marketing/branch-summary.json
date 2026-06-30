@@ -1,0 +1,83 @@
+{
+  "branchId": "PDRbY_AI59-marketing",
+  "projectName": "marketing",
+  "changedFiles": [
+    "marketing/changed-files/RuntimePreviewController.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__application__service__ActivityServiceTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__application__service__RuntimePreviewServiceTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__domain__ActivityStateMachineTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__domain__CouponStateMachineTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__domain__OrderOccupyTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__domain__RuleValidatorTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__domain__ScopeKeyGeneratorTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityLifecycleIntegrationTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__integration__BaseIntegrationTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__integration__CouponLifecycleIntegrationTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__integration__DlqIntegrationTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__integration__ProductScopeIntegrationTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__integration__QuotaIntegrationTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__integration__RegionIsolationIntegrationTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__integration__RuntimePreviewIntegrationTest.java",
+    "marketing/changed-test-files/src__test__java__com__ump__marketing__web__controller__RuntimePreviewControllerTest.java"
+  ],
+  "publicApiChanges": [],
+  "databaseChanges": [],
+  "configChanges": [],
+  "dependencyChanges": [],
+  "testResults": {
+    "status": "passed"
+  },
+  "riskNotes": [],
+  "requiredCrossAppChecks": [],
+  "tracks": [
+    {
+      "trackId": "backend",
+      "kind": "backend",
+      "status": "completed",
+      "nodeIds": [
+        "java-impl",
+        "backend-test"
+      ],
+      "artifactPaths": [
+        "artifacts/marketing/changed-files/RuntimePreviewController.java",
+        "artifacts/marketing/changed-files.json",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__application__service__ActivityServiceTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__application__service__RuntimePreviewServiceTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__domain__ActivityStateMachineTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__domain__CouponStateMachineTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__domain__OrderOccupyTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__domain__RuleValidatorTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__domain__ScopeKeyGeneratorTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityLifecycleIntegrationTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__integration__BaseIntegrationTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__integration__CouponLifecycleIntegrationTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__integration__DlqIntegrationTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__integration__ProductScopeIntegrationTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__integration__QuotaIntegrationTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__integration__RegionIsolationIntegrationTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__integration__RuntimePreviewIntegrationTest.java",
+        "artifacts/marketing/changed-test-files/src__test__java__com__ump__marketing__web__controller__RuntimePreviewControllerTest.java",
+        "artifacts/marketing/test-code-preview-manifest.json",
+        "artifacts/marketing/test-file-list.md",
+        "artifacts/marketing/testcode-generation-report.md",
+        "artifacts/marketing/test-report.md",
+        "artifacts/marketing/surefire-summary.json",
+        "artifacts/marketing/coverage-summary.json",
+        "artifacts/marketing/failure-classification.json",
+        "artifacts/marketing/autofix-history.md",
+        "artifacts/marketing/openspec/changes/run-pdrby_ai59-marketing/tasks.md"
+      ]
+    }
+  ],
+  "openSpec": {
+    "changeId": "run-pdrby_ai59-marketing",
+    "proposalPath": "artifacts/marketing/openspec/changes/run-pdrby_ai59-marketing/proposal.md",
+    "designPath": "artifacts/marketing/openspec/changes/run-pdrby_ai59-marketing/design.md",
+    "tasksPath": "artifacts/marketing/openspec/changes/run-pdrby_ai59-marketing/tasks.md",
+    "specPath": "artifacts/marketing/openspec/changes/run-pdrby_ai59-marketing/specs/marketing/spec.md",
+    "taskStatus": {
+      "total": 50,
+      "completed": 46
+    }
+  }
+}

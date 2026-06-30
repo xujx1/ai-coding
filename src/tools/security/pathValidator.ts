@@ -8,6 +8,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { getConfig } from '../../config/index.js';
+import { resolveMavenBin } from '../builtin/javaRuntime.js';
 
 export type AccessType = 'read' | 'write' | 'execute';
 
@@ -114,13 +115,6 @@ export function validatePath(
   };
 }
 
-function resolveMavenBin(configuredPath: string): string {
-  if (!configuredPath) return '';
-  if (fs.existsSync(configuredPath) && fs.statSync(configuredPath).isFile()) {
-    return path.dirname(configuredPath);
-  }
-  return path.join(configuredPath, 'bin');
-}
 
 /** Validate cwd for Bash/Maven execution - must be inside workspace/project */
 export function validateCwd(cwd: string, projectDir: string): { valid: boolean; reason?: string } {

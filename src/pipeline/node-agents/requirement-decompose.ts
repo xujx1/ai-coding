@@ -294,6 +294,49 @@ export function buildClarifyQuestionsArtifact(
   });
 }
 
+export function buildRequirementBreakdownArtifact(
+  clarified: string,
+  manifest?: ProjectManifest
+): string {
+  const featureInventory = extractSection(clarified, '## Feature Inventory') || '未能稳定提取功能清单。';
+  const projectOwnership = extractSection(clarified, '## Project Ownership') || '未能稳定提取项目归属。';
+  const implementationSurfaces = extractSection(clarified, '## Implementation Surfaces') ||
+    buildImplementationSurfaceConfirmation({
+      clarified,
+      manifest,
+      featureInventory,
+      projectOwnership,
+      implementationBoundaries: extractSection(clarified, '## Implementation Boundaries') || '',
+    });
+  const implementationBoundaries = extractSection(clarified, '## Implementation Boundaries') || '未能稳定提取实施边界。';
+  const decisions = extractSection(clarified, '## Clarified Decisions') || '暂无确认决策。';
+
+  return [
+    '# Requirement Breakdown',
+    '',
+    '## Feature Inventory',
+    '',
+    featureInventory.trim(),
+    '',
+    '## Project Ownership',
+    '',
+    projectOwnership.trim(),
+    '',
+    '## Implementation Surfaces',
+    '',
+    implementationSurfaces.trim(),
+    '',
+    '## Implementation Boundaries',
+    '',
+    implementationBoundaries.trim(),
+    '',
+    '## Confirmed Decisions',
+    '',
+    decisions.trim(),
+    '',
+  ].join('\n');
+}
+
 function stripClarifyQuestionHeader(content: string): string {
   let text = content.replace(/^#\s+MRD Clarify Questions\s*/i, '').trim();
   const otherQuestionsMarker = '## 其他待澄清问题';

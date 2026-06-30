@@ -13,3 +13,14 @@ runtime-projects/
 
 npm-debug.log*
 tsconfig.tsbuildinfo
+
+# Fixture snapshots keep replayable state, not generated runtime payloads.
+fixtures/**/run/workspace/
+fixtures/**/run/artifacts/downloads/
+fixtures/**/run/artifacts/**/*.zip
+fixtures/**/run/logs/tool-*.log
+fixtures/**/run/logs/permission-decisions.ndjson
+fixtures/**/run/artifacts/**/e2e/*.log
+fixtures/**/run/artifacts/**/e2e/playwright-report/
+fixtures/**/run/artifacts/**/e2e/screenshots/
+fixtures/**/run/artifacts/**/e2e/test-results/

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "runId": "PDRbY_AI59",
+  "appName": "marketing-admin",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+  "fallbackReasons": [],
+  "cleanup": {
+    "attempted": true,
+    "status": "completed",
+    "errors": []
+  },
+  "generatedAt": "2026-06-30T08:47:05.637Z",
+  "updatedAt": "2026-06-30T08:47:22.873Z",
+  "backend": {
+    "kind": "backend",
+    "command": "'/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn' spring-boot:run -Dspring-boot.run.profiles=test -Dspring-boot.run.arguments='--server.port=58266 --spring.profiles.active=test'",
+    "originalCommand": "mvn spring-boot:run",
+    "port": 58266,
+    "url": "http://127.0.0.1:58266",
+    "readinessEndpoint": "/",
+    "logArtifactPath": "artifacts/marketing-admin/e2e/backend-startup.log",
+    "status": "stopped",
+    "startedAt": "2026-06-30T08:47:12.208Z",
+    "readyAt": "2026-06-30T08:47:12.208Z"
+  },
+  "frontend": {
+    "kind": "frontend",
+    "command": "'/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn' spring-boot:run -Dspring-boot.run.profiles=test -Dspring-boot.run.arguments='--server.port=58267 --spring.profiles.active=test'",
+    "originalCommand": "mvn spring-boot:run",
+    "port": 58267,
+    "url": "http://127.0.0.1:58267",
+    "readinessEndpoint": "/",
+    "logArtifactPath": "artifacts/marketing-admin/e2e/frontend-startup.log",
+    "status": "stopped",
+    "startedAt": "2026-06-30T08:47:17.310Z",
+    "readyAt": "2026-06-30T08:47:17.310Z"
+  },
+  "apiBaseUrlInjection": {
+    "variableName": "VITE_API_BASE_URL",
+    "value": "http://127.0.0.1:58266",
+    "source": "common"
+  }
+}

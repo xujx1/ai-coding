@@ -1,0 +1,9 @@
+{
+  "project": "marketing",
+  "available": false,
+  "lineCoverage": null,
+  "branchCoverage": null,
+  "methodCoverage": null,
+  "classCoverage": null,
+  "note": "未检测到 target/site/jacoco/jacoco.xml；当前 Maven 测试未生成覆盖率报告。"
+}

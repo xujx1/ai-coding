@@ -1,0 +1,25 @@
+{
+  "agentRunId": "RYboWipF",
+  "runId": "PDRbY_AI59",
+  "nodeId": "frontend-impl",
+  "projectName": "marketing-admin",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+  "taskDescription": "实现 marketing-admin 项目文件夹的前端代码",
+  "status": "running",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 8,
+  "tokenUsage": {
+    "input": 215938,
+    "output": 4337
+  },
+  "compactCount": 0,
+  "toolCallCount": 17,
+  "inputArtifacts": [],
+  "outputArtifacts": [],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782804334373,
+  "updatedAt": 1782804597768
+}

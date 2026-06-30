@@ -41,6 +41,13 @@ test('example activity hit preview MRD runs marketing and marketing-admin throug
     .sort();
   assert.deepEqual(branchNames, ['marketing', 'marketing-admin']);
   assert.equal(finalState?.workflowInstance?.executionPlan?.validation.valid, true);
+  assert.equal(fs.existsSync(path.join(paths.artifactsDir, 'requirement-breakdown.md')), true);
+  assert.equal(fs.existsSync(path.join(paths.artifactsDir, 'requirement-ownership.json')), true);
+  const ownership = JSON.parse(fs.readFileSync(path.join(paths.artifactsDir, 'requirement-ownership.json'), 'utf-8'));
+  assert.ok(Array.isArray(ownership.implementationSurfaces));
+  assert.ok(ownership.implementationSurfaces.some((surface: { projectName?: string; frontend?: boolean }) =>
+    surface.projectName === 'marketing-admin' && surface.frontend
+  ));
   const tracksByProject = new Map(
     finalState?.workflowInstance?.executionPlan?.branches.map(branch => [
       branch.projectName,
@@ -65,6 +72,11 @@ test('example activity hit preview MRD runs marketing and marketing-admin throug
       fs.existsSync(path.join(paths.artifactsDir, project, 'openspec', 'changes', `run-${session.runId.toLowerCase()}-${project}`, 'tasks.md')),
       true,
       `${project} OpenSpec tasks should exist`,
+    );
+    assert.equal(
+      fs.existsSync(path.join(paths.artifactsDir, project, 'openspec', 'changes', `run-${session.runId.toLowerCase()}-${project}`, 'proposal.md')),
+      true,
+      `${project} OpenSpec proposal should exist`,
     );
     const summary = JSON.parse(fs.readFileSync(path.join(paths.artifactsDir, project, 'branch-summary.json'), 'utf-8'));
     assert.equal(summary.openSpec.changeId, `run-${session.runId.toLowerCase()}-${project}`);

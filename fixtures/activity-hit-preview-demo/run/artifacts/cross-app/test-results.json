@@ -1,0 +1,21 @@
+{
+  "reviewKind": "cross-app-test",
+  "status": "approved",
+  "affectedBranches": [],
+  "findings": [],
+  "branchSummaries": [
+    {
+      "branchId": "PDRbY_AI59-marketing",
+      "projectName": "marketing",
+      "status": "completed",
+      "summaryArtifact": "artifacts/marketing/branch-summary.json"
+    },
+    {
+      "branchId": "PDRbY_AI59-marketing-admin",
+      "projectName": "marketing-admin",
+      "status": "completed",
+      "summaryArtifact": "artifacts/marketing-admin/branch-summary.json"
+    }
+  ],
+  "generatedAt": "2026-06-30T08:47:23.043Z"
+}

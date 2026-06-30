@@ -1,0 +1,137 @@
+{
+  "requirements": [
+    {
+      "name": "activity-hit-preview-mrd.md",
+      "path": "input/activity-hit-preview-mrd.md",
+      "size": 5562
+    }
+  ],
+  "projects": [
+    {
+      "name": "marketing",
+      "root": "project/marketing",
+      "buildTool": "maven",
+      "pomPath": "project/marketing/pom.xml",
+      "sourceRoots": [
+        "src/main/java"
+      ],
+      "testRoots": [
+        "src/test/java"
+      ],
+      "capabilities": {
+        "projectRoot": "project/marketing",
+        "backend": {
+          "kind": "backend",
+          "command": "mvn spring-boot:run",
+          "workingDirectory": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing",
+          "evidence": [
+            "pom.xml",
+            "framework 'maven'",
+            "framework 'spring-boot'"
+          ],
+          "confidence": "medium",
+          "frameworkSignals": [
+            "maven",
+            "spring-boot"
+          ],
+          "scriptSignals": []
+        },
+        "readinessEndpoints": [
+          "/health"
+        ],
+        "apiBaseUrlConventions": [
+          {
+            "name": "VITE_API_BASE_URL",
+            "source": "common",
+            "confidence": "medium"
+          },
+          {
+            "name": "NEXT_PUBLIC_API_BASE_URL",
+            "source": "common",
+            "confidence": "medium"
+          },
+          {
+            "name": "REACT_APP_API_BASE_URL",
+            "source": "common",
+            "confidence": "medium"
+          }
+        ],
+        "trustedStartup": true,
+        "confidence": "medium",
+        "fallbackReasons": [
+          "No trusted frontend startup command or framework convention was detected."
+        ],
+        "generatedAt": "2026-06-30T04:34:01.354Z"
+      }
+    },
+    {
+      "name": "marketing-admin",
+      "root": "project/marketing-admin",
+      "buildTool": "maven",
+      "pomPath": "project/marketing-admin/pom.xml",
+      "sourceRoots": [
+        "src/main/java",
+        "src/main/resources/static"
+      ],
+      "testRoots": [
+        "src/test/java"
+      ],
+      "capabilities": {
+        "projectRoot": "project/marketing-admin",
+        "frontend": {
+          "kind": "frontend",
+          "command": "mvn spring-boot:run",
+          "workingDirectory": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+          "evidence": [
+            "framework 'spring-static'"
+          ],
+          "confidence": "medium",
+          "frameworkSignals": [
+            "spring-static"
+          ],
+          "scriptSignals": []
+        },
+        "backend": {
+          "kind": "backend",
+          "command": "mvn spring-boot:run",
+          "workingDirectory": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+          "evidence": [
+            "pom.xml",
+            "framework 'maven'",
+            "framework 'spring-boot'"
+          ],
+          "confidence": "medium",
+          "frameworkSignals": [
+            "maven",
+            "spring-boot"
+          ],
+          "scriptSignals": []
+        },
+        "readinessEndpoints": [
+          "/health"
+        ],
+        "apiBaseUrlConventions": [
+          {
+            "name": "VITE_API_BASE_URL",
+            "source": "common",
+            "confidence": "medium"
+          },
+          {
+            "name": "NEXT_PUBLIC_API_BASE_URL",
+            "source": "common",
+            "confidence": "medium"
+          },
+          {
+            "name": "REACT_APP_API_BASE_URL",
+            "source": "common",
+            "confidence": "medium"
+          }
+        ],
+        "trustedStartup": true,
+        "confidence": "medium",
+        "fallbackReasons": [],
+        "generatedAt": "2026-06-30T04:34:01.358Z"
+      }
+    }
+  ]
+}

@@ -3,6 +3,11 @@ import * as net from 'net';
 import * as path from 'path';
 import { ChildProcess, spawn } from 'child_process';
 import { RunPaths } from '../runtime/paths.js';
+import {
+  createJavaProcessEnv,
+  resolveJavaToolCommand,
+  shellQuote,
+} from '../tools/builtin/javaRuntime.js';
 import { confidenceMeetsThreshold } from './config.js';
 import { selectApiBaseUrlConvention } from './capabilities.js';
 import {
@@ -20,6 +25,9 @@ export interface ServiceHandle {
   port: number;
   url: string;
   command?: string;
+  originalCommand?: string;
+  readinessEndpoint?: string;
+  logArtifactPath?: string;
 }
 
 export interface IntegrationHarnessRun {
@@ -72,6 +80,9 @@ export async function startIntegrationHarness(args: {
         port: ports.backend,
         readinessEndpoints: args.capabilities.readinessEndpoints,
         config: args.config,
+        projectRoot: args.projectRoot,
+        logFile: path.join(e2eDir, 'backend-startup.log'),
+        logArtifactPath: artifactPathFor(args.appName, 'backend-startup.log'),
       });
       services.push(backend);
       manifest.backend = serviceToManifest(backend, 'ready');
@@ -91,6 +102,9 @@ export async function startIntegrationHarness(args: {
         readinessEndpoints: ['/'],
         config: args.config,
         env,
+        projectRoot: args.projectRoot,
+        logFile: path.join(e2eDir, 'frontend-startup.log'),
+        logArtifactPath: artifactPathFor(args.appName, 'frontend-startup.log'),
       });
       services.push(frontend);
       manifest.frontend = serviceToManifest(frontend, 'ready');
@@ -112,6 +126,7 @@ export async function startIntegrationHarness(args: {
         port: ports.backend,
         url: `http://127.0.0.1:${ports.backend}`,
         command: args.capabilities.backend.command,
+        logArtifactPath: artifactPathFor(args.appName, 'backend-startup.log'),
       }, 'failed', message);
     } else if (!manifest.frontend && args.capabilities.frontend) {
       manifest.frontend = serviceToManifest({
@@ -119,6 +134,7 @@ export async function startIntegrationHarness(args: {
         port: ports.frontend,
         url: `http://127.0.0.1:${ports.frontend}`,
         command: args.capabilities.frontend.command,
+        logArtifactPath: artifactPathFor(args.appName, 'frontend-startup.log'),
       }, 'failed', message);
     }
     manifest.fallbackReasons.push(message);
@@ -150,37 +166,101 @@ async function startService(args: {
   readinessEndpoints: string[];
   config: E2ERuntimeConfig;
   env?: Record<string, string>;
+  projectRoot: string;
+  logFile: string;
+  logArtifactPath: string;
 }): Promise<ServiceHandle> {
   if (!shouldStartCapability(args.evidence, args.config)) {
     throw new Error(`${args.kind} startup confidence '${args.evidence.confidence}' is below threshold '${args.config.startupConfidenceThreshold}'.`);
   }
   const url = `http://127.0.0.1:${args.port}`;
-  const env = {
-    ...process.env,
+  const prepared = prepareStartupCommand(args.evidence, args.port, args.projectRoot);
+  const env = createJavaProcessEnv({
     PORT: String(args.port),
     HOST: '127.0.0.1',
     ...args.env,
-  };
-  const child = spawn(args.evidence.command, {
+    ...prepared.env,
+  });
+  fs.mkdirSync(path.dirname(args.logFile), { recursive: true });
+  const logStream = fs.createWriteStream(args.logFile, { flags: 'a' });
+  logStream.write([
+    `# ${args.kind} startup`,
+    `timestamp=${new Date().toISOString()}`,
+    `cwd=${args.evidence.workingDirectory}`,
+    `command=${prepared.command}`,
+    prepared.command !== args.evidence.command ? `originalCommand=${args.evidence.command}` : undefined,
+    prepared.profile ? `springProfile=${prepared.profile}` : undefined,
+    `url=${url}`,
+    '',
+  ].filter(Boolean).join('\n'));
+  logStream.write('\n');
+  const child = spawn(prepared.command, {
     cwd: args.evidence.workingDirectory,
     shell: true,
     env,
-    stdio: 'ignore',
+    stdio: ['ignore', 'pipe', 'pipe'],
     detached: process.platform !== 'win32',
   });
+  child.stdout?.on('data', chunk => logStream.write(String(chunk)));
+  child.stderr?.on('data', chunk => logStream.write(String(chunk)));
+  child.once('close', code => {
+    logStream.write(`\n[process exited with code ${code ?? 'unknown'}]\n`);
+    logStream.end();
+  });
   try {
-    await waitForReadiness(url, args.readinessEndpoints, args.config.readinessTimeoutMs);
+    const readinessEndpoint = await waitForReadiness(url, args.readinessEndpoints, args.config.readinessTimeoutMs);
+    return {
+      kind: args.kind,
+      process: child,
+      port: args.port,
+      url,
+      command: prepared.command,
+      originalCommand: prepared.command === args.evidence.command ? undefined : args.evidence.command,
+      readinessEndpoint,
+      logArtifactPath: args.logArtifactPath,
+    };
   } catch (err) {
+    logStream.write(`\n[startup failed] ${(err as Error).message}\n`);
     await terminateProcess(child);
     throw err;
   }
+}
+
+function prepareStartupCommand(
+  evidence: StartupCommandEvidence,
+  port: number,
+  projectRoot: string
+): { command: string; env: NodeJS.ProcessEnv; profile?: string } {
+  const command = evidence.command.trim();
+  if (!isMavenSpringBootCommand(command)) {
+    return { command, env: {} };
+  }
+  const profile = detectSpringTestProfile(projectRoot);
+  const args = [`--server.port=${port}`];
+  if (profile) args.push(`--spring.profiles.active=${profile}`);
   return {
-    kind: args.kind,
-    process: child,
-    port: args.port,
-    url,
-    command: args.evidence.command,
+    command: [
+      resolveJavaToolCommand('mvn'),
+      'spring-boot:run',
+      ...(profile ? [`-Dspring-boot.run.profiles=${profile}`] : []),
+      `-Dspring-boot.run.arguments=${shellQuote(args.join(' '))}`,
+    ].join(' '),
+    env: profile ? { SPRING_PROFILES_ACTIVE: profile } : {},
+    profile,
   };
+}
+
+function isMavenSpringBootCommand(command: string): boolean {
+  return /\bmvn(?:\s|$)/.test(command) && command.includes('spring-boot:run');
+}
+
+function detectSpringTestProfile(projectRoot: string): string | undefined {
+  const candidates = [
+    path.join(projectRoot, 'src/main/resources/application-test.yml'),
+    path.join(projectRoot, 'src/main/resources/application-test.yaml'),
+    path.join(projectRoot, 'src/main/resources/application-test.properties'),
+  ];
+  return candidates.some(candidate => fs.existsSync(candidate)) ? 'test' : undefined;
 }
 
 export async function waitForReadiness(
@@ -264,7 +344,7 @@ function terminateProcess(child: ChildProcess): Promise<void> {
 }
 
 function serviceToManifest(
-  service: Pick<ServiceHandle, 'kind' | 'command' | 'port' | 'url'>,
+  service: Pick<ServiceHandle, 'kind' | 'command' | 'originalCommand' | 'port' | 'url' | 'readinessEndpoint' | 'logArtifactPath'>,
   status: StartupManifestService['status'],
   error?: string
 ): StartupManifestService {
@@ -272,8 +352,11 @@ function serviceToManifest(
   return {
     kind: service.kind,
     command: service.command,
+    originalCommand: service.originalCommand,
     port: service.port,
     url: service.url,
+    readinessEndpoint: service.readinessEndpoint,
+    logArtifactPath: service.logArtifactPath,
     status,
     startedAt: now,
     readyAt: status === 'ready' ? now : undefined,

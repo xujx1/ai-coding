@@ -1,0 +1,26 @@
+{
+  "agentRunId": "llPALGXU",
+  "runId": "PDRbY_AI59",
+  "nodeId": "backend-test",
+  "projectName": "marketing-admin",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+  "taskDescription": "生成 marketing-admin 项目文件夹的后端测试代码",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 18,
+  "tokenUsage": {
+    "input": 1072271,
+    "output": 4466
+  },
+  "compactCount": 1,
+  "toolCallCount": 51,
+  "inputArtifacts": [],
+  "outputArtifacts": [],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782805686331,
+  "updatedAt": 1782806246976,
+  "completedAt": 1782806246976
+}

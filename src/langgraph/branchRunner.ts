@@ -1,6 +1,12 @@
 import { BranchWorkflowDefinition, WorkflowNode } from '../workflows/types.js';
 import type { ApplicationBranchPlan, PlannedNode } from '../workflows/sessionPlan.js';
-import { AsyncSemaphore } from './concurrency.js';
+import { getPlanNodeContract } from '../workflows/planNodeRegistry.js';
+import {
+  AsyncSemaphore,
+  PlanResourceLimits,
+  PlanResourceSemaphores,
+  createPlanResourceSemaphores,
+} from './concurrency.js';
 import {
   BranchTrackState,
   BranchState,
@@ -27,6 +33,8 @@ export interface PlannedBranchRunnerContext {
   plan: ApplicationBranchPlan;
   handlers?: Record<string, PlannedNodeHandler>;
   concurrencyLimit?: number;
+  resourceLimits?: Partial<PlanResourceLimits>;
+  resourceSemaphores?: PlanResourceSemaphores;
 }
 
 export interface PlannedNodeRunResult {
@@ -121,6 +129,10 @@ export async function runPlannedBranch(
     startedAt: ctx.branch.startedAt ?? Date.now(),
   };
   const semaphore = new AsyncSemaphore(ctx.concurrencyLimit ?? 2);
+  const resourceSemaphores = ctx.resourceSemaphores ?? createPlanResourceSemaphores({
+    branchConcurrency: ctx.concurrencyLimit ?? 2,
+    ...ctx.resourceLimits,
+  });
   const terminal = new Set(['completed', 'failed', 'cancelled', 'waiting_fix', 'skipped']);
 
   while (true) {
@@ -139,7 +151,15 @@ export async function runPlannedBranch(
         : markBranchNode(branch, node.id, { status: 'running', startedAt: runningAt });
       try {
         const handler = resolvePlannedNodeHandler(ctx.handlers, node);
-        const result = await handler?.({ ...ctx, branch }, node);
+        const resourceWaitReason = getPlanResourceWaitReason(resourceSemaphores, node);
+        if (resourceWaitReason) {
+          branch = node.trackId
+            ? markBranchTrackNode(branch, node.trackId, node.id, { resourceWaitReason })
+            : markBranchNode(branch, node.id, { resourceWaitReason });
+        }
+        const result = await runWithPlanResources(resourceSemaphores, node, () =>
+          handler?.({ ...ctx, branch }, node)
+        );
         return { node, result };
       } catch (err) {
         return { node, error: err as Error };
@@ -167,6 +187,7 @@ export async function runPlannedBranch(
         outputArtifacts,
         childAgentIds: result?.childAgentIds,
         error: result?.error,
+        resourceWaitReason: undefined,
       };
       branch = node.trackId
         ? markBranchTrackNode(branch, node.trackId, node.id, patch)
@@ -203,6 +224,42 @@ export async function runPlannedBranch(
     status: allCompleted ? 'completed' : branch.status,
     completedAt: allCompleted ? Date.now() : branch.completedAt,
   };
+}
+
+function getPlanResourceWaitReason(
+  semaphores: PlanResourceSemaphores,
+  node: PlannedNode
+): string | undefined {
+  const resources = getPlanNodeContract(node.type)?.resources ?? {};
+  if (semaphores.branches.activeCount >= semaphores.branches.limitCount) return 'branch capacity exhausted';
+  if (resources.modelSlots && semaphores.model.activeCount >= semaphores.model.limitCount) return 'model capacity exhausted';
+  if (resources.commandSlots && semaphores.command.activeCount >= semaphores.command.limitCount) return 'command capacity exhausted';
+  if (resources.browserSlots && semaphores.browser.activeCount >= semaphores.browser.limitCount) return 'browser capacity exhausted';
+  for (const toolName of Object.keys(resources.toolSlots ?? {})) {
+    const semaphore = semaphores.tools[toolName];
+    if (semaphore && semaphore.activeCount >= semaphore.limitCount) return `${toolName} capacity exhausted`;
+  }
+  return undefined;
+}
+
+async function runWithPlanResources<T>(
+  semaphores: PlanResourceSemaphores,
+  node: PlannedNode,
+  fn: () => Promise<T> | T
+): Promise<T> {
+  const resources = getPlanNodeContract(node.type)?.resources ?? {};
+  const toolEntries = Object.entries(resources.toolSlots ?? {});
+  const runToolResources = (index: number): Promise<T> | T => {
+    if (index >= toolEntries.length) return fn();
+    const [toolName] = toolEntries[index];
+    const semaphore = semaphores.tools[toolName];
+    if (!semaphore) return runToolResources(index + 1);
+    return semaphore.run(() => runToolResources(index + 1));
+  };
+  const runBrowser = () => resources.browserSlots ? semaphores.browser.run(() => runToolResources(0)) : runToolResources(0);
+  const runCommand = () => resources.commandSlots ? semaphores.command.run(runBrowser) : runBrowser();
+  const runModel = () => resources.modelSlots ? semaphores.model.run(runCommand) : runCommand();
+  return semaphores.branches.run(runModel);
 }
 
 export function createInitialBranchState(args: {
@@ -394,14 +451,6 @@ function failPlannedNode(
       error: message,
       failureCount: (branch.nodes[node.id]?.failureCount ?? 0) + 1,
     });
-  for (const dependent of plan.nodes.filter(candidate => candidate.dependsOn.includes(node.id))) {
-    if (dependent.id === 'app-track-join' || dependent.id === 'app-branch-summary') {
-      next = markBranchNode(next, dependent.id, {
-        status: 'waiting_fix',
-        error: `Blocked by failed node ${node.id}.`,
-      });
-    }
-  }
   return next;
 }
 

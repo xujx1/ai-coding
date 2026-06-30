@@ -76,7 +76,9 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
 
   for (const artifact of [
     'mrd-clarified.md',
+    'requirement-breakdown.md',
     'mrd-clarify-questions.md',
+    'requirement-ownership.json',
     'fanout-decision.json',
     'implementation-plan-manifest.json',
     'project/tech-design.md',
@@ -122,6 +124,7 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
   );
   assert.equal(implementationManifest.nodeId, 'implementation-plan');
   assert.equal(implementationManifest.proposal, 'artifacts/mrd-clarified.md');
+  assert.equal(implementationManifest.requirementOwnership, 'artifacts/requirement-ownership.json');
   assert.ok(Array.isArray(implementationManifest.projects), 'implementation manifest should have projects array');
   assert.ok(
     implementationManifest.projects.some((project: { artifact?: string }) => project.artifact === 'artifacts/project/tech-design.md'),

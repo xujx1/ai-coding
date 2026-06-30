@@ -29,8 +29,9 @@ export interface MavenTestArtifactEntries {
 }
 
 export function buildMavenTestArtifactEntries(projectName: string, mavenOutput: string, projectRoot?: string): MavenTestArtifactEntries {
-  const classification = classifyMavenOutput(mavenOutput);
+  const outputClassification = classifyMavenOutput(mavenOutput);
   const surefire = summarizeSurefireOutput(mavenOutput, projectRoot);
+  const classification = normalizeClassificationWithSurefire(outputClassification, surefire);
   const coverage = summarizeCoverage(projectRoot);
   const failedTotal = surefire.failures + surefire.errors;
   const passed = Math.max(0, surefire.testsRun - failedTotal - surefire.skipped);
@@ -209,6 +210,25 @@ export function classifyMavenOutput(output: string): MavenClassification {
     }
   }
   return rules.default;
+}
+
+function normalizeClassificationWithSurefire(
+  classification: MavenClassification,
+  surefire: SurefireSummary
+): MavenClassification {
+  if (surefire.testsRun > 0 && surefire.failures === 0 && surefire.errors === 0) {
+    return {
+      category: 'success',
+      reason: `Surefire 报告显示 ${surefire.testsRun} 个用例全部通过。`,
+    };
+  }
+  if (surefire.failures > 0 || surefire.errors > 0) {
+    return {
+      category: 'test_failure',
+      reason: `Surefire 报告显示 failures=${surefire.failures}, errors=${surefire.errors}。`,
+    };
+  }
+  return classification;
 }
 
 function loadClassificationRules(): {

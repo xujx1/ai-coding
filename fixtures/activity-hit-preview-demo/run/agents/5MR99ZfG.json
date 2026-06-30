@@ -1,0 +1,26 @@
+{
+  "agentRunId": "5MR99ZfG",
+  "runId": "PDRbY_AI59",
+  "nodeId": "backend-test",
+  "projectName": "marketing",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing",
+  "taskDescription": "生成 marketing 项目文件夹的后端测试代码",
+  "status": "cancelled",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 8,
+  "tokenUsage": {
+    "input": 407830,
+    "output": 2799
+  },
+  "compactCount": 0,
+  "toolCallCount": 37,
+  "inputArtifacts": [],
+  "outputArtifacts": [],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782805282588,
+  "updatedAt": 1782806182598,
+  "completedAt": 1782805686198
+}

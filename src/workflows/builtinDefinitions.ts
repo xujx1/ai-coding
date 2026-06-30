@@ -93,7 +93,6 @@ export function createBuiltInAppBranchWorkflow(
     'app-testcode-generate',
     'app-unit-test',
     'app-integration-test',
-    'app-branch-summary',
   ];
 
   const nodes: WorkflowNode[] = nodeIds.map((id, index) => ({
@@ -213,7 +212,6 @@ function branchNodeLabel(nodeId: string): string {
     'app-testcode-generate': 'App Test Code Generate',
     'app-unit-test': 'App Unit Test',
     'app-integration-test': 'E2E Verify',
-    'app-branch-summary': 'App Branch Summary',
   }[nodeId] ?? nodeId;
 }
 
@@ -236,6 +234,5 @@ function branchArtifactOutputs(nodeId: string): string[] {
       '{project}/e2e/verification-summary.md',
       '{project}/e2e/e2e-summary.json',
     ],
-    'app-branch-summary': ['{project}/branch-summary.json'],
   }[nodeId] ?? [];
 }

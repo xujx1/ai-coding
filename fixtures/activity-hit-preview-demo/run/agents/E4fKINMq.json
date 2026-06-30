@@ -1,0 +1,26 @@
+{
+  "agentRunId": "E4fKINMq",
+  "runId": "PDRbY_AI59",
+  "nodeId": "backend-test",
+  "projectName": "marketing-admin",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+  "taskDescription": "执行 marketing-admin 项目文件夹的 Maven 单元测试",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-mini",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 3,
+  "modelSwitchHistory": [],
+  "turnCount": 6,
+  "tokenUsage": {
+    "input": 182911,
+    "output": 980
+  },
+  "compactCount": 0,
+  "toolCallCount": 10,
+  "inputArtifacts": [],
+  "outputArtifacts": [],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782806074073,
+  "updatedAt": 1782806138525,
+  "completedAt": 1782806138525
+}

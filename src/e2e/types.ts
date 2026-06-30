@@ -56,9 +56,11 @@ export interface E2ERuntimeConfig {
 export interface StartupManifestService {
   kind: StartupKind;
   command?: string;
+  originalCommand?: string;
   port?: number;
   url?: string;
   readinessEndpoint?: string;
+  logArtifactPath?: string;
   status: 'pending' | 'running' | 'ready' | 'failed' | 'skipped' | 'stopped';
   pid?: number;
   startedAt?: string;

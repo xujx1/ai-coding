@@ -1,0 +1,76 @@
+{
+  "project": "marketing-admin",
+  "files": [
+    {
+      "sourcePath": "src/main/java/com/ump/marketing/api/dto/PreviewHintDTO.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-files/PreviewHintDTO.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewHintDTO.java"
+    },
+    {
+      "sourcePath": "src/main/java/com/ump/marketing/api/dto/PreviewQueryRequest.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-files/PreviewQueryRequest.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewQueryRequest.java"
+    },
+    {
+      "sourcePath": "src/main/java/com/ump/marketing/api/dto/PreviewSideResultDTO.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-files/PreviewSideResultDTO.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewSideResultDTO.java"
+    },
+    {
+      "sourcePath": "src/main/java/com/ump/marketing/application/service/PreviewService.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-files/PreviewService.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewService.java"
+    },
+    {
+      "sourcePath": "src/main/java/com/ump/marketing/infrastructure/client/MarketingRuntimePreviewClient.java",
+      "status": "modified",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-files/MarketingRuntimePreviewClient.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/MarketingRuntimePreviewClient.java"
+    },
+    {
+      "sourcePath": "src/main/java/com/ump/marketing/infrastructure/client/PreviewRuntimeClientException.java",
+      "status": "added",
+      "language": "java",
+      "artifactPath": "artifacts/marketing-admin/changed-files/PreviewRuntimeClientException.java",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/PreviewRuntimeClientException.java"
+    },
+    {
+      "sourcePath": "src/main/resources/application-test.yml",
+      "status": "modified",
+      "language": "text"
+    },
+    {
+      "sourcePath": "src/main/resources/application.yml",
+      "status": "modified",
+      "language": "text"
+    },
+    {
+      "sourcePath": "src/main/resources/mapper/PreviewQueryMapper.xml",
+      "status": "modified",
+      "language": "text"
+    },
+    {
+      "sourcePath": "src/main/resources/static/app.js",
+      "status": "modified",
+      "language": "text",
+      "artifactPath": "artifacts/marketing-admin/changed-files/src__main__resources__static__app.js",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/src__main__resources__static__app.js"
+    },
+    {
+      "sourcePath": "src/main/resources/static/styles.css",
+      "status": "modified",
+      "language": "text",
+      "artifactPath": "artifacts/marketing-admin/changed-files/src__main__resources__static__styles.css",
+      "absoluteArtifactPath": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/artifacts/marketing-admin/changed-files/src__main__resources__static__styles.css"
+    }
+  ]
+}

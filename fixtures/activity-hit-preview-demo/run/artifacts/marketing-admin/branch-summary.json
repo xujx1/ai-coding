@@ -1,0 +1,147 @@
+{
+  "branchId": "PDRbY_AI59-marketing-admin",
+  "projectName": "marketing-admin",
+  "changedFiles": [
+    "marketing-admin/changed-files/PreviewQueryMapper.xml",
+    "marketing-admin/changed-files/PreviewService.java",
+    "marketing-admin/changed-files/src__main__resources__static__app.js",
+    "marketing-admin/changed-files/src__main__resources__static__styles.css",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__application__service__ActivityServiceTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__application__service__PreviewServiceTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__ActivityStateMachineTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__CouponStateMachineTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__OrderOccupyTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__RuleValidatorTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__ScopeKeyGeneratorTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityLifecycleIntegrationTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__BaseIntegrationTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__CouponLifecycleIntegrationTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__DlqIntegrationTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ProductScopeIntegrationTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__QuotaIntegrationTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__RegionIsolationIntegrationTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__web__controller__ActivityControllerTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__web__controller__PreviewControllerTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityPreviewIntegrationTest.java",
+    "marketing-admin/changed-test-files/src__test__java__com__ump__marketing__infrastructure__client__MarketingRuntimePreviewClientTest.java"
+  ],
+  "publicApiChanges": [],
+  "databaseChanges": [],
+  "configChanges": [],
+  "dependencyChanges": [],
+  "testResults": {
+    "status": "passed"
+  },
+  "e2eVerification": {
+    "status": "passed",
+    "artifactPaths": [
+      "artifacts/marketing-admin/e2e/api-contract-results.json",
+      "artifacts/marketing-admin/e2e/api-smoke-results.json",
+      "artifacts/marketing-admin/e2e/console-network-summary.json",
+      "artifacts/marketing-admin/e2e/verification-summary.md",
+      "artifacts/marketing-admin/e2e/startup-manifest.json",
+      "artifacts/marketing-admin/e2e/backend-startup.log",
+      "artifacts/marketing-admin/e2e/frontend-startup.log",
+      "artifacts/marketing-admin/e2e/generated-playwright.spec.js",
+      "artifacts/marketing-admin/e2e/playwright-report/generated-playwright-output.json",
+      "artifacts/marketing-admin/e2e/screenshots/home.png"
+    ]
+  },
+  "riskNotes": [],
+  "requiredCrossAppChecks": [],
+  "tracks": [
+    {
+      "trackId": "backend",
+      "kind": "backend",
+      "status": "completed",
+      "nodeIds": [
+        "java-impl",
+        "backend-test"
+      ],
+      "artifactPaths": [
+        "artifacts/marketing-admin/changed-files/PreviewQueryMapper.xml",
+        "artifacts/marketing-admin/changed-files.json",
+        "artifacts/marketing-admin/changed-files/PreviewService.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__application__service__ActivityServiceTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__application__service__PreviewServiceTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__ActivityStateMachineTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__CouponStateMachineTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__OrderOccupyTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__RuleValidatorTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__domain__ScopeKeyGeneratorTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityLifecycleIntegrationTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__BaseIntegrationTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__CouponLifecycleIntegrationTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__DlqIntegrationTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ProductScopeIntegrationTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__QuotaIntegrationTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__RegionIsolationIntegrationTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__web__controller__ActivityControllerTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__web__controller__PreviewControllerTest.java",
+        "artifacts/marketing-admin/test-code-preview-manifest.json",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__integration__ActivityPreviewIntegrationTest.java",
+        "artifacts/marketing-admin/changed-test-files/src__test__java__com__ump__marketing__infrastructure__client__MarketingRuntimePreviewClientTest.java",
+        "artifacts/marketing-admin/test-file-list.md",
+        "artifacts/marketing-admin/testcode-generation-report.md",
+        "artifacts/marketing-admin/test-report.md",
+        "artifacts/marketing-admin/surefire-summary.json",
+        "artifacts/marketing-admin/coverage-summary.json",
+        "artifacts/marketing-admin/failure-classification.json",
+        "artifacts/marketing-admin/autofix-history.md",
+        "artifacts/marketing-admin/openspec/changes/run-pdrby_ai59-marketing-admin/tasks.md"
+      ]
+    },
+    {
+      "trackId": "frontend",
+      "kind": "frontend",
+      "status": "completed",
+      "nodeIds": [
+        "frontend-impl",
+        "frontend-test"
+      ],
+      "artifactPaths": [
+        "artifacts/marketing-admin/changed-files.json",
+        "artifacts/marketing-admin/code-preview-manifest.json",
+        "artifacts/marketing-admin/frontend-implementation-report.md",
+        "artifacts/marketing-admin/changed-files/src__main__resources__static__app.js",
+        "artifacts/marketing-admin/changed-files/src__main__resources__static__styles.css",
+        "artifacts/marketing-admin/frontend-test-report.md",
+        "artifacts/marketing-admin/frontend-test-summary.json"
+      ]
+    },
+    {
+      "trackId": "e2e",
+      "kind": "e2e",
+      "status": "completed",
+      "nodeIds": [
+        "e2e-verify"
+      ],
+      "artifactPaths": [
+        "artifacts/marketing-admin/e2e/api-contract-results.json",
+        "artifacts/marketing-admin/e2e/api-smoke-results.json",
+        "artifacts/marketing-admin/e2e/console-network-summary.json",
+        "artifacts/marketing-admin/e2e/failure-classification.json",
+        "artifacts/marketing-admin/e2e/verification-summary.md",
+        "artifacts/marketing-admin/e2e/e2e-summary.json",
+        "artifacts/marketing-admin/e2e/startup-manifest.json",
+        "artifacts/marketing-admin/e2e/playwright-report/platform-fallback.json",
+        "artifacts/marketing-admin/e2e/backend-startup.log",
+        "artifacts/marketing-admin/e2e/frontend-startup.log",
+        "artifacts/marketing-admin/e2e/generated-playwright.spec.js",
+        "artifacts/marketing-admin/e2e/playwright-report/generated-playwright-output.json",
+        "artifacts/marketing-admin/e2e/screenshots/home.png"
+      ]
+    }
+  ],
+  "openSpec": {
+    "changeId": "run-pdrby_ai59-marketing-admin",
+    "proposalPath": "artifacts/marketing-admin/openspec/changes/run-pdrby_ai59-marketing-admin/proposal.md",
+    "designPath": "artifacts/marketing-admin/openspec/changes/run-pdrby_ai59-marketing-admin/design.md",
+    "tasksPath": "artifacts/marketing-admin/openspec/changes/run-pdrby_ai59-marketing-admin/tasks.md",
+    "specPath": "artifacts/marketing-admin/openspec/changes/run-pdrby_ai59-marketing-admin/specs/marketing-admin/spec.md",
+    "taskStatus": {
+      "total": 54,
+      "completed": 50
+    }
+  }
+}

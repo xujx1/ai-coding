@@ -23,7 +23,7 @@ interface FileSnapshot {
   content?: string;
 }
 
-export const JAVA_MAIN_CHANGE_PATTERN = /(^pom\.xml$|^src\/main\/.*\.(java|xml|yml|yaml|properties)$)/;
+export const JAVA_MAIN_CHANGE_PATTERN = /(^pom\.xml$|^src\/main\/.*\.(java|xml|yml|yaml|properties)$|^src\/main\/resources\/static\/.*\.(html|css|js|mjs|json)$)/;
 export const JAVA_TEST_CHANGE_PATTERN = /(^pom\.xml$|^src\/test\/.*\.(java|xml|yml|yaml|properties)$)/;
 
 export function snapshotProjectFiles(projectRoot: string, includePattern: RegExp): Map<string, FileSnapshot> {
@@ -252,7 +252,7 @@ function writeChangedFilePreviews(
 ): Map<string, string> {
   const previewFiles = new Map<string, string>();
   for (const file of changedFiles) {
-    if (!file.content || !file.path.endsWith('.java')) continue;
+    if (!file.content || !isPreviewableTextFile(file.path)) continue;
     const previewRel = `${projectName}/${dirName}/${safePreviewFileName(file.path)}`;
     const previewAbs = path.join(paths.artifactsDir, previewRel);
     fs.mkdirSync(path.dirname(previewAbs), { recursive: true });
@@ -292,5 +292,13 @@ function renderTemplate(template: string, variables: Record<string, string>): st
 }
 
 function safePreviewFileName(relPath: string): string {
-  return path.basename(relPath);
+  return relPath
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter(Boolean)
+    .join('__');
+}
+
+function isPreviewableTextFile(relPath: string): boolean {
+  return /\.(java|xml|ya?ml|properties|html|css|js|mjs|ts|tsx|jsx|json|md|txt)$/i.test(relPath);
 }

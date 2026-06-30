@@ -16,6 +16,10 @@ export class AsyncSemaphore {
     return this.queue.length;
   }
 
+  get limitCount(): number {
+    return this.limit;
+  }
+
   async run<T>(fn: () => Promise<T> | T): Promise<T> {
     await this.acquire();
     try {
@@ -47,18 +51,57 @@ export class AsyncSemaphore {
 
 export interface RuntimeSemaphores {
   branches: AsyncSemaphore;
+  model: AsyncSemaphore;
+  command: AsyncSemaphore;
+  browser: AsyncSemaphore;
+  tools: Record<string, AsyncSemaphore>;
+  /** @deprecated use model */
   llm: AsyncSemaphore;
+  /** @deprecated use command */
   tests: AsyncSemaphore;
 }
 
 export function createRuntimeSemaphores(config: {
   branchConcurrency: number;
-  llmConcurrency: number;
-  testConcurrency: number;
+  modelConcurrency?: number;
+  commandConcurrency?: number;
+  browserConcurrency?: number;
+  toolConcurrency?: Record<string, number>;
+  llmConcurrency?: number;
+  testConcurrency?: number;
 }): RuntimeSemaphores {
+  const model = new AsyncSemaphore(config.modelConcurrency ?? config.llmConcurrency ?? 2);
+  const command = new AsyncSemaphore(config.commandConcurrency ?? config.testConcurrency ?? 2);
+  const tools = Object.fromEntries(
+    Object.entries(config.toolConcurrency ?? {}).map(([name, limit]) => [name, new AsyncSemaphore(limit)])
+  );
   return {
     branches: new AsyncSemaphore(config.branchConcurrency),
-    llm: new AsyncSemaphore(config.llmConcurrency),
-    tests: new AsyncSemaphore(config.testConcurrency),
+    model,
+    command,
+    browser: new AsyncSemaphore(config.browserConcurrency ?? 1),
+    tools,
+    llm: model,
+    tests: command,
   };
+}
+
+export type PlanResourceSemaphores = RuntimeSemaphores;
+
+export interface PlanResourceLimits {
+  branchConcurrency: number;
+  modelConcurrency: number;
+  commandConcurrency: number;
+  browserConcurrency: number;
+  toolConcurrency?: Record<string, number>;
+}
+
+export function createPlanResourceSemaphores(config: Partial<PlanResourceLimits> = {}): PlanResourceSemaphores {
+  return createRuntimeSemaphores({
+    branchConcurrency: config.branchConcurrency ?? 2,
+    modelConcurrency: config.modelConcurrency ?? 2,
+    commandConcurrency: config.commandConcurrency ?? 2,
+    browserConcurrency: config.browserConcurrency ?? 1,
+    toolConcurrency: config.toolConcurrency,
+  });
 }

@@ -1,0 +1,37 @@
+{
+  "nodeId": "implementation-plan",
+  "outputArtifacts": [
+    {
+      "path": "artifacts/marketing-admin/tech-design.md",
+      "summary": "marketingadmin 技术方案 1. 项目根目录 项目根目录：/Users/xu/IdeaProjects/aicoding/runtimeprojects/runs/PDRbYAI59/workspace/project/marketingadmin 技术形态：单 Maven 模块 Spring Boot 2.7 应用，后端接口与静态前端同仓。 现有前端入口位于 src/main/resources/static/，当前首页由 [src/main/resources/static/index.html](/Users/xu/IdeaProjects/aicoding/runtimeprojects/runs/PDRbYAI59/workspace/project/marketingadmin/src/main/resources/static/index.html:1)、[src/main/resources/static/app.js](/Users/xu/IdeaProjects/aicoding/runtimeprojects/runs/PDRbYAI59/worksp...",
+      "size": 15001
+    },
+    {
+      "path": "artifacts/marketing/tech-design.md",
+      "summary": "marketing 技术方案 1. 项目根目录 /Users/xu/IdeaProjects/aicoding/runtimeprojects/runs/PDRbYAI59/workspace/project/marketing 项目形态为 Maven 单模块 Spring Boot 2.7 + MyBatis 后端，当前对外 REST 入口仅见 web/controller/CouponController.java 的 /api/coupon/use，预览能力需要补一个新的只读查询接口。 本期在 marketing 侧只实现用户运行侧命中预览能力，供 marketingadmin 调用；不实现管理台页面、管理配置侧聚合、多活动最优优惠、订单实付试算、批量预览和审批/上线流程改造。 2. 影响范围 web/controller：新增运行侧预览 Controller，沿用 RpcResult 和 GlobalExceptionHandler 的统一响应/异常格式，对 marketingadmin 暴露只读查询接口。 api/dto：新增运行侧预览请求和响应 DTO，补齐 regionC...",
+      "size": 12520
+    }
+  ],
+  "importantDecisions": [
+    "# 实施方案确认",
+    "## Clarified Decisions",
+    "- 用户确认采用测试/跳过确认模式，按推荐默认决策继续；上述功能归属、实施面向、代码改动边界和未上传系统判断视为最终口径，无新增阻断问题。",
+    "## 已确认功能边界摘要",
+    "未生成独立 implementation-boundaries.md；本节点已从 mrd-clarified.md 中读取功能归属和实施边界。"
+  ],
+  "riskNotes": [
+    "- 用户确认采用测试/跳过确认模式，按推荐默认决策继续；上述功能归属、实施面向、代码改动边界和未上传系统判断视为最终口径，无新增阻断问题。",
+    "- 风险：medium"
+  ],
+  "nextNodeInputs": [
+    "artifacts/input-summary.md",
+    "artifacts/project-manifest.json",
+    "artifacts/mrd-clarified.md",
+    "artifacts/requirement-breakdown.md",
+    "artifacts/mrd-clarify-questions.md",
+    "artifacts/requirement-ownership.json",
+    "artifacts/fanout-decision.json",
+    "artifacts/marketing-admin/tech-design.md",
+    "artifacts/marketing/tech-design.md"
+  ]
+}

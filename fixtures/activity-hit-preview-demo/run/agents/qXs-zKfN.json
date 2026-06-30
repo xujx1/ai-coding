@@ -1,0 +1,34 @@
+{
+  "agentRunId": "qXs-zKfN",
+  "runId": "PDRbY_AI59",
+  "nodeId": "spec-generate",
+  "projectName": "marketing-admin",
+  "projectRoot": "/Users/xu/IdeaProjects/ai-coding/runtime-projects/runs/PDRbY_AI59/workspace/project/marketing-admin",
+  "taskDescription": "生成 marketing-admin 项目的测试 OpenSpec 测试任务清单",
+  "status": "completed",
+  "currentModelId": "gpt-5.4-openai-compact",
+  "currentProviderId": "custom-openai-compatible",
+  "intelligenceLevel": 5,
+  "modelSwitchHistory": [],
+  "turnCount": 5,
+  "tokenUsage": {
+    "input": 164384,
+    "output": 3297
+  },
+  "compactCount": 0,
+  "toolCallCount": 27,
+  "inputArtifacts": [
+    "artifacts/mrd-clarified.md",
+    "artifacts/requirement-ownership.json",
+    "artifacts/marketing-admin/tech-design.md",
+    "artifacts/implementation-plan-manifest.json"
+  ],
+  "outputArtifacts": [
+    "artifacts/marketing-admin/openspec-task.md",
+    "artifacts/marketing-admin/openspec-test-task.md"
+  ],
+  "transcriptPath": "logs/events.ndjson",
+  "startedAt": 1782794658132,
+  "updatedAt": 1782794915529,
+  "completedAt": 1782794915529
+}
