@@ -63,6 +63,7 @@ export function syncExecutionStateFromGraph(
       ? toExecutionRollbackState(graphState.rollback)
       : options.existing?.rollback,
     contextManifests: graphState.contextManifests,
+    workflowInstance: options.existing?.workflowInstance,
   };
 }
 
@@ -105,6 +106,8 @@ function toExecutionProjectState(project: GraphProjectState): ProjectState {
       reviewBlockCount: project.retry.reviewBlockCount,
       testRetryCount: project.retry.testRetryCount,
       coverageRetryCount: project.retry.coverageRetryCount,
+      integrationRetryCount: project.retry.integrationRetryCount ?? 0,
+      crossAppReviewBlockCount: project.retry.crossAppReviewBlockCount ?? 0,
     },
   };
 }
@@ -124,8 +127,10 @@ function toProjectStateFromBranch(branch: BranchState): ProjectState {
       crossAppReviewBlockCount: branch.retry.crossAppReviewBlockCount ?? 0,
     },
     nodes: branch.nodes,
+    tracks: branch.tracks,
+    artifactIndex: branch.artifactIndex,
     outputArtifacts: Object.values(branch.artifactIndex).flat(),
-  } as ProjectState;
+  };
 }
 
 function normalizeProjectStatus(status: GraphProjectState['status'] | BranchState['status']): ProjectState['status'] {

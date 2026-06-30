@@ -6,6 +6,13 @@ import {
 } from './builtinDefinitions.js';
 import type { FanoutDecision } from './fanoutDecision.js';
 import type { WorkflowSnapshot } from './types.js';
+import type { ProjectManifest } from '../pipeline/node-agents/upload-init.js';
+import {
+  ApplicationBranchPlan,
+  AppTrackPlan,
+  createSessionExecutionPlan,
+  SessionExecutionPlan,
+} from './sessionPlan.js';
 
 export const SESSION_WORKFLOW_INSTANCE_VERSION = 1;
 export const SESSION_BRANCH_NODE_SEQUENCE = [
@@ -55,6 +62,7 @@ export interface SessionWorkflowNode {
   branchIds?: string[];
   joinId?: string;
   artifactHints?: string[];
+  trackId?: string;
 }
 
 export interface SessionWorkflowEdge {
@@ -72,9 +80,12 @@ export interface SessionWorkflowBranchRef {
   status: SessionWorkflowRuntimeStatus;
   currentNodeId?: string;
   nodes?: SessionWorkflowBranchNode[];
+  tracks?: SessionWorkflowTrackRef[];
+  plan?: ApplicationBranchPlan;
+  validationErrors?: string[];
   artifactIndex?: Record<string, string[]>;
   childAgentIds?: string[];
-    retry?: {
+  retry?: {
     reviewBlockCount: number;
     testRetryCount: number;
     coverageRetryCount: number;
@@ -95,10 +106,24 @@ export interface SessionWorkflowBranchNode {
   id: string;
   label: string;
   status: SessionWorkflowRuntimeStatus;
+  trackId?: string;
+  plannedType?: string;
+  runner?: string;
   outputArtifacts?: string[];
   childAgentIds?: string[];
   failureCount?: number;
   error?: string;
+}
+
+export interface SessionWorkflowTrackRef {
+  trackId: string;
+  kind: string;
+  label: string;
+  required: boolean;
+  status: SessionWorkflowRuntimeStatus;
+  nodeIds: string[];
+  dependsOn?: string[];
+  fallbackReason?: string;
 }
 
 export interface SessionWorkflowInstance {
@@ -115,6 +140,8 @@ export interface SessionWorkflowInstance {
   legacyFallback: boolean;
   fanoutDecisionArtifact?: string;
   fanoutDecision?: FanoutDecision;
+  executionPlan?: SessionExecutionPlan;
+  plannerValidation?: SessionExecutionPlan['validation'];
 }
 
 export function createInitialSessionWorkflowInstance(args: {
@@ -203,7 +230,7 @@ function createDynamicTopLevelNodes(): SessionWorkflowNode[] {
     },
     {
       id: 'mrd-clarify',
-      label: '需求澄清',
+      label: '需求归属确认',
       kind: 'stage',
       sourceNodeId: 'mrd-render',
       artifactHints: ['artifacts/mrd-clarify-questions.md', 'artifacts/implementation-boundaries.md'],
@@ -286,6 +313,7 @@ export function createBranchRef(args: {
   workflowId?: string;
   status?: SessionWorkflowBranchRef['status'];
   currentNodeId?: string;
+  plan?: ApplicationBranchPlan;
 }): SessionWorkflowBranchRef {
   return {
     branchId: args.branchId,
@@ -294,7 +322,10 @@ export function createBranchRef(args: {
     workflowId: args.workflowId ?? BUILTIN_APP_BRANCH_WORKFLOW_ID,
     status: args.status ?? 'pending',
     currentNodeId: args.currentNodeId,
-    nodes: createInitialBranchNodes(),
+    nodes: createInitialBranchNodes(args.plan),
+    tracks: args.plan ? createTrackRefs(args.plan.tracks) : undefined,
+    plan: args.plan,
+    validationErrors: args.plan ? [] : undefined,
     artifactIndex: {},
     childAgentIds: [],
     retry: {
@@ -310,13 +341,28 @@ export function applyFanoutDecisionToSessionWorkflowInstance(args: {
   instance: SessionWorkflowInstance;
   runId: string;
   decision: FanoutDecision;
+  manifest?: ProjectManifest;
+  clarifiedMrd?: string;
   artifactPath?: string;
   updatedAt?: string;
 }): void {
-  const branchRefs = args.decision.includedProjects.map((project) => createBranchRef({
-    branchId: createStableSessionBranchId(args.runId, project.name),
-    projectName: project.name,
-    projectRoot: project.root,
+  const plan = createSessionExecutionPlan({
+    runId: args.runId,
+    decision: args.decision,
+    manifest: args.manifest,
+    clarifiedMrd: args.clarifiedMrd,
+    sourceArtifacts: [
+      'artifacts/project-manifest.json',
+      'artifacts/mrd-clarified.md',
+      args.artifactPath ?? 'artifacts/fanout-decision.json',
+    ],
+    generatedAt: args.updatedAt,
+  });
+  const branchRefs = plan.branches.map((branchPlan) => createBranchRef({
+    branchId: branchPlan.branchId,
+    projectName: branchPlan.projectName,
+    projectRoot: branchPlan.projectRoot,
+    plan: branchPlan,
   }));
   const branchIds = branchRefs.map(branch => branch.branchId);
 
@@ -331,6 +377,8 @@ export function applyFanoutDecisionToSessionWorkflowInstance(args: {
   }];
   args.instance.fanoutDecisionArtifact = args.artifactPath;
   args.instance.fanoutDecision = args.decision;
+  args.instance.executionPlan = plan;
+  args.instance.plannerValidation = plan.validation;
   args.instance.updatedAt = args.updatedAt ?? new Date().toISOString();
 
   const fanoutNode = args.instance.nodes.find(node => node.id === 'project-fanout');
@@ -427,11 +475,35 @@ function resolveFanoutNodeError(decision: FanoutDecision): string | undefined {
   return undefined;
 }
 
-function createInitialBranchNodes(): SessionWorkflowBranchNode[] {
+function createInitialBranchNodes(plan?: ApplicationBranchPlan): SessionWorkflowBranchNode[] {
+  if (plan) {
+    return plan.nodes.map(node => ({
+      id: node.id,
+      label: node.label,
+      status: 'pending',
+      trackId: node.trackId,
+      plannedType: node.type,
+      runner: node.runner,
+      outputArtifacts: node.artifactHints,
+    }));
+  }
   return SESSION_BRANCH_NODE_SEQUENCE.map(nodeId => ({
     id: nodeId,
     label: branchNodeLabel(nodeId),
     status: 'pending',
+  }));
+}
+
+function createTrackRefs(tracks: AppTrackPlan[]): SessionWorkflowTrackRef[] {
+  return tracks.map(track => ({
+    trackId: track.trackId,
+    kind: track.kind,
+    label: track.label,
+    required: track.required,
+    status: 'pending',
+    nodeIds: track.nodes.map(node => node.id),
+    dependsOn: track.dependsOn,
+    fallbackReason: track.fallbackReason,
   }));
 }
 

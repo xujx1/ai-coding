@@ -15,7 +15,7 @@
 ## 子任务要求
 必须使用工具生成 `artifacts/{{project_name}}/openspec-test-task.md`：
 
-1. 用 `read_file` 读取 `artifacts/mrd-clarified.md`、`artifacts/prd.md`、`artifacts/implementation-plan-manifest.json`、`artifacts/{{project_name}}/tech-design.md`、`artifacts/{{project_name}}/openspec-task.md`。
+1. 用 `read_file` 读取 `artifacts/mrd-clarified.md`、`artifacts/implementation-plan-manifest.json`、`artifacts/{{project_name}}/tech-design.md`、`artifacts/{{project_name}}/openspec-task.md`。
 2. 用 `glob`/`grep`/`read_file` 检查当前项目中相关测试目录、被测生产类、Mock 依赖和 Maven 配置。
 3. 用 `write_file` 写入 `artifacts/{{project_name}}/openspec-test-task.md`。
 4. 最终回复只给一句完成摘要，不要重贴完整任务清单。

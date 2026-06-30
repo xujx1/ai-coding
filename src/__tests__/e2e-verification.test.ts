@@ -46,6 +46,22 @@ test('startup capability detection records trusted frontend/backend evidence and
   assert.equal(selectApiBaseUrlConvention(snapshot).source, 'env-file');
 });
 
+test('startup capability detection treats Spring static resources as frontend evidence', () => {
+  const projectRoot = makeTempProject('spring-static-capability');
+  fs.writeFileSync(path.join(projectRoot, 'pom.xml'), '<project></project>');
+  fs.mkdirSync(path.join(projectRoot, 'src/main/java/com/example'), { recursive: true });
+  fs.mkdirSync(path.join(projectRoot, 'src/main/resources/static'), { recursive: true });
+  fs.writeFileSync(path.join(projectRoot, 'src/main/resources/static/index.html'), '<main id="app"></main>');
+  fs.writeFileSync(path.join(projectRoot, 'src/main/resources/static/app.js'), 'fetch("/api/activity/preview");');
+
+  const snapshot = detectProjectStartupCapabilities(projectRoot, '2026-06-30T00:00:00.000Z');
+
+  assert.equal(snapshot.backend?.command, 'mvn spring-boot:run');
+  assert.equal(snapshot.frontend?.command, 'mvn spring-boot:run');
+  assert.ok(snapshot.frontend?.frameworkSignals.includes('spring-static'));
+  assert.equal(snapshot.trustedStartup, true);
+});
+
 test('contract input collection detects backend endpoints and client mismatches', () => {
   const projectRoot = makeTempProject('contract-detection');
   fs.mkdirSync(path.join(projectRoot, 'src'), { recursive: true });

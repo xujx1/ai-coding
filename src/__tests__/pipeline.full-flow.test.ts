@@ -38,7 +38,7 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
   assert.ok(finalState?.projects?.some(project => project.name === 'project'), 'execution state should track project states');
   assert.ok(finalState?.artifactIndex?.['upload-init']?.includes('artifacts/project-manifest.json'), 'artifact index should include init manifest');
   assert.ok(finalState?.artifactIndex?.['mrd-render']?.includes('artifacts/fanout-decision.json'), 'artifact index should include fanout decision');
-  assert.ok(finalState?.artifactIndex?.['implementation-plan']?.includes('artifacts/prd.md'), 'artifact index should include PRD');
+  assert.ok(finalState?.artifactIndex?.['implementation-plan']?.includes('artifacts/implementation-plan-manifest.json'), 'artifact index should include implementation manifest');
   assert.ok(finalState?.artifactIndex?.['java-impl']?.includes('artifacts/project/review-findings.json'), 'artifact index should include review findings under Java Impl');
   assert.ok(finalState?.artifactIndex?.['cross-app-code-review']?.includes('artifacts/cross-app/code-review-findings.json'), 'artifact index should include cross-app code review');
   assert.ok(finalState?.artifactIndex?.['cross-app-integration-review']?.includes('artifacts/cross-app/integration-review-findings.json'), 'artifact index should include cross-app integration review');
@@ -78,7 +78,6 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
     'mrd-clarified.md',
     'mrd-clarify-questions.md',
     'fanout-decision.json',
-    'prd.md',
     'implementation-plan-manifest.json',
     'project/tech-design.md',
     'project/openspec-task.md',
@@ -122,7 +121,7 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
     fs.readFileSync(path.join(paths.artifactsDir, 'implementation-plan-manifest.json'), 'utf-8')
   );
   assert.equal(implementationManifest.nodeId, 'implementation-plan');
-  assert.equal(implementationManifest.prd, 'artifacts/prd.md');
+  assert.equal(implementationManifest.proposal, 'artifacts/mrd-clarified.md');
   assert.ok(Array.isArray(implementationManifest.projects), 'implementation manifest should have projects array');
   assert.ok(
     implementationManifest.projects.some((project: { artifact?: string }) => project.artifact === 'artifacts/project/tech-design.md'),
@@ -191,10 +190,6 @@ test('fixed pipeline completes end-to-end with mock LLM', async () => {
     (e.data as Record<string, unknown>)?.artifactPath === 'artifacts/mrd-clarify-questions.md'
   );
   assert.ok(questionsWritten, 'should have artifact_written event for mrd-clarify-questions.md');
-  assert.ok(
-    artifactEvents.some(e => (e.data as Record<string, unknown>)?.artifactPath === 'artifacts/prd.md'),
-    'should have artifact_written event for prd.md'
-  );
   assert.ok(
     artifactEvents.some(e => (e.data as Record<string, unknown>)?.artifactPath === 'artifacts/implementation-plan-manifest.json'),
     'should have artifact_written event for implementation-plan-manifest.json'

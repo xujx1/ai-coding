@@ -7,7 +7,7 @@
 ## Implementation Plan Manifest
 {{implementation_manifest_section}}
 
-## PRD / 验收口径
+## Proposal / MRD
 {{prd_section}}
 
 ## Clarified MRD Summary Source

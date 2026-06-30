@@ -1,6 +1,6 @@
 # 实施方案确认
 
-## PRD / 验收口径摘要
+## Proposal / MRD 摘要
 
 {{prd_summary}}
 

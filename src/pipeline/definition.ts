@@ -66,13 +66,13 @@ export const PIPELINE_NODES: PipelineNode[] = [
   {
     id: 'implementation-plan',
     name: '实施方案',
-    description: 'Generate implementation plan artifacts: product acceptance PRD and project-scoped technical designs',
+    description: 'Generate SDD technical design artifacts from the confirmed MRD/proposal',
     hasConfirmationGate: true,
     usesReActLoop: false,
     maxTurns: 15,
     planModeRequired: false,
-    artifactOutput: 'prd.md',
-    artifactOutputs: ['prd.md', '{project}/tech-design.md'],
+    artifactOutput: '{project}/tech-design.md',
+    artifactOutputs: ['implementation-plan-manifest.json', '{project}/tech-design.md'],
   },
   {
     id: 'spec-generate',

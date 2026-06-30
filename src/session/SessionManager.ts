@@ -20,7 +20,7 @@ import { BUILTIN_MRD_TO_CODE_WORKFLOW_ID } from '../workflows/builtinDefinitions
 import { captureWorkflowSnapshot } from '../workflows/storage.js';
 import {
   cancelSessionBranch,
-  applyFanoutDecisionToSessionWorkflowInstance,
+  createBranchRef,
   createInitialSessionWorkflowInstance,
   createStableSessionBranchId,
   resetSessionBranchFromNode,
@@ -338,13 +338,30 @@ export class SessionManager {
       createdAt: new Date(state.startedAt || Date.now()).toISOString(),
     });
     const decision = createBackfilledFanoutDecision(state);
-    applyFanoutDecisionToSessionWorkflowInstance({
-      instance,
-      runId: state.runId,
-      decision,
-      artifactPath: findIndexedArtifact(state, 'mrd-render', 'fanout-decision.json'),
-      updatedAt: new Date(state.updatedAt || Date.now()).toISOString(),
-    });
+    const branchRefs = decision.includedProjects.map(project => createBranchRef({
+      branchId: createStableSessionBranchId(state.runId, project.name),
+      projectName: project.name,
+      projectRoot: project.root,
+    }));
+    const branchIds = branchRefs.map(branch => branch.branchId);
+    instance.branches = branchRefs;
+    instance.joins = [{
+      joinId: 'app-join',
+      waitingForBranchIds: branchIds,
+      completedBranchIds: [],
+      failedBranchIds: [],
+      cancelledBranchIds: [],
+      status: branchIds.length ? 'waiting' : 'failed',
+    }];
+    instance.fanoutDecision = decision;
+    instance.fanoutDecisionArtifact = findIndexedArtifact(state, 'mrd-render', 'fanout-decision.json');
+    instance.updatedAt = new Date(state.updatedAt || Date.now()).toISOString();
+    const fanoutNode = instance.nodes.find(node => node.id === 'project-fanout');
+    if (fanoutNode) {
+      fanoutNode.branchIds = branchIds;
+      fanoutNode.status = branchIds.length ? 'completed' : 'failed';
+      if (instance.fanoutDecisionArtifact) fanoutNode.artifactHints = [instance.fanoutDecisionArtifact];
+    }
     for (const branch of instance.branches) {
       backfillBranchRuntimeState(branch, state);
     }

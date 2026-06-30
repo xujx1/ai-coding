@@ -73,17 +73,15 @@ export function buildSpecGeneratePrompt(
     implementationManifestSection = `- path: artifacts/implementation-plan-manifest.json\n\n\`\`\`json\n${fs.readFileSync(implementationManifestPath, 'utf-8').slice(0, 16000)}\n\`\`\``;
   }
 
-  const prdPath = path.join(paths.artifactsDir, 'prd.md');
-  let prdSection = '（未找到 artifacts/prd.md）';
-  if (fs.existsSync(prdPath)) {
-    prdSection = `- path: artifacts/prd.md\n\n${fs.readFileSync(prdPath, 'utf-8').slice(0, 30000)}`;
-  }
-
   const clarifiedMrdPath = path.join(paths.artifactsDir, 'mrd-clarified.md');
   let clarifiedMrdSection = '（未找到 artifacts/mrd-clarified.md）';
   if (fs.existsSync(clarifiedMrdPath)) {
     clarifiedMrdSection = `- path: artifacts/mrd-clarified.md\n\n${fs.readFileSync(clarifiedMrdPath, 'utf-8').slice(0, 16000)}`;
   }
+  const prdPath = path.join(paths.artifactsDir, 'prd.md');
+  const prdSection = fs.existsSync(prdPath)
+    ? `- path: artifacts/prd.md\n\n${fs.readFileSync(prdPath, 'utf-8').slice(0, 30000)}`
+    : clarifiedMrdSection;
 
   return renderPromptTemplate(loadPromptFile('spec-generate-user.md'), {
     node_name: node.name,
@@ -205,7 +203,7 @@ export function buildProjectStagePromptVariables(
     test_code_preview_manifest_path: path.join(paths.artifactsDir, project.name, 'test-code-preview-manifest.json'),
     changed_test_files_preview_dir: path.join(paths.artifactsDir, project.name, 'changed-test-files'),
     mrd_clarified: readArtifactForPrompt(paths, 'mrd-clarified.md', 30000),
-    prd: readArtifactForPrompt(paths, 'prd.md', 24000),
+    prd: readArtifactForPrompt(paths, 'prd.md', 24000) || readArtifactForPrompt(paths, 'mrd-clarified.md', 24000),
     implementation_manifest: readArtifactForPrompt(paths, 'implementation-plan-manifest.json', 12000),
     spec_manifest: readArtifactForPrompt(paths, 'spec-manifest.json', 12000),
     openspec_change_context: readProjectOpenSpecContext(paths, path.basename(paths.runDir), project.name, 24000),

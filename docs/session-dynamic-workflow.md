@@ -41,6 +41,96 @@ Selection rules:
 - If MRD references a missing project, the missing name is recorded and the fanout node is marked `waiting_confirmation` in the session instance.
 - If no branch can be resolved, the fanout node is marked `failed`.
 
+## Session Execution Plan
+
+After fanout, new runs create a session-scoped `executionPlan` inside
+`workflowInstance`. The plan is stored with:
+
+- `schemaVersion` and `plannerVersion`
+- `sourceArtifacts` used by the planner
+- one `ApplicationBranchPlan` per included project
+- capability evidence, omitted-track reasons, fallback reasons, and validation
+  results
+
+The plan is data only. It does not mutate the reusable workflow template.
+
+Capability detection is derived from `project-manifest.json` and startup
+capability evidence:
+
+- Maven, Java source, Spring/backend startup evidence -> backend capability
+- package metadata, Vite/Next/source roots, Playwright config -> frontend
+  capability
+- frontend plus backend API convention evidence -> contract capability
+- no executable backend/frontend signal -> documentation-only fallback
+
+Backend Java projects currently use the stable `java-impl` runner inside the
+backend track so legacy branch execution and OpenSpec task completion remain
+compatible. The planner catalog also accepts `backend-impl` for future
+non-Java backend runners.
+
+## Nested Tracks
+
+Application branches can contain nested tracks:
+
+```text
+implementation-plan
+  -> spec-generate
+  -> backend: java-impl -> backend-test
+  -> frontend: frontend-impl -> frontend-test
+  -> e2e: e2e-verify
+  -> contract: api-contract-check
+  -> app-track-join
+  -> app-branch-summary
+```
+
+Backend-only apps omit frontend and E2E tracks. Frontend-only apps omit backend
+tracks. Documentation-only apps get:
+
+```text
+documentation: documentation-impl -> documentation-test
+```
+
+Branch runtime state stores track state separately from app-level branch status.
+A failed frontend track does not overwrite completed backend track artifacts.
+
+## OpenSpec Compatibility
+
+`spec-generate` writes a stable app-scoped OpenSpec change under:
+
+```text
+artifacts/<project>/openspec/changes/run-<runId>-<project>/
+```
+
+`tasks.md` keeps the legacy `Development` and `Test` sections and also includes
+stable track sections:
+
+- `Backend`
+- `Frontend`
+- `Contract`
+- `E2E`
+- `Documentation`
+
+Task completion remains section-scoped. `java-impl` marks `Development`
+checkboxes, `testcode-generate` marks `Test` checkboxes, and dynamic callers can
+mark track sections such as `Backend` without changing unrelated sections. Phase
+headings inside a section are treated as content, not as section boundaries.
+
+Historical runs that lack dynamic plan metadata are backfilled with legacy
+branch nodes instead of inventing a new planner snapshot. This keeps existing
+`java-impl` and `testcode-generate` artifacts readable.
+
+## UI and Artifacts
+
+The workflow UI reads `workflowInstance` and `pipeline.projects[*]` read-model
+snapshots. When tracks are present it renders nested app lanes; otherwise it
+falls back to the legacy fixed branch chain.
+
+Artifact filtering is scoped by selected app, track, and node. For example,
+selecting `frontend/frontend-test` first checks the selected branch and track
+artifact indexes, then filters global artifacts to the app scope. Planner source
+artifacts, validation errors, capability flags, fallback reasons, and omitted
+track kinds are surfaced in the fanout workflow details.
+
 ## Rollout
 
 Dynamic workflow execution remains guarded by runtime selection:
@@ -63,3 +153,13 @@ POST /api/sessions/:runId/branches/:branchId/cancel
 Rerun is permitted only for `failed`, `waiting_fix`, or `cancelled` branches. It resets branch-local node state from the requested `fromNodeId` and leaves other branches unchanged.
 
 Cancel is permitted only for `pending`, `running`, `waiting_confirmation`, or `suspended` branches. It marks the selected branch cancelled and recomputes join state. Whole-run cancellation also cancels active branches.
+
+## Rollback and Fallback Policy
+
+Invalid planner output is rejected before execution and recorded in
+`plannerValidation`. Unsupported or low-confidence executable capability should
+route to documentation fallback instead of silently creating dead runnable nodes.
+
+Current branch controls still operate at branch scope. Track-level rerun and
+cancellation are represented in runtime state and tests, while full UI/API
+controls for individual track rerun remain future executor work.

@@ -54,11 +54,28 @@ import {
 } from '../workflows/sessionInstance.js';
 import {
   deriveFanoutDecision,
+  FanoutDecision,
   FANOUT_DECISION_ARTIFACT_PATH,
   writeFanoutDecisionArtifact,
 } from '../workflows/fanoutDecision.js';
+import {
+  createSessionExecutionPlan,
+  deriveProjectCapabilityShape,
+  validateSessionExecutionPlan,
+} from '../workflows/sessionPlan.js';
+import {
+  cancelBranchTrack,
+  createInitialBranchState,
+  markBranchTrackNode,
+  resetBranchTrackFromNode,
+  runPlannedBranch,
+} from '../langgraph/branchRunner.js';
 import { detectProjectRoots } from '../pipeline/node-agents/upload-init.js';
 import { buildClarifyQuestionsArtifact } from '../pipeline/node-agents/requirement-decompose.js';
+import {
+  markProjectOpenSpecTasksCompleted,
+  writeProjectOpenSpecChange,
+} from '../pipeline/node-agents/openspec-integration.js';
 
 test('built-in workflow mirrors pipeline stages and validates in locked mode', () => {
   const workflow = createBuiltInMrdToCodeWorkflow();
@@ -328,6 +345,169 @@ test('fanout decision records unresolved MRD-referenced projects', () => {
   assert.deepEqual(decision.unresolvedProjects.map(project => project.name), ['missing-app']);
 });
 
+test('project capability snapshots classify backend frontend fullstack documentation and mixed apps', () => {
+  const backend = deriveProjectCapabilityShape({
+    name: 'api',
+    root: 'api',
+    buildTool: 'maven',
+    sourceRoots: ['src/main/java'],
+    testRoots: ['src/test/java'],
+    capabilities: startupCapability({ backend: true, confidence: 'high' }),
+  });
+  const frontend = deriveProjectCapabilityShape({
+    name: 'web',
+    root: 'web',
+    sourceRoots: ['src'],
+    testRoots: ['__tests__'],
+    capabilities: startupCapability({ frontend: true, playwrightConfig: 'playwright.config.ts', confidence: 'high' }),
+  });
+  const fullstack = deriveProjectCapabilityShape({
+    name: 'fullstack',
+    root: 'fullstack',
+    buildTool: 'maven',
+    sourceRoots: ['src/main/java', 'src'],
+    testRoots: ['src/test/java', '__tests__'],
+    capabilities: startupCapability({ backend: true, frontend: true, confidence: 'high' }),
+  });
+  const docs = deriveProjectCapabilityShape({
+    name: 'docs',
+    root: 'docs',
+    sourceRoots: undefined,
+    capabilities: startupCapability({ confidence: 'low', fallbackReasons: ['Only markdown files were detected.'] }),
+  });
+  const springStatic = deriveProjectCapabilityShape({
+    name: 'marketing-admin',
+    root: 'marketing-admin',
+    buildTool: 'maven',
+    sourceRoots: ['src/main/java', 'src/main/resources/static'],
+    testRoots: ['src/test/java'],
+    capabilities: startupCapability({ backend: true, confidence: 'medium' }),
+  });
+
+  assert.equal(backend.backend, true);
+  assert.equal(backend.frontend, false);
+  assert.equal(backend.testable, true);
+  assert.equal(frontend.frontend, true);
+  assert.equal(frontend.backend, false);
+  assert.equal(fullstack.backend, true);
+  assert.equal(fullstack.frontend, true);
+  assert.equal(fullstack.contract, true);
+  assert.equal(fullstack.mixedModule, true);
+  assert.equal(springStatic.backend, true);
+  assert.equal(springStatic.frontend, true);
+  assert.equal(springStatic.mixedModule, true);
+  assert.equal(docs.documentationOnly, true);
+  assert.equal(docs.confidence, 'low');
+  assert.match(docs.fallbackReasons.join('\n'), /markdown|executable/i);
+});
+
+test('session execution planner creates capability-driven branch tracks and validation evidence', () => {
+  const decision = deriveFanoutDecision({
+    generatedAt: '2026-06-28T00:00:00.000Z',
+    manifest: {
+      requirements: [],
+      projects: [
+        { name: 'api', root: 'api' },
+        { name: 'web', root: 'web' },
+        { name: 'fullstack', root: 'fullstack' },
+        { name: 'docs', root: 'docs' },
+      ],
+    },
+    clarifiedMrd: [
+      '## Project Ownership',
+      '- Project: api owns backend data changes.',
+      '- Project: web owns UI behavior.',
+      '- Project: fullstack owns UI and API behavior.',
+      '- Project: docs owns rollout notes.',
+    ].join('\n'),
+  });
+  const plan = createSessionExecutionPlan({
+    runId: 'planner-run',
+    decision,
+    manifest: {
+      requirements: [],
+      projects: [
+        { name: 'api', root: 'api', buildTool: 'maven', sourceRoots: ['src/main/java'], testRoots: ['src/test/java'], capabilities: startupCapability({ backend: true, confidence: 'high' }) },
+        { name: 'web', root: 'web', sourceRoots: ['src'], testRoots: ['__tests__'], capabilities: startupCapability({ frontend: true, playwrightConfig: 'playwright.config.ts', confidence: 'high' }) },
+        { name: 'fullstack', root: 'fullstack', buildTool: 'maven', sourceRoots: ['src/main/java', 'src'], testRoots: ['src/test/java', '__tests__'], capabilities: startupCapability({ backend: true, frontend: true, confidence: 'high' }) },
+        { name: 'docs', root: 'docs', capabilities: startupCapability({ confidence: 'low', fallbackReasons: ['No package or Maven files.'] }) },
+      ],
+    },
+    generatedAt: '2026-06-28T00:00:01.000Z',
+  });
+
+  assert.equal(plan.validation.valid, true);
+  assert.equal(plan.plannerVersion, 'plan-and-executor-v1');
+  const api = plan.branches.find(branch => branch.projectName === 'api');
+  const web = plan.branches.find(branch => branch.projectName === 'web');
+  const fullstack = plan.branches.find(branch => branch.projectName === 'fullstack');
+  const docs = plan.branches.find(branch => branch.projectName === 'docs');
+  assert.deepEqual(api?.tracks.map(track => track.kind), ['backend']);
+  assert.deepEqual(web?.tracks.map(track => track.kind), ['frontend', 'e2e']);
+  assert.deepEqual(fullstack?.tracks.map(track => track.kind), ['backend', 'frontend', 'e2e', 'contract']);
+  assert.deepEqual(docs?.tracks.map(track => track.kind), ['documentation']);
+  assert.ok(docs?.tracks[0].fallbackReason?.includes('No package'));
+  assert.ok(api?.omittedTracks.some(item => item.trackKind === 'frontend'));
+  assert.ok(fullstack?.nodes.some(node => node.id === 'app-track-join'));
+});
+
+test('session execution planner uses AI-owned implementation surfaces before keyword fallback', () => {
+  const plan = createSessionExecutionPlan({
+    runId: 'surface-plan-run',
+    decision: fanoutDecisionFixture([
+      { name: 'marketing-admin', root: 'marketing-admin' },
+      { name: 'marketing', root: 'marketing' },
+    ]),
+    manifest: {
+      requirements: [],
+      projects: [
+        { name: 'marketing-admin', root: 'marketing-admin', buildTool: 'maven', sourceRoots: ['src/main/java'], capabilities: startupCapability({ backend: true }) },
+        { name: 'marketing', root: 'marketing', buildTool: 'maven', sourceRoots: ['src/main/java'], capabilities: startupCapability({ backend: true }) },
+      ],
+    },
+    clarifiedMrd: [
+      '# MRD Clarification',
+      '',
+      '## Implementation Surfaces',
+      '| 功能项 | 项目 | frontend | backend | contract | e2e | 判断依据 |',
+      '| --- | --- | --- | --- | --- | --- | --- |',
+      '| 活动命中预览入口 | marketing-admin | yes | yes | yes | yes | 设置端页面和预览提交入口 |',
+      '| 用户运行侧命中结果查询 | marketing | no | yes | yes | no | 用户侧运行态判断接口 |',
+    ].join('\n'),
+  });
+
+  const admin = plan.branches.find(branch => branch.projectName === 'marketing-admin');
+  const marketing = plan.branches.find(branch => branch.projectName === 'marketing');
+  assert.deepEqual(admin?.tracks.map(track => track.kind), ['backend', 'frontend', 'e2e', 'contract']);
+  assert.deepEqual(marketing?.tracks.map(track => track.kind), ['backend', 'contract']);
+});
+
+test('session execution plan validation rejects unsupported catalog entries cycles and missing artifact metadata', () => {
+  const plan = createSessionExecutionPlan({
+    runId: 'invalid-plan-run',
+    decision: fanoutDecisionFixture([{ name: 'app', root: 'app' }]),
+    manifest: {
+      requirements: [],
+      projects: [{ name: 'app', root: 'app', buildTool: 'maven', sourceRoots: ['src/main/java'], capabilities: startupCapability({ backend: true }) }],
+    },
+  });
+  const branch = plan.branches[0];
+  branch.tracks[0].kind = 'unsupported' as never;
+  branch.nodes[0].type = 'unsupported-node' as never;
+  branch.nodes[0].requiredArtifacts = [];
+  branch.nodes[1].dependsOn = [branch.nodes[0].id, 'missing-node'];
+  branch.nodes[0].dependsOn = [branch.nodes[1].id];
+
+  const validation = validateSessionExecutionPlan(plan, '2026-06-28T00:00:02.000Z');
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.issues.some(issue => issue.code === 'unsupported-track-kind'));
+  assert.ok(validation.issues.some(issue => issue.code === 'unsupported-node-type'));
+  assert.ok(validation.issues.some(issue => issue.code === 'missing-required-artifacts'));
+  assert.ok(validation.issues.some(issue => issue.code === 'missing-dependency'));
+  assert.ok(validation.issues.some(issue => issue.code === 'dependency-cycle'));
+});
+
 test('fanout decision artifact writes and session workflow instance indexes branch refs', async () => {
   const paths = createTempRunPaths('fanout-decision-artifact');
   const workflow = createBuiltInMrdToCodeWorkflow();
@@ -358,6 +538,13 @@ test('fanout decision artifact writes and session workflow instance indexes bran
     instance,
     runId: 'fanout-decision-run',
     decision,
+    manifest: {
+      requirements: [],
+      projects: [
+        { name: 'marketing', root: 'marketing', buildTool: 'maven', sourceRoots: ['src/main/java'], capabilities: startupCapability({ backend: true }) },
+        { name: 'order-service', root: 'order-service' },
+      ],
+    },
     artifactPath: FANOUT_DECISION_ARTIFACT_PATH,
     updatedAt: '2026-06-28T00:00:01.000Z',
   });
@@ -370,6 +557,9 @@ test('fanout decision artifact writes and session workflow instance indexes bran
   assert.deepEqual(instance.fanoutDecision?.excludedProjects.map(project => project.name), ['order-service']);
   assert.deepEqual(instance.nodes.find(node => node.id === 'project-fanout')?.branchIds, ['fanout-decision-run-marketing']);
   assert.deepEqual(instance.joins[0].waitingForBranchIds, ['fanout-decision-run-marketing']);
+  assert.equal(instance.executionPlan?.validation.valid, true);
+  assert.deepEqual(instance.branches[0].tracks?.map(track => track.kind), ['backend']);
+  assert.ok(instance.branches[0].nodes?.some(node => node.id === 'java-impl' && node.trackId === 'backend'));
 
   const unresolvedDecision = deriveFanoutDecision({
     generatedAt: '2026-06-28T00:00:02.000Z',
@@ -383,6 +573,10 @@ test('fanout decision artifact writes and session workflow instance indexes bran
     instance,
     runId: 'fanout-decision-run',
     decision: unresolvedDecision,
+    manifest: {
+      requirements: [],
+      projects: [{ name: 'marketing', root: 'marketing', buildTool: 'maven', sourceRoots: ['src/main/java'], capabilities: startupCapability({ backend: true }) }],
+    },
     artifactPath: FANOUT_DECISION_ARTIFACT_PATH,
     updatedAt: '2026-06-28T00:00:02.000Z',
   });
@@ -605,6 +799,174 @@ test('graph state reducer merges nodes, branches, joins, artifacts, and retry co
   assert.equal(merged.retry.testRetryCount, 1);
 });
 
+test('branch runtime state tracks nested track nodes without overwriting sibling artifacts', () => {
+  const plan = createSessionExecutionPlan({
+    runId: 'branch-track-run',
+    decision: fanoutDecisionFixture([{ name: 'fullstack', root: 'fullstack' }]),
+    manifest: {
+      requirements: [],
+      projects: [{
+        name: 'fullstack',
+        root: 'fullstack',
+        buildTool: 'maven',
+        sourceRoots: ['src/main/java', 'src'],
+        testRoots: ['src/test/java', '__tests__'],
+        capabilities: startupCapability({ backend: true, frontend: true }),
+      }],
+    },
+  });
+  const branch = createInitialBranchState({
+    branchId: plan.branches[0].branchId,
+    workflowId: 'mrd-to-code-app-branch',
+    projectName: 'fullstack',
+    projectRoot: 'fullstack',
+    plan: plan.branches[0],
+  });
+
+  const backendImplDone = markBranchTrackNode({
+    ...branch,
+    artifactIndex: { 'backend-test': ['artifacts/fullstack/test-report.md'] },
+    tracks: {
+      ...branch.tracks,
+      backend: {
+        ...branch.tracks?.backend,
+        trackId: 'backend',
+        kind: 'backend',
+        nodeIds: ['java-impl', 'backend-test'],
+        status: 'running',
+        artifactIndex: { 'backend-test': ['artifacts/fullstack/test-report.md'] },
+      },
+    },
+  }, 'backend', 'java-impl', {
+    status: 'completed',
+    outputArtifacts: ['artifacts/fullstack/changed-files.json'],
+  });
+  const backendDone = markBranchTrackNode(backendImplDone, 'backend', 'backend-test', {
+    status: 'completed',
+    outputArtifacts: ['artifacts/fullstack/test-report.md'],
+  });
+  const frontendFailed = markBranchTrackNode(backendDone, 'frontend', 'frontend-test', {
+    status: 'failed',
+    error: 'component test failed',
+  });
+
+  assert.equal(frontendFailed.tracks?.backend.status, 'completed');
+  assert.equal(frontendFailed.tracks?.frontend.status, 'failed');
+  assert.deepEqual(frontendFailed.tracks?.backend.artifactIndex['backend-test'], ['artifacts/fullstack/test-report.md']);
+  assert.equal(frontendFailed.nodes['backend-test'].status, 'completed');
+  assert.equal(frontendFailed.nodes['frontend-test'].status, 'failed');
+});
+
+test('planned branch executor dispatches runners, joins tracks, reruns and cancels track scope', async () => {
+  const plan = createSessionExecutionPlan({
+    runId: 'planned-executor-run',
+    decision: fanoutDecisionFixture([{ name: 'fullstack', root: 'fullstack' }]),
+    manifest: {
+      requirements: [],
+      projects: [{
+        name: 'fullstack',
+        root: 'fullstack',
+        buildTool: 'maven',
+        sourceRoots: ['src/main/java', 'src'],
+        testRoots: ['src/test/java', '__tests__'],
+        capabilities: startupCapability({ backend: true, frontend: true }),
+      }],
+    },
+  });
+  const branchPlan = plan.branches[0];
+  const graphState = createInitialGraphState({
+    runId: 'planned-executor-run',
+    workflowId: BUILTIN_MRD_TO_CODE_WORKFLOW_ID,
+    workflowVersion: 1,
+    nodeIds: ['project-fanout'],
+    permissionMode: 'default',
+  });
+  const branch = createInitialBranchState({
+    branchId: branchPlan.branchId,
+    workflowId: 'mrd-to-code-app-branch',
+    projectName: 'fullstack',
+    projectRoot: 'fullstack',
+    plan: branchPlan,
+  });
+  const calls: string[] = [];
+  const completed = await runPlannedBranch({
+    graphState,
+    branch,
+    plan: branchPlan,
+    concurrencyLimit: 3,
+    handlers: {
+      'java-impl': async (_ctx, node) => {
+        calls.push(node.runner);
+        return { outputArtifacts: ['artifacts/fullstack/changed-files.json'], childAgentIds: ['agent-java'] };
+      },
+      'frontend-impl': (_ctx, node) => {
+        calls.push(node.runner);
+        return { outputArtifacts: ['artifacts/fullstack/frontend-implementation-summary.json'] };
+      },
+      'api-contract-check': (_ctx, node) => {
+        calls.push(node.runner);
+        return { outputArtifacts: ['artifacts/fullstack/e2e/api-contract-results.json'] };
+      },
+      'frontend-test': (_ctx, node) => {
+        calls.push(node.runner);
+        return { outputArtifacts: ['artifacts/fullstack/frontend-test-report.md'] };
+      },
+      'backend-test': (_ctx, node) => {
+        calls.push(node.runner);
+        return { outputArtifacts: ['artifacts/fullstack/test-report.md'] };
+      },
+      'e2e-verify': (_ctx, node) => {
+        calls.push(node.runner);
+        return { outputArtifacts: ['artifacts/fullstack/e2e/e2e-summary.json'] };
+      },
+    },
+  });
+
+  assert.equal(completed.status, 'completed');
+  assert.equal(completed.tracks?.backend.status, 'completed');
+  assert.equal(completed.tracks?.frontend.status, 'completed');
+  assert.equal(completed.tracks?.e2e.status, 'completed');
+  assert.equal(completed.nodes['app-track-join'].status, 'completed');
+  assert.equal(completed.nodes['java-impl'].childAgentIds?.[0], 'agent-java');
+  assert.deepEqual(completed.tracks?.backend.artifactIndex['backend-test'], ['artifacts/fullstack/test-report.md']);
+  assert.ok(calls.includes('java-impl'));
+  assert.ok(calls.includes('frontend-test'));
+  assert.ok(calls.includes('api-contract-check'));
+
+  const failing = await runPlannedBranch({
+    graphState,
+    branch: createInitialBranchState({
+      branchId: branchPlan.branchId,
+      workflowId: 'mrd-to-code-app-branch',
+      projectName: 'fullstack',
+      projectRoot: 'fullstack',
+      plan: branchPlan,
+    }),
+    plan: branchPlan,
+    handlers: {
+      'backend-test': () => ({ outputArtifacts: ['artifacts/fullstack/test-report.md'] }),
+      'frontend-test': () => {
+        throw new Error('component test failed');
+      },
+    },
+  });
+
+  assert.equal(failing.status, 'waiting_fix');
+  assert.equal(failing.tracks?.backend.status, 'completed');
+  assert.equal(failing.tracks?.frontend.status, 'failed');
+  assert.deepEqual(failing.tracks?.backend.artifactIndex['backend-test'], ['artifacts/fullstack/test-report.md']);
+  assert.equal(failing.nodes['app-track-join'].status, 'waiting_fix');
+
+  const rerun = resetBranchTrackFromNode(failing, 'frontend', 'frontend-test');
+  assert.equal(rerun.tracks?.frontend.status, 'pending');
+  assert.equal(rerun.nodes['frontend-test'].status, 'pending');
+  assert.deepEqual(rerun.tracks?.backend.artifactIndex['backend-test'], ['artifacts/fullstack/test-report.md']);
+
+  const cancelled = cancelBranchTrack(rerun, 'frontend');
+  assert.equal(cancelled.tracks?.frontend.status, 'cancelled');
+  assert.equal(cancelled.nodes['frontend-test'].status, 'interrupted');
+});
+
 test('read-model sync maps graph state to ExecutionState', () => {
   const workflow = createBuiltInMrdToCodeWorkflow();
   const graphState = mergeGraphState(createInitialGraphState({
@@ -640,6 +1002,112 @@ test('read-model sync maps graph state to ExecutionState', () => {
   assert.equal(readModel.currentNodeId, 'archive');
   assert.equal(readModel.artifactIndex?.archive[0], 'artifacts/archive-manifest.json');
   assert.equal(readModel.metadata?.lastGraphSyncReason, 'unit-test');
+});
+
+test('read-model sync exposes branch tracks and artifacts for UI snapshots', () => {
+  const workflow = createBuiltInMrdToCodeWorkflow();
+  const branch = createInitialBranchState({
+    branchId: 'read-model-track-run-fullstack',
+    workflowId: 'mrd-to-code-app-branch',
+    projectName: 'fullstack',
+    projectRoot: 'fullstack',
+    plan: createSessionExecutionPlan({
+      runId: 'read-model-track-run',
+      decision: fanoutDecisionFixture([{ name: 'fullstack', root: 'fullstack' }]),
+      manifest: {
+        requirements: [],
+        projects: [{
+          name: 'fullstack',
+          root: 'fullstack',
+          buildTool: 'maven',
+          sourceRoots: ['src/main/java', 'src'],
+          capabilities: startupCapability({ backend: true, frontend: true }),
+        }],
+      },
+    }).branches[0],
+  });
+  const graphState = mergeGraphState(createInitialGraphState({
+    runId: 'read-model-track-run',
+    workflowId: workflow.id,
+    workflowVersion: workflow.version,
+    nodeIds: workflow.nodes.filter((node) => node.type !== 'end').map((node) => node.id),
+    permissionMode: 'default',
+    startedAt: 100,
+  }), {
+    branches: {
+      [branch.branchId]: {
+        ...branch,
+        artifactIndex: { 'backend-test': ['artifacts/fullstack/test-report.md'] },
+      },
+    },
+    updatedAt: 200,
+  });
+  graphState.branchOrder = [branch.branchId];
+
+  const readModel = syncExecutionStateFromGraph(graphState, {
+    reason: 'unit-test',
+    workflow,
+  });
+
+  const project = readModel.projects?.find(item => item.branchId === branch.branchId);
+  assert.equal(project?.tracks?.backend.kind, 'backend');
+  assert.equal(project?.tracks?.frontend.kind, 'frontend');
+  assert.deepEqual(project?.artifactIndex?.['backend-test'], ['artifacts/fullstack/test-report.md']);
+  assert.ok(project?.nodes?.['java-impl']);
+});
+
+test('workflow UI exposes nested tracks, planner evidence, and track-scoped artifact filtering hooks', () => {
+  const appJs = fsSync.readFileSync(path.resolve('web/app.js'), 'utf-8');
+  const appCss = fsSync.readFileSync(path.resolve('web/app.css'), 'utf-8');
+
+  assert.ok(appJs.includes('function getBranchTracks('), 'UI should normalize branch tracks');
+  assert.ok(appJs.includes('function renderFanoutTrackLane('), 'UI should render nested fanout track lanes');
+  assert.ok(appJs.includes('function renderPlannerSnapshotDetails('), 'UI should surface planner details');
+  assert.ok(appJs.includes('selection.trackId'), 'artifact filtering should account for selected track');
+  assert.ok(appJs.includes('track?.artifactIndex?.[stageId]'), 'artifact filtering should read track artifact index');
+  assert.ok(appCss.includes('.fanout-track-stack'), 'CSS should style nested fanout tracks');
+  assert.ok(appCss.includes('.planner-evidence-card'), 'CSS should style planner evidence');
+  assert.ok(appCss.includes('.branch-track-node'), 'CSS should style branch track nodes');
+});
+
+test('OpenSpec dynamic task sections remain section-scoped when marking completion', async () => {
+  const paths = createTempRunPaths('openspec-track-sections');
+  const change = writeProjectOpenSpecChange({
+    paths,
+    runId: 'openspec-track-run',
+    projectName: 'fullstack',
+    projectRoot: 'fullstack',
+    developmentTasks: '- [ ] Implement backend behavior\n- [ ] Keep legacy dev task readable',
+    testTasks: '- [ ] Add regression tests',
+    prdSummary: 'PRD summary',
+    techDesignSummary: 'Tech design summary',
+  });
+  const tasksPath = path.join(paths.artifactsDir, change.tasksPath);
+  let tasks = fsSync.readFileSync(tasksPath, 'utf-8');
+  tasks = tasks.replace(
+    'Backend-specific tasks are recorded here when generated by the dynamic planner.',
+    '- [ ] Implement backend endpoint\n- [ ] Update backend service'
+  ).replace(
+    'No frontend-specific implementation tasks were identified for this app unless generated by the dynamic planner.',
+    '- [ ] Render trace key in UI'
+  );
+  fsSync.writeFileSync(tasksPath, tasks, 'utf-8');
+
+  const backendResult = markProjectOpenSpecTasksCompleted({
+    paths,
+    runId: 'openspec-track-run',
+    projectName: 'fullstack',
+    section: 'backend',
+  });
+  const next = fsSync.readFileSync(tasksPath, 'utf-8');
+
+  assert.equal(backendResult?.updated, true);
+  assert.ok(next.includes('## Backend\n- [x] Implement backend endpoint\n- [x] Update backend service'));
+  assert.ok(next.includes('## Frontend\n- [ ] Render trace key in UI'));
+  assert.ok(next.includes('## Development\n- [ ] Implement backend behavior'));
+  assert.ok(next.includes('## Test\n- [ ] Add regression tests'));
+
+  await fs.rm(paths.runDir, { recursive: true, force: true });
 });
 
 test('file checkpointer writes latest graph checkpoint envelope', async () => {
@@ -1033,6 +1501,21 @@ test('cross-app review writes findings, rollback patches, and delivery metadata'
   writeBranchSummaryArtifact(paths, {
     branchId: 'branch-a',
     projectName: 'App A',
+    tracks: [{
+      trackId: 'backend',
+      kind: 'backend',
+      status: 'completed',
+      nodeIds: ['java-impl', 'backend-test'],
+      artifactPaths: ['artifacts/App A/test-report.md'],
+    }],
+    openSpec: {
+      changeId: 'run-cross-app-test-app-a',
+      proposalPath: 'artifacts/App A/openspec/changes/run-cross-app-test-app-a/proposal.md',
+      designPath: 'artifacts/App A/openspec/changes/run-cross-app-test-app-a/design.md',
+      tasksPath: 'artifacts/App A/openspec/changes/run-cross-app-test-app-a/tasks.md',
+      specPath: 'artifacts/App A/openspec/changes/run-cross-app-test-app-a/specs/app-a/spec.md',
+      taskStatus: { total: 4, completed: 4 },
+    },
     changedFiles: ['src/main/java/AppA.java'],
     publicApiChanges: [{ path: '/orders', method: 'GET', description: 'returns order v1' }],
     databaseChanges: [],
@@ -1117,6 +1600,10 @@ test('cross-app review writes findings, rollback patches, and delivery metadata'
     integrationReview: integrationReview.result,
   });
   assert.equal(delivery.metadata.deliveryStatus, 'blocked');
+  const appADelivery = delivery.metadata.branches.find(branch => branch.branchId === 'branch-a');
+  assert.equal(appADelivery?.tracks?.[0].trackId, 'backend');
+  assert.equal(appADelivery?.openSpec?.changeId, 'run-cross-app-test-app-a');
+  assert.equal(appADelivery?.openSpec?.taskStatus.completed, 4);
   assert.equal(fsSync.existsSync(path.join(paths.artifactsDir, 'cross-app/delivery-metadata.json')), true);
 
   await fs.rm(paths.runDir, { recursive: true, force: true });
@@ -1149,6 +1636,60 @@ function createTempRunPaths(runId: string): RunPaths {
     fsSync.mkdirSync(dir, { recursive: true });
   }
   return paths;
+}
+
+function startupCapability(args: {
+  backend?: boolean;
+  frontend?: boolean;
+  playwrightConfig?: string;
+  confidence?: 'high' | 'medium' | 'low' | 'none';
+  fallbackReasons?: string[];
+} = {}) {
+  const generatedAt = '2026-06-28T00:00:00.000Z';
+  return {
+    projectRoot: 'project',
+    frontend: args.frontend ? {
+      kind: 'frontend' as const,
+      command: 'npm run dev',
+      workingDirectory: '.',
+      evidence: ['package.json'],
+      confidence: args.confidence ?? 'high',
+      frameworkSignals: ['vite'],
+      scriptSignals: ['dev'],
+    } : undefined,
+    backend: args.backend ? {
+      kind: 'backend' as const,
+      command: 'mvn spring-boot:run',
+      workingDirectory: '.',
+      evidence: ['pom.xml', 'src/main/java'],
+      confidence: args.confidence ?? 'high',
+      frameworkSignals: ['spring'],
+      scriptSignals: ['maven'],
+    } : undefined,
+    readinessEndpoints: args.backend ? ['/actuator/health'] : [],
+    apiBaseUrlConventions: args.backend && args.frontend ? [{ name: 'VITE_API_BASE_URL', source: 'common' as const, confidence: 'high' as const }] : [],
+    playwrightConfig: args.playwrightConfig,
+    trustedStartup: Boolean(args.backend || args.frontend),
+    confidence: args.confidence ?? (args.backend || args.frontend ? 'high' : 'low'),
+    fallbackReasons: args.fallbackReasons ?? [],
+    generatedAt,
+  };
+}
+
+function fanoutDecisionFixture(projects: Array<{ name: string; root: string }>): FanoutDecision {
+  return {
+    schemaVersion: 1,
+    candidates: projects,
+    includedProjects: projects.map(project => ({
+      ...project,
+      reason: 'Included by unit test fixture.',
+    })),
+    excludedProjects: [],
+    unresolvedProjects: [],
+    confidence: 'high',
+    evidence: ['unit test fixture'],
+    generatedAt: '2026-06-28T00:00:00.000Z',
+  };
 }
 
 function readJson(filePath: string): unknown {

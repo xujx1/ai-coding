@@ -81,10 +81,23 @@ export interface BranchState {
     | 'waiting_fix';
   currentNodeId?: string;
   nodes: Record<string, GraphNodeState>;
+  tracks?: Record<string, BranchTrackState>;
   artifactIndex: Record<string, string[]>;
   contextManifests: Record<string, ContextManifest>;
   childAgentIds: string[];
   retry: GraphRetryState;
+  error?: string;
+  startedAt?: number;
+  completedAt?: number;
+}
+
+export interface BranchTrackState {
+  trackId: string;
+  kind: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'waiting_fix';
+  currentNodeId?: string;
+  nodeIds: string[];
+  artifactIndex: Record<string, string[]>;
   error?: string;
   startedAt?: number;
   completedAt?: number;
@@ -122,6 +135,8 @@ export interface GraphRollbackState {
 export interface BranchSummary {
   branchId: string;
   projectName: string;
+  tracks?: BranchTrackSummary[];
+  openSpec?: BranchOpenSpecSummary;
   changedFiles: string[];
   publicApiChanges: ApiChange[];
   databaseChanges: DatabaseChange[];
@@ -131,6 +146,26 @@ export interface BranchSummary {
   e2eVerification?: E2EVerificationSummary;
   riskNotes: string[];
   requiredCrossAppChecks: string[];
+}
+
+export interface BranchTrackSummary {
+  trackId: string;
+  kind: string;
+  status: string;
+  nodeIds: string[];
+  artifactPaths: string[];
+}
+
+export interface BranchOpenSpecSummary {
+  changeId: string;
+  proposalPath: string;
+  designPath: string;
+  tasksPath: string;
+  specPath: string;
+  taskStatus: {
+    total: number;
+    completed: number;
+  };
 }
 
 export interface CrossAppReviewResult {
@@ -276,6 +311,9 @@ export function mergeGraphState(
       ...current,
       ...next,
       nodes: next.nodes ? { ...current.nodes, ...next.nodes } : current.nodes,
+      tracks: next.tracks
+        ? { ...(current.tracks ?? {}), ...next.tracks }
+        : current.tracks,
       artifactIndex: next.artifactIndex
         ? { ...current.artifactIndex, ...next.artifactIndex }
         : current.artifactIndex,
@@ -360,6 +398,7 @@ function mergeBranchRecord(
       projectRoot: '',
       status: 'pending' as const,
       nodes: {},
+      tracks: {},
       artifactIndex: {},
       contextManifests: {},
       childAgentIds: [],

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>营销管理台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">M</span>
+          <div>
+            <strong>营销管理台</strong>
+            <span>marketing-admin</span>
+          </div>
+        </div>
+        <nav>
+          <a class="active" href="#activity-form">活动创建</a>
+          <a href="#product-form">商品创建</a>
+          <a href="#response-panel">接口结果</a>
+        </nav>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <h1>活动与商品配置</h1>
+            <p>管理端接口运行在当前服务，默认端口 8081。</p>
+          </div>
+          <div class="status-pill">
+            <span></span>
+            Admin API
+          </div>
+        </header>
+
+        <section class="grid">
+          <form id="activity-form" class="panel">
+            <div class="panel-title">
+              <h2>创建活动</h2>
+              <button type="submit">提交</button>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                活动名称
+                <input name="activityName" value="618满100减20" required />
+              </label>
+              <label>
+                租户 ID
+                <input name="tenantId" value="tenant-001" required />
+              </label>
+              <label>
+                工具 ID
+                <select name="toolId">
+                  <option value="tool-full-reduce">满减工具</option>
+                  <option value="tool-single-discount">单品折扣</option>
+                  <option value="tool-coupon">优惠券工具</option>
+                </select>
+              </label>
+              <label>
+                工具类型
+                <select name="toolType">
+                  <option value="FULL_REDUCE">FULL_REDUCE</option>
+                  <option value="SINGLE_DISCOUNT">SINGLE_DISCOUNT</option>
+                  <option value="COUPON">COUPON</option>
+                </select>
+              </label>
+              <label>
+                门槛金额
+                <input name="thresholdAmount" type="number" min="0" step="0.01" value="100" />
+              </label>
+              <label>
+                优惠金额
+                <input name="discountAmount" type="number" min="0" step="0.01" value="20" />
+              </label>
+              <label>
+                开始时间
+                <input name="startTime" type="datetime-local" required />
+              </label>
+              <label>
+                结束时间
+                <input name="endTime" type="datetime-local" required />
+              </label>
+              <label>
+                活动范围
+                <select name="scopeType">
+                  <option value="ALL">ALL</option>
+                  <option value="CATEGORY">CATEGORY</option>
+                  <option value="SKU_LIST">SKU_LIST</option>
+                </select>
+              </label>
+              <label>
+                操作人
+                <input name="operator" value="admin" required />
+              </label>
+            </div>
+          </form>
+
+          <form id="product-form" class="panel">
+            <div class="panel-title">
+              <h2>创建商品关联</h2>
+              <button type="submit">提交</button>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                活动 ID
+                <input name="activityId" placeholder="创建活动后自动填充" required />
+              </label>
+              <label>
+                商品 ID
+                <input name="productId" value="prod-001" required />
+              </label>
+              <label>
+                SKU ID
+                <input name="skuId" value="sku-001" />
+              </label>
+              <label>
+                范围类型
+                <select name="scopeType">
+                  <option value="SKU_LIST">SKU_LIST</option>
+                  <option value="CATEGORY">CATEGORY</option>
+                  <option value="ALL">ALL</option>
+                </select>
+              </label>
+              <label>
+                操作人
+                <input name="operator" value="admin" required />
+              </label>
+            </div>
+          </form>
+        </section>
+
+        <section id="response-panel" class="panel response-panel">
+          <div class="panel-title">
+            <h2>接口结果</h2>
+            <button id="clear-response" type="button">清空</button>
+          </div>
+          <pre id="response-output">{}</pre>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

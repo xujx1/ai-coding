@@ -1,6 +1,8 @@
 import { BranchWorkflowDefinition, WorkflowNode } from '../workflows/types.js';
+import type { ApplicationBranchPlan, PlannedNode } from '../workflows/sessionPlan.js';
 import { AsyncSemaphore } from './concurrency.js';
 import {
+  BranchTrackState,
   BranchState,
   GraphNodeState,
   PipelineGraphState,
@@ -18,6 +20,27 @@ export type BranchNodeHandler = (
   ctx: BranchRunnerContext,
   node: WorkflowNode
 ) => Promise<Partial<BranchState>> | Partial<BranchState>;
+
+export interface PlannedBranchRunnerContext {
+  graphState: PipelineGraphState;
+  branch: BranchState;
+  plan: ApplicationBranchPlan;
+  handlers?: Record<string, PlannedNodeHandler>;
+  concurrencyLimit?: number;
+}
+
+export interface PlannedNodeRunResult {
+  status?: GraphNodeState['status'];
+  outputArtifacts?: string[];
+  childAgentIds?: string[];
+  error?: string;
+  branchPatch?: Partial<BranchState>;
+}
+
+export type PlannedNodeHandler = (
+  ctx: PlannedBranchRunnerContext,
+  node: PlannedNode
+) => Promise<PlannedNodeRunResult | void> | PlannedNodeRunResult | void;
 
 export async function runBranch(
   ctx: BranchRunnerContext
@@ -89,11 +112,105 @@ export async function runBranchesWithLimit(
   return Promise.all(branches.map(branch => semaphore.run(() => runOne(branch))));
 }
 
+export async function runPlannedBranch(
+  ctx: PlannedBranchRunnerContext
+): Promise<BranchState> {
+  let branch: BranchState = {
+    ...ctx.branch,
+    status: 'running',
+    startedAt: ctx.branch.startedAt ?? Date.now(),
+  };
+  const semaphore = new AsyncSemaphore(ctx.concurrencyLimit ?? 2);
+  const terminal = new Set(['completed', 'failed', 'cancelled', 'waiting_fix', 'skipped']);
+
+  while (true) {
+    const runnable = ctx.plan.nodes.filter(node => {
+      const status = branch.nodes[node.id]?.status;
+      if (status && terminal.has(status)) return false;
+      return node.dependsOn.every(dependency => branch.nodes[dependency]?.status === 'completed');
+    });
+    if (!runnable.length) break;
+
+    const beforeCompletedCount = countCompletedPlanNodes(branch, ctx.plan.nodes);
+    const results = await Promise.all(runnable.map(node => semaphore.run(async () => {
+      const runningAt = Date.now();
+      branch = node.trackId
+        ? markBranchTrackNode(branch, node.trackId, node.id, { status: 'running', startedAt: runningAt })
+        : markBranchNode(branch, node.id, { status: 'running', startedAt: runningAt });
+      try {
+        const handler = resolvePlannedNodeHandler(ctx.handlers, node);
+        const result = await handler?.({ ...ctx, branch }, node);
+        return { node, result };
+      } catch (err) {
+        return { node, error: err as Error };
+      }
+    })));
+
+    for (const { node, result, error } of results) {
+      if (error) {
+        branch = failPlannedNode(branch, ctx.plan, node, error.message);
+        return {
+          ...branch,
+          status: 'waiting_fix',
+          error: error.message,
+          completedAt: Date.now(),
+        };
+      }
+      if (result?.branchPatch) {
+        branch = mergeBranchPatch(branch, result.branchPatch);
+      }
+      const outputArtifacts = result?.outputArtifacts ?? node.artifactHints;
+      const completedAt = Date.now();
+      const patch: Partial<GraphNodeState> = {
+        status: result?.status ?? 'completed',
+        completedAt,
+        outputArtifacts,
+        childAgentIds: result?.childAgentIds,
+        error: result?.error,
+      };
+      branch = node.trackId
+        ? markBranchTrackNode(branch, node.trackId, node.id, patch)
+        : markBranchNode(branch, node.id, patch);
+      if (outputArtifacts.length) {
+        branch = {
+          ...branch,
+          artifactIndex: {
+            ...branch.artifactIndex,
+            [node.id]: outputArtifacts,
+          },
+          tracks: node.trackId && branch.tracks?.[node.trackId]
+            ? {
+              ...branch.tracks,
+              [node.trackId]: {
+                ...branch.tracks[node.trackId],
+                artifactIndex: {
+                  ...branch.tracks[node.trackId].artifactIndex,
+                  [node.id]: outputArtifacts,
+                },
+              },
+            }
+            : branch.tracks,
+        };
+      }
+    }
+
+    if (countCompletedPlanNodes(branch, ctx.plan.nodes) === beforeCompletedCount) break;
+  }
+
+  const allCompleted = ctx.plan.nodes.every(node => branch.nodes[node.id]?.status === 'completed');
+  return {
+    ...branch,
+    status: allCompleted ? 'completed' : branch.status,
+    completedAt: allCompleted ? Date.now() : branch.completedAt,
+  };
+}
+
 export function createInitialBranchState(args: {
   branchId: string;
   workflowId: string;
   projectName: string;
   projectRoot: string;
+  plan?: ApplicationBranchPlan;
 }): BranchState {
   return {
     branchId: args.branchId,
@@ -101,11 +218,128 @@ export function createInitialBranchState(args: {
     projectName: args.projectName,
     projectRoot: args.projectRoot,
     status: 'pending',
-    nodes: {},
+    nodes: args.plan
+      ? Object.fromEntries(args.plan.nodes.map(node => [node.id, {
+        id: node.id,
+        status: 'pending' as const,
+        failureCount: 0,
+        outputArtifacts: node.artifactHints,
+      }]))
+      : {},
+    tracks: args.plan ? createInitialTrackStates(args.plan) : {},
     artifactIndex: {},
     contextManifests: {},
     childAgentIds: [],
     retry: createEmptyRetryState(),
+  };
+}
+
+export function markBranchTrackNode(
+  branch: BranchState,
+  trackId: string,
+  nodeId: string,
+  patch: Partial<GraphNodeState>
+): BranchState {
+  const nextBranch = markBranchNode(branch, nodeId, patch);
+  const currentTrack = nextBranch.tracks?.[trackId];
+  if (!currentTrack) return nextBranch;
+  const status = patch.status === 'failed'
+    ? 'failed'
+    : patch.status === 'running'
+      ? 'running'
+      : patch.status === 'completed'
+        ? allTrackNodesCompleted(nextBranch, currentTrack.nodeIds)
+          ? 'completed'
+          : 'running'
+        : currentTrack.status;
+  return {
+    ...nextBranch,
+    tracks: {
+      ...(nextBranch.tracks ?? {}),
+      [trackId]: {
+        ...currentTrack,
+        status,
+        currentNodeId: nodeId,
+        error: patch.error ?? currentTrack.error,
+        startedAt: currentTrack.startedAt ?? patch.startedAt,
+        completedAt: status === 'completed' ? Date.now() : currentTrack.completedAt,
+      },
+    },
+  };
+}
+
+export function resetBranchTrackFromNode(
+  branch: BranchState,
+  trackId: string,
+  fromNodeId: string
+): BranchState {
+  const track = branch.tracks?.[trackId];
+  if (!track) return branch;
+  const startIndex = track.nodeIds.indexOf(fromNodeId);
+  if (startIndex < 0) return branch;
+  const resetIds = new Set(track.nodeIds.slice(startIndex));
+  const nodes = { ...branch.nodes };
+  for (const nodeId of resetIds) {
+    nodes[nodeId] = {
+      ...nodes[nodeId],
+      id: nodeId,
+      status: 'pending',
+      error: undefined,
+      childAgentIds: [],
+      outputArtifacts: [],
+      failureCount: 0,
+    };
+  }
+  const artifactIndex = { ...branch.artifactIndex };
+  for (const nodeId of resetIds) delete artifactIndex[nodeId];
+  return {
+    ...branch,
+    status: 'pending',
+    currentNodeId: fromNodeId,
+    nodes,
+    artifactIndex,
+    tracks: {
+      ...(branch.tracks ?? {}),
+      [trackId]: {
+        ...track,
+        status: 'pending',
+        currentNodeId: fromNodeId,
+        error: undefined,
+        completedAt: undefined,
+        artifactIndex: Object.fromEntries(
+          Object.entries(track.artifactIndex).filter(([nodeId]) => !resetIds.has(nodeId))
+        ),
+      },
+    },
+  };
+}
+
+export function cancelBranchTrack(branch: BranchState, trackId: string): BranchState {
+  const track = branch.tracks?.[trackId];
+  if (!track) return branch;
+  const nodes = { ...branch.nodes };
+  for (const nodeId of track.nodeIds) {
+    if (['pending', 'running'].includes(nodes[nodeId]?.status ?? 'pending')) {
+      nodes[nodeId] = {
+        ...nodes[nodeId],
+        id: nodeId,
+        status: 'interrupted',
+        completedAt: Date.now(),
+        failureCount: nodes[nodeId]?.failureCount ?? 0,
+      };
+    }
+  }
+  return {
+    ...branch,
+    nodes,
+    tracks: {
+      ...(branch.tracks ?? {}),
+      [trackId]: {
+        ...track,
+        status: 'cancelled',
+        completedAt: Date.now(),
+      },
+    },
   };
 }
 
@@ -132,4 +366,73 @@ function markBranchNode(
       },
     },
   };
+}
+
+function resolvePlannedNodeHandler(
+  handlers: PlannedBranchRunnerContext['handlers'],
+  node: PlannedNode
+): PlannedNodeHandler | undefined {
+  return handlers?.[node.id] ?? handlers?.[node.runner] ?? handlers?.[node.type];
+}
+
+function failPlannedNode(
+  branch: BranchState,
+  plan: ApplicationBranchPlan,
+  node: PlannedNode,
+  message: string
+): BranchState {
+  let next = node.trackId
+    ? markBranchTrackNode(branch, node.trackId, node.id, {
+      status: 'failed',
+      completedAt: Date.now(),
+      error: message,
+      failureCount: (branch.nodes[node.id]?.failureCount ?? 0) + 1,
+    })
+    : markBranchNode(branch, node.id, {
+      status: 'failed',
+      completedAt: Date.now(),
+      error: message,
+      failureCount: (branch.nodes[node.id]?.failureCount ?? 0) + 1,
+    });
+  for (const dependent of plan.nodes.filter(candidate => candidate.dependsOn.includes(node.id))) {
+    if (dependent.id === 'app-track-join' || dependent.id === 'app-branch-summary') {
+      next = markBranchNode(next, dependent.id, {
+        status: 'waiting_fix',
+        error: `Blocked by failed node ${node.id}.`,
+      });
+    }
+  }
+  return next;
+}
+
+function mergeBranchPatch(branch: BranchState, patch: Partial<BranchState>): BranchState {
+  return {
+    ...branch,
+    ...patch,
+    nodes: patch.nodes ? { ...branch.nodes, ...patch.nodes } : branch.nodes,
+    tracks: patch.tracks ? { ...(branch.tracks ?? {}), ...patch.tracks } : branch.tracks,
+    artifactIndex: patch.artifactIndex ? { ...branch.artifactIndex, ...patch.artifactIndex } : branch.artifactIndex,
+    contextManifests: patch.contextManifests
+      ? { ...branch.contextManifests, ...patch.contextManifests }
+      : branch.contextManifests,
+    retry: patch.retry ? { ...branch.retry, ...patch.retry } : branch.retry,
+  };
+}
+
+function countCompletedPlanNodes(branch: BranchState, nodes: PlannedNode[]): number {
+  return nodes.filter(node => branch.nodes[node.id]?.status === 'completed').length;
+}
+
+function createInitialTrackStates(plan: ApplicationBranchPlan): Record<string, BranchTrackState> {
+  return Object.fromEntries(plan.tracks.map(track => [track.trackId, {
+    trackId: track.trackId,
+    kind: track.kind,
+    status: 'pending' as const,
+    nodeIds: track.nodes.map(node => node.id),
+    artifactIndex: {},
+  }]));
+}
+
+function allTrackNodesCompleted(branch: BranchState, nodeIds: string[]): boolean {
+  return nodeIds.every(nodeId => branch.nodes[nodeId]?.status === 'completed');
 }

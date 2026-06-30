@@ -23,6 +23,8 @@ export interface CrossAppDeliveryMetadata {
     projectName: string;
     status: string;
     summaryPath?: string;
+    tracks?: BranchSummary['tracks'];
+    openSpec?: BranchSummary['openSpec'];
     changedFiles: string[];
     testStatus: string;
   }>;
@@ -219,6 +221,8 @@ export function writeCrossAppDeliveryMetadata(args: {
         projectName: branch?.projectName ?? summary?.projectName ?? branchId,
         status: branch?.status ?? 'pending',
         summaryPath: findBranchSummaryArtifactPath(args.state, branchId),
+        tracks: summary?.tracks,
+        openSpec: summary?.openSpec,
         changedFiles: summary?.changedFiles ?? [],
         testStatus: summary?.testResults.status ?? 'skipped',
       };

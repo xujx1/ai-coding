@@ -97,8 +97,23 @@ export function generateProjectManifest(paths: ReturnType<typeof getRunPaths>): 
     const testRoots: string[] = [];
     const mainJava = path.join(p.root, 'src', 'main', 'java');
     const testJava = path.join(p.root, 'src', 'test', 'java');
+    const srcDir = path.join(p.root, 'src');
+    const appDir = path.join(p.root, 'app');
+    const pagesDir = path.join(p.root, 'pages');
+    const springStaticDir = path.join(p.root, 'src', 'main', 'resources', 'static');
+    const springTemplatesDir = path.join(p.root, 'src', 'main', 'resources', 'templates');
+    const publicDir = path.join(p.root, 'public');
+    const testsDir = path.join(p.root, '__tests__');
     if (fs.existsSync(mainJava)) sourceRoots.push('src/main/java');
+    if (fs.existsSync(srcDir) && !sourceRoots.includes('src/main/java')) sourceRoots.push('src');
+    if (fs.existsSync(appDir)) sourceRoots.push('app');
+    if (fs.existsSync(pagesDir)) sourceRoots.push('pages');
+    if (fs.existsSync(springStaticDir)) sourceRoots.push('src/main/resources/static');
+    if (fs.existsSync(springTemplatesDir)) sourceRoots.push('src/main/resources/templates');
+    if (fs.existsSync(publicDir)) sourceRoots.push('public');
     if (fs.existsSync(testJava)) testRoots.push('src/test/java');
+    if (fs.existsSync(testsDir)) testRoots.push('__tests__');
+    if (hasFrontendTestFile(p.root)) testRoots.push('frontend-tests');
     return {
       name: p.name,
       root: path.relative(path.join(paths.runDir, 'workspace'), p.root),
@@ -148,4 +163,14 @@ function looksLikeSingleProjectDirectory(dir: string): boolean {
 
 function safeProjectArtifactName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '-').replace(/^-+|-+$/g, '') || 'project';
+}
+
+function hasFrontendTestFile(root: string): boolean {
+  try {
+    return fs.readdirSync(root, { withFileTypes: true }).some(entry =>
+      entry.isFile() && /\.(test|spec)\.(ts|tsx|js|jsx)$/.test(entry.name)
+    );
+  } catch {
+    return false;
+  }
 }

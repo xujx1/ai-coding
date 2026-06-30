@@ -1073,7 +1073,7 @@ export class PipelineEngine extends EventEmitter {
     const existingQuestions = readTextIfExists(questionsPath)?.trim() || '';
     let questions = buildClarifyQuestionsArtifact(clarified, manifest, existingQuestions);
     fs.writeFileSync(questionsPath, questions, 'utf-8');
-    this.emitArtifactWritten(node.id, 'mrd-clarify-questions.md', Buffer.byteLength(questions, 'utf-8'), '需求拆解待澄清问题');
+    this.emitArtifactWritten(node.id, 'mrd-clarify-questions.md', Buffer.byteLength(questions, 'utf-8'), '需求归属确认清单');
 
     let clarificationAnswers = '';
     if (!this.skipConfirmations && hasClarificationQuestions(questions)) {
@@ -1084,7 +1084,7 @@ export class PipelineEngine extends EventEmitter {
 
       eventLog.logEvent('confirmation_waiting', {
         nodeId: node.id,
-        title: '需求拆解问题确认',
+        title: '需求归属确认',
         content: questions.slice(0, 5000),
         artifactPath: 'artifacts/mrd-clarify-questions.md',
         confirmationKind: 'mrd-clarify-questions',
@@ -1092,7 +1092,7 @@ export class PipelineEngine extends EventEmitter {
       this.emit('event', {
         type: 'confirmation_required',
         nodeId: node.id,
-        title: '需求拆解问题确认',
+        title: '需求归属确认',
         content: questions,
         artifactPath: 'artifacts/mrd-clarify-questions.md',
         confirmationKind: 'mrd-clarify-questions',
@@ -1103,7 +1103,7 @@ export class PipelineEngine extends EventEmitter {
       this.emit('event', { type: 'confirmation_resolved', nodeId: node.id, approved, feedback } as PipelineEvent);
 
       if (!approved && !feedback) {
-        throw new Error('用户拒绝需求拆解问题清单，且未提供修订意见。');
+        throw new Error('用户拒绝需求归属确认清单，且未提供修订意见。');
       }
       clarificationAnswers = feedback?.trim() || '用户确认按推荐默认决策继续。';
       nodeState.status = 'running';
@@ -1128,7 +1128,7 @@ export class PipelineEngine extends EventEmitter {
         projectDir: paths.projectDir,
         artifactsDir: paths.artifactsDir,
         runDir: paths.runDir,
-        taskDescription: '根据用户回答生成最终需求拆解清单',
+        taskDescription: '根据用户回答生成最终需求归属确认结果',
         requireToolUse: shouldRequireToolUse(),
       });
 
@@ -1158,7 +1158,7 @@ export class PipelineEngine extends EventEmitter {
     const finalArtifactContent = readTextIfExists(clarifiedPath)?.trim() || clarified;
     if (finalArtifactContent !== clarified) clarified = finalArtifactContent;
     if (!fs.existsSync(clarifiedPath)) fs.writeFileSync(clarifiedPath, clarified, 'utf-8');
-    this.emitArtifactWritten(node.id, 'mrd-clarified.md', Buffer.byteLength(clarified, 'utf-8'), '需求拆解与澄清清单');
+    this.emitArtifactWritten(node.id, 'mrd-clarified.md', Buffer.byteLength(clarified, 'utf-8'), '需求拆解与归属确认清单');
 
     const fanoutDecision = deriveFanoutDecision({ manifest, clarifiedMrd: clarified });
     this.writeArtifact(
@@ -1173,6 +1173,8 @@ export class PipelineEngine extends EventEmitter {
         instance: this.state.workflowInstance,
         runId: this.runId,
         decision: fanoutDecision,
+        manifest,
+        clarifiedMrd: clarified,
         artifactPath: FANOUT_DECISION_ARTIFACT_PATH,
       });
     }
@@ -1211,7 +1213,7 @@ export class PipelineEngine extends EventEmitter {
     if (!fs.existsSync(questionsPath)) {
       const questions = buildClarifyQuestionsArtifact(clarified, manifest);
       fs.writeFileSync(questionsPath, questions, 'utf-8');
-      this.emitArtifactWritten(node.id, 'mrd-clarify-questions.md', Buffer.byteLength(questions, 'utf-8'), '需求拆解待澄清问题');
+      this.emitArtifactWritten(node.id, 'mrd-clarify-questions.md', Buffer.byteLength(questions, 'utf-8'), '需求归属确认清单');
     }
 
     const fanoutDecision = deriveFanoutDecision({ manifest, clarifiedMrd: clarified });
@@ -1227,6 +1229,8 @@ export class PipelineEngine extends EventEmitter {
         instance: this.state.workflowInstance,
         runId: this.runId,
         decision: fanoutDecision,
+        manifest,
+        clarifiedMrd: clarified,
         artifactPath: FANOUT_DECISION_ARTIFACT_PATH,
       });
     }
@@ -1336,7 +1340,7 @@ export class PipelineEngine extends EventEmitter {
       nodeId: node.id,
       artifactPath: 'artifacts/mrd-clarify-questions.md',
       size: Buffer.byteLength(questions, 'utf-8'),
-      description: 'MRD 澄清问题清单',
+      description: '需求归属确认清单',
     };
     eventLog.logEvent('artifact_written', questionsEvent, agentId, node.id);
     this.emit('event', {
@@ -1547,7 +1551,12 @@ export class PipelineEngine extends EventEmitter {
         projectRoot: project.root,
         developmentTasks: dev,
         testTasks: test,
-        prdSummary: summarizeMarkdown(readTextIfExists(path.join(paths.artifactsDir, 'prd.md')) || '', 800),
+        prdSummary: summarizeMarkdown(
+          readTextIfExists(path.join(paths.artifactsDir, 'mrd-clarified.md')) ||
+          readTextIfExists(path.join(paths.artifactsDir, 'prd.md')) ||
+          '',
+          800
+        ),
         techDesignSummary: summarizeMarkdown(techDesign, 800),
       });
       artifacts[`${project.name}/openspec-task.md`] = dev;
@@ -1674,17 +1683,7 @@ export class PipelineEngine extends EventEmitter {
       return { output: output.trim(), agentId };
     };
 
-    const prdResult = await runSimpleAgent(
-      '生成 PRD / 验收口径',
-      renderPromptTemplate(loadPromptFile('implementation-plan-prd-user.md'), {
-        base_context: baseUserPrompt,
-      }),
-    );
-    const prd = normalizeMarkdownArtifact(
-      readTextIfExists(path.join(paths.artifactsDir, 'prd.md')) || prdResult.output,
-      'PRD / 验收口径',
-      loadOutputTemplate('prd-fallback.md'),
-    );
+    const proposal = readTextIfExists(path.join(paths.artifactsDir, 'mrd-clarified.md')) || '';
 
     const techResults = await Promise.all(projects.map(async project => ({
       project,
@@ -1700,9 +1699,7 @@ export class PipelineEngine extends EventEmitter {
       ),
     })));
 
-    const artifacts: Record<string, string> = {
-      'prd.md': prd,
-    };
+    const artifacts: Record<string, string> = {};
     const manifestProjects: Array<{
       project: string;
       artifact: string;
@@ -1730,7 +1727,7 @@ export class PipelineEngine extends EventEmitter {
     }
     const manifestArtifact = {
       nodeId: 'implementation-plan',
-      prd: 'artifacts/prd.md',
+      proposal: 'artifacts/mrd-clarified.md',
       confirmedBoundaries: fs.existsSync(path.join(paths.artifactsDir, 'implementation-boundaries.md'))
         ? 'artifacts/implementation-boundaries.md'
         : undefined,
@@ -1746,9 +1743,7 @@ export class PipelineEngine extends EventEmitter {
         node.id,
         file,
         Buffer.byteLength(content, 'utf-8'),
-        file === 'prd.md'
-          ? 'PRD / 验收口径'
-          : file === 'implementation-plan-manifest.json'
+        file === 'implementation-plan-manifest.json'
             ? '实施方案产物索引'
             : '项目级技术方案'
       );
@@ -1756,7 +1751,7 @@ export class PipelineEngine extends EventEmitter {
 
     return {
       artifacts,
-      content: buildImplementationPlanConfirmationContent(prd, manifestProjects, paths),
+      content: buildImplementationPlanConfirmationContent(proposal, manifestProjects, paths),
     };
   }
 
@@ -1918,9 +1913,7 @@ export class PipelineEngine extends EventEmitter {
     projects: Array<{ name: string; root: string }>
   ): { content: string; artifacts: Record<string, string> } {
     const clarified = readTextIfExists(path.join(paths.artifactsDir, 'mrd-clarified.md')) || '';
-    const prd = readTextIfExists(path.join(paths.artifactsDir, 'prd.md')) ||
-      buildDocumentationOnlyPrd(clarified);
-    const artifacts: Record<string, string> = { 'prd.md': prd };
+    const artifacts: Record<string, string> = {};
     const manifestProjects: Array<{ project: string; artifact: string; summary: string; riskLevel: string }> = [];
 
     for (const project of projects) {
@@ -1935,17 +1928,17 @@ export class PipelineEngine extends EventEmitter {
     }
     artifacts['implementation-plan-manifest.json'] = JSON.stringify({
       nodeId: 'implementation-plan',
-      prd: 'artifacts/prd.md',
+      proposal: 'artifacts/mrd-clarified.md',
       projects: manifestProjects,
       fallbackReason: 'documentation-only-projects',
     }, null, 2);
 
     for (const [file, content] of Object.entries(artifacts)) {
-      this.writeArtifact(paths, node.id, file, content, file === 'prd.md' ? 'PRD / 验收口径' : '文档型项目实施方案');
+      this.writeArtifact(paths, node.id, file, content, file === 'implementation-plan-manifest.json' ? '实施方案产物索引' : '文档型项目技术方案');
     }
     return {
       artifacts,
-      content: buildImplementationPlanConfirmationContent(prd, manifestProjects, paths),
+      content: buildImplementationPlanConfirmationContent(clarified, manifestProjects, paths),
     };
   }
 
@@ -1963,7 +1956,12 @@ export class PipelineEngine extends EventEmitter {
       devSummary: string;
       testSummary: string;
     }> = [];
-    const prdSummary = summarizeMarkdown(readTextIfExists(path.join(paths.artifactsDir, 'prd.md')) || '', 800);
+    const prdSummary = summarizeMarkdown(
+      readTextIfExists(path.join(paths.artifactsDir, 'mrd-clarified.md')) ||
+      readTextIfExists(path.join(paths.artifactsDir, 'prd.md')) ||
+      '',
+      800
+    );
 
     for (const project of projects) {
       const techDesign = readTextIfExists(path.join(paths.artifactsDir, project.name, 'tech-design.md')) || '';
@@ -2345,6 +2343,22 @@ export class PipelineEngine extends EventEmitter {
       branchId: branch.branchId,
       projectName,
     });
+    summary.tracks = (branch.tracks ?? []).map(track => ({
+      trackId: track.trackId,
+      kind: track.kind,
+      status: track.status,
+      nodeIds: track.nodeIds,
+      artifactPaths: track.nodeIds.flatMap(nodeId => branch.artifactIndex?.[nodeId] ?? []),
+    }));
+    const openSpecChange = getProjectOpenSpecChange(paths, this.runId, projectName);
+    summary.openSpec = {
+      changeId: openSpecChange.changeId,
+      proposalPath: `artifacts/${openSpecChange.proposalPath}`,
+      designPath: `artifacts/${openSpecChange.designPath}`,
+      tasksPath: `artifacts/${openSpecChange.tasksPath}`,
+      specPath: `artifacts/${openSpecChange.specPath}`,
+      taskStatus: summarizeOpenSpecTaskStatus(path.join(paths.artifactsDir, openSpecChange.tasksPath)),
+    };
     summary.changedFiles = branchArtifacts
       .filter(artifact => artifact.includes('/changed-files/') || artifact.includes('/changed-test-files/'))
       .map(artifact => artifact.replace(/^artifacts\//, ''));
@@ -3141,6 +3155,15 @@ function shouldUseDocumentationOnlyFallback(projects: Array<{ name: string; root
   return projects.length > 0 && projects.every(project => !hasJavaProjectShape(project.root));
 }
 
+function summarizeOpenSpecTaskStatus(tasksPath: string): { total: number; completed: number } {
+  const content = readTextIfExists(tasksPath) || '';
+  const taskLines = content.split(/\r?\n/).filter(line => /^\s*[-*]\s+\[[ xX]\]\s+/.test(line));
+  return {
+    total: taskLines.length,
+    completed: taskLines.filter(line => /^\s*[-*]\s+\[[xX]\]\s+/.test(line)).length,
+  };
+}
+
 function hasJavaProjectShape(projectRoot: string): boolean {
   return fs.existsSync(path.join(projectRoot, 'pom.xml')) ||
     fs.existsSync(path.join(projectRoot, 'src')) ||
@@ -3276,7 +3299,7 @@ function buildConfirmationData(node: PipelineNode, content: string): {
 } {
   if (node.id === 'mrd-render') {
     return {
-      title: '需求拆解确认',
+      title: '需求归属确认',
       extra: {
         confirmationKind: 'mrd-render',
       },
@@ -3284,14 +3307,14 @@ function buildConfirmationData(node: PipelineNode, content: string): {
   }
   if (node.id === 'mrd-clarify') {
     return {
-      title: 'MRD 澄清确认',
+      title: '需求归属确认',
       extra: {
         confirmationKind: 'mrd-clarify',
         clarificationOptions: [
           {
             id: 'default',
-            label: '按 Agent 推荐方案继续',
-            description: '接受当前澄清结论，作为 PRD 生成输入。',
+            label: '按当前归属继续',
+            description: '接受当前需求清单、应用归属和实施边界，进入后续计划生成。',
           },
           {
             id: 'minimal',
@@ -3491,10 +3514,7 @@ function branchStatusForStage(
 
 function artifactsForProject(artifacts: string[], projectName: string): string[] {
   const projectPrefix = `artifacts/${projectName}/`;
-  return uniqueArtifacts(artifacts).filter(artifact =>
-    artifact.startsWith(projectPrefix) ||
-    (projectName === 'project' && !artifact.includes('/cross-app/') && artifact.endsWith('prd.md'))
-  );
+  return uniqueArtifacts(artifacts).filter(artifact => artifact.startsWith(projectPrefix));
 }
 
 function readE2ESummaryArtifact(
@@ -3695,8 +3715,9 @@ function normalizeFailureCategory(category: string | undefined): 'success' | 'co
 
 function incrementProjectRetry(state: ExecutionState, projectName: string, field: RetryField): number {
   const project = ensureProjectRetryState(state, projectName);
+  project.retry[field] = project.retry[field] ?? 0;
   project.retry[field] += 1;
-  return project.retry[field];
+  return project.retry[field] ?? 0;
 }
 
 function getProjectRetry(state: ExecutionState, projectName: string, field: RetryField): number {

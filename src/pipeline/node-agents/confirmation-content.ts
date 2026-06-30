@@ -24,7 +24,7 @@ export function buildProjectStageConfirmationContent(title: string, summaries: P
 }
 
 export function buildImplementationPlanConfirmationContent(
-  prd: string,
+  proposal: string,
   projects: Array<{ project: string; artifact: string; summary: string; riskLevel: string }>,
   paths: ReturnType<typeof getRunPaths>,
 ): string {
@@ -42,11 +42,11 @@ export function buildImplementationPlanConfirmationContent(
     : '未检测到项目文件夹，未生成项目级技术方案。';
 
   return renderTemplate(loadTemplate('implementation-plan-confirmation.md'), {
-    prd_summary: summarizeMarkdownSections(prd, 900),
+    prd_summary: summarizeMarkdownSections(proposal, 900),
     boundaries_summary: boundaries,
     project_lines: projectLines,
     artifact_lines: [
-      '- artifacts/prd.md',
+      '- artifacts/mrd-clarified.md',
       '- artifacts/implementation-plan-manifest.json',
       ...projects.map(project => `- ${project.artifact}`),
     ].join('\n'),

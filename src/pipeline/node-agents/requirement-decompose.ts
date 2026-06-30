@@ -322,17 +322,28 @@ export function buildRequirementBoundaryConfirmation(
   clarified: string,
   manifest?: ProjectManifest
 ): string {
+  const projectNames = manifest?.projects?.map(project => project.name).filter(Boolean) ?? [];
+  const projectNameList = projectNames.length ? projectNames.join('、') : '已上传应用或 MRD 中的业务系统';
   const projectLines = manifest?.projects?.length
     ? manifest.projects.map(project => `- ${project.name}: ${project.root}`).join('\n')
     : '- 未检测到上传项目；需要确认业务系统和实际代码项目映射。';
   const featureInventory = extractSection(clarified, '## Feature Inventory') || '未能稳定提取功能清单。';
   const projectOwnership = extractSection(clarified, '## Project Ownership') || '未能稳定提取项目归属。';
+  const parsedImplementationSurfaces = extractSection(clarified, '## Implementation Surfaces');
   const implementationBoundaries = extractSection(clarified, '## Implementation Boundaries') || '未能稳定提取实施边界。';
+  const implementationSurfaces = buildImplementationSurfaceConfirmation({
+    clarified,
+    manifest,
+    featureInventory,
+    projectOwnership,
+    parsedImplementationSurfaces,
+    implementationBoundaries,
+  });
 
   return [
     '## 需求-应用实现边界确认',
     '',
-    '请确认下面的需求清单、应用归属和实现边界是否正确。若某个需求项应由其他应用实现，或某个应用只透传/不改代码，请在反馈中直接改正。',
+    '请确认下面的需求清单、应用归属、实施面向和实现边界是否正确。若某个需求项应由其他应用实现，或某个应用只透传/不改代码，请在反馈中直接改正。',
     '',
     '### 上传应用候选',
     '',
@@ -346,16 +357,103 @@ export function buildRequirementBoundaryConfirmation(
     '',
     projectOwnership.trim(),
     '',
+    '### 实施面向确认',
+    '',
+    implementationSurfaces,
+    '',
     '### 实施边界',
     '',
     implementationBoundaries.trim(),
     '',
     '### 必须确认的问题',
     '',
-    '1. 上述每个需求项分别由哪个应用实现？请确认 crowd、abtest、cc 或其他应用的归属。',
-    '2. 哪些应用需要改代码，哪些应用只负责字段透传、日志记录或不改动？',
-    '3. 是否存在 MRD 提到但未上传的应用/仓库？如果存在，请指出应用名和阻断原因。',
+    `1. 上述每个需求项分别由哪个应用实现？请在 ${projectNameList} 中确认归属，或指出 MRD 中存在但未上传的应用。`,
+    '2. 每个应用分别涉及哪些实施面向：前端页面/交互、后端接口/服务、API 契约、E2E 验证、文档兜底？',
+    '3. 哪些应用需要改代码，哪些应用只负责字段透传、日志记录或不改动？',
+    '4. 是否存在 MRD 提到但未上传的应用/仓库？如果存在，请指出应用名和阻断原因。',
   ].join('\n');
+}
+
+function buildImplementationSurfaceConfirmation(args: {
+  clarified: string;
+  manifest?: ProjectManifest;
+  featureInventory: string;
+  projectOwnership: string;
+  parsedImplementationSurfaces?: string | null;
+  implementationBoundaries: string;
+}): string {
+  if (args.parsedImplementationSurfaces?.trim()) {
+    return args.parsedImplementationSurfaces.trim();
+  }
+  const projects = args.manifest?.projects ?? [];
+  if (!projects.length) {
+    return [
+      '| 应用 | 前端 | 后端 | 契约/E2E | 依据 |',
+      '| --- | --- | --- | --- | --- |',
+      '| 待确认 | 待确认 | 待确认 | 待确认 | 未上传代码项目，需要用户确认业务系统与实际代码仓映射 |',
+    ].join('\n');
+  }
+
+  const allText = [
+    args.featureInventory,
+    args.projectOwnership,
+    args.implementationBoundaries,
+    args.clarified,
+  ].join('\n');
+
+  return [
+    '| 应用 | 前端页面/交互 | 后端接口/服务 | 契约/E2E | 依据 |',
+    '| --- | --- | --- | --- | --- |',
+    ...projects.map(project => {
+      const projectContext = collectProjectContext(project.name, allText);
+      const sourceRoots = project.sourceRoots ?? [];
+      const startup = project.capabilities;
+      const frontend = hasFrontendImpact(projectContext) || Boolean(startup?.frontend);
+      const backend = hasBackendImpact(projectContext) || Boolean(startup?.backend) || project.buildTool === 'maven';
+      const contract = hasContractImpact(projectContext) || Boolean(startup?.apiBaseUrlConventions?.length) || (frontend && backend);
+      const e2e = frontend && /验收|预览|页面|交互|端到端|E2E|浏览器|管理端/.test(projectContext || allText);
+      const evidence = summarizeSurfaceEvidence({
+        context: projectContext,
+        sourceRoots,
+        startupSignals: [
+          ...(startup?.frontend?.frameworkSignals ?? []),
+          ...(startup?.backend?.frameworkSignals ?? []),
+        ],
+      });
+      return `| ${project.name} | ${frontend ? '是' : '待确认/否'} | ${backend ? '是' : '待确认/否'} | ${contract ? '契约' : '待确认'}${e2e ? ' + E2E' : ''} | ${evidence} |`;
+    }),
+  ].join('\n');
+}
+
+function collectProjectContext(projectName: string, content: string): string {
+  const escaped = projectName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const projectLine = new RegExp(`^.*${escaped}.*$`, 'gim');
+  const matches = Array.from(content.matchAll(projectLine)).map(match => match[0].trim());
+  return matches.slice(0, 12).join('\n');
+}
+
+function hasFrontendImpact(text: string): boolean {
+  return /(前端|页面|UI|交互|管理端|预览|展示|表单|按钮|列表|详情|弹窗|静态资源|模板|浏览器|Web|H5|console|admin)/i.test(text);
+}
+
+function hasBackendImpact(text: string): boolean {
+  return /(后端|接口|API|服务|Controller|Service|Mapper|数据库|SQL|DTO|RPC|任务|规则|计算|保存|查询|校验|命中)/i.test(text);
+}
+
+function hasContractImpact(text: string): boolean {
+  return /(接口|字段|payload|DTO|API|契约|协议|联调|兼容|透传|请求|响应)/i.test(text);
+}
+
+function summarizeSurfaceEvidence(args: {
+  context: string;
+  sourceRoots: string[];
+  startupSignals: string[];
+}): string {
+  const evidence: string[] = [];
+  if (args.context) evidence.push(args.context.split(/\r?\n/)[0].slice(0, 80));
+  if (args.sourceRoots.length) evidence.push(`sourceRoots: ${args.sourceRoots.slice(0, 3).join(', ')}`);
+  if (args.startupSignals.length) evidence.push(`signals: ${args.startupSignals.slice(0, 3).join(', ')}`);
+  return evidence.length ? evidence.join('; ') : '未在 MRD 中命中明确项目上下文，需用户确认';
 }
 
 export function appendClarificationAnswers(draft: string, answers: string, modelOutput?: string): string {

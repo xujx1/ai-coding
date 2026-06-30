@@ -78,6 +78,10 @@ function detectFrontend(
   const frameworkSignals = [
     ...fileSignals(files, ['vite.config.ts', 'vite.config.js'], 'vite'),
     ...fileSignals(files, ['next.config.ts', 'next.config.js', 'next.config.mjs'], 'next'),
+    ...fileSignals(files, ['src/main/resources/static'], 'spring-static'),
+    ...fileSignals(files, ['src/main/resources/templates'], 'spring-templates'),
+    ...fileSignals(files, ['public'], 'static-public'),
+    ...fileSignals(files, ['index.html', 'app.js', 'styles.css'], 'static-assets'),
     ...dependencySignals(projectRoot, ['vite', 'next', 'react-scripts', '@vitejs/plugin-react']),
   ];
   const scriptName = ['dev', 'start', 'preview'].find(name => scripts[name]);
@@ -87,6 +91,8 @@ function detectFrontend(
     ? `npm run ${scriptName}`
     : frameworkSignals.includes('vite')
       ? 'npx vite --host 127.0.0.1'
+      : frameworkSignals.some(signal => ['spring-static', 'spring-templates', 'static-public', 'static-assets'].includes(signal))
+        ? 'mvn spring-boot:run'
       : 'npm run dev';
   return {
     kind: 'frontend',

@@ -109,13 +109,39 @@ export type PipelineStatus = 'idle' | 'running' | 'waiting_confirmation' | 'susp
 export interface ProjectState {
   name: string;
   root: string;
+  branchId?: string;
   currentNodeId?: string;
   status: 'pending' | 'running' | 'completed' | 'failed' | 'waiting_fix' | 'suspended' | 'interrupted';
   retry: {
     reviewBlockCount: number;
     testRetryCount: number;
     coverageRetryCount: number;
+    integrationRetryCount?: number;
+    crossAppReviewBlockCount?: number;
   };
+  nodes?: Record<string, {
+    id: string;
+    status: NodeStatus;
+    startedAt?: number;
+    completedAt?: number;
+    outputArtifacts?: string[];
+    childAgentIds?: string[];
+    error?: string;
+    failureCount: number;
+  }>;
+  tracks?: Record<string, {
+    trackId: string;
+    kind: string;
+    status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'waiting_fix';
+    currentNodeId?: string;
+    nodeIds: string[];
+    artifactIndex: Record<string, string[]>;
+    error?: string;
+    startedAt?: number;
+    completedAt?: number;
+  }>;
+  artifactIndex?: Record<string, string[]>;
+  outputArtifacts?: string[];
 }
 
 export interface RollbackState {
