@@ -235,7 +235,7 @@ async function runBrowserVerification(args: {
 
   try {
     const importer = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<any>;
-    const playwright = await importer('@playwright/test');
+    const playwright = await importer('playwright');
     const browser = await playwright.chromium.launch();
     const page = await browser.newPage();
     page.on('console', (message: any) => {

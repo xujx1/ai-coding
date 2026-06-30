@@ -8,6 +8,7 @@
     "clean": "rm -rf dist",
     "build": "tsc",
     "test": "npm run build && node --test dist/__tests__/*.test.js",
+    "playwright:install": "playwright install chromium",
     "start": "node dist/server/app.js",
     "dev": "tsx watch src/server/app.ts"
   },
@@ -20,6 +21,7 @@
     "hono": "^4.6.0",
     "multer": "^1.4.5-lts.1",
     "nanoid": "^5.0.7",
+    "playwright": "^1.61.1",
     "ws": "^8.18.0",
     "zod": "^3.23.0"
   },
