@@ -121,12 +121,21 @@ export function listOpsApplications(workspaceRoot = process.cwd()): OpsApplicati
   if (!fs.existsSync(ecomRoot)) return [];
   const dependencyMap = readDependencyMap(ecomRoot);
   const registry = readAppsRegistry(ecomRoot);
-  const apps = fs.readdirSync(ecomRoot, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .filter(entry => !entry.name.startsWith('.') && entry.name !== 'spaces')
+  const registryApps = Array.from(registry.entries());
+  const appEntries = registryApps.length
+    ? registryApps.map(([appId, app]) => ({
+      appId,
+      root: app.localPath && path.isAbsolute(app.localPath) ? app.localPath : path.join(ecomRoot, app.localPath ?? appId),
+    }))
+    : fs.readdirSync(ecomRoot, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .filter(entry => !entry.name.startsWith('.') && entry.name !== 'spaces' && fs.existsSync(path.join(ecomRoot, entry.name, 'README.md')))
+      .map(entry => ({ appId: entry.name, root: path.join(ecomRoot, entry.name) }));
+  const apps = appEntries
+    .filter(entry => fs.existsSync(entry.root))
     .map(entry => {
-      const appId = entry.name;
-      const root = path.join(ecomRoot, appId);
+      const appId = entry.appId;
+      const root = entry.root;
       const registryApp = registry.get(appId);
       return {
         appId,
@@ -196,15 +205,16 @@ function classifyOpsAlert(alert: string): {
   return { category: 'UNKNOWN', confidence: 0.25, matchedKeywords: [] };
 }
 
-function readAppsRegistry(ecomRoot: string): Map<string, { name?: string; description?: string }> {
+function readAppsRegistry(ecomRoot: string): Map<string, { name?: string; description?: string; localPath?: string }> {
   const registryPath = path.join(ecomRoot, 'spaces', 'knowledge', 'knowledge-base', 'registry', 'apps.json');
-  const result = new Map<string, { name?: string; description?: string }>();
-  const registry = readJson<{ apps?: Array<{ appId?: string; name?: string; domains?: string[]; tags?: string[] }> }>(registryPath);
+  const result = new Map<string, { name?: string; description?: string; localPath?: string }>();
+  const registry = readJson<{ apps?: Array<{ appId?: string; name?: string; domains?: string[]; tags?: string[]; codeRepo?: { localPath?: string; repoPath?: string } }> }>(registryPath);
   for (const app of registry?.apps ?? []) {
     if (!app.appId) continue;
     result.set(app.appId, {
       name: app.name,
       description: [app.domains?.join('/'), app.tags?.join('、')].filter(Boolean).join(' · '),
+      localPath: app.codeRepo?.localPath ?? app.codeRepo?.repoPath,
     });
   }
   return result;
@@ -217,8 +227,8 @@ function readDependencyMap(ecomRoot: string): Map<string, string[]> {
   const edges = Array.isArray(raw?.edges) ? raw.edges : [];
   for (const edge of edges) {
     if (!isRecord(edge)) continue;
-    const from = firstString(edge.from, edge.source, edge.sourceApp, edge.appId);
-    const to = firstString(edge.to, edge.target, edge.targetApp, edge.dependsOn);
+    const from = firstString(edge.from, edge.fromAppId, edge.source, edge.sourceApp, edge.appId);
+    const to = firstString(edge.to, edge.toAppId, edge.target, edge.targetApp, edge.dependsOn);
     if (!from || !to) continue;
     result.set(from, Array.from(new Set([...(result.get(from) ?? []), to])));
   }
