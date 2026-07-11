@@ -3495,6 +3495,187 @@ textarea { min-height: 80px; }
   overflow-y: auto;
 }
 
+/* Ops panel */
+.ops-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ops-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ops-field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ops-field select,
+.ops-field textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12px;
+  padding: 8px;
+  outline: none;
+}
+
+.ops-field textarea {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.5;
+}
+
+.ops-field select:focus,
+.ops-field textarea:focus {
+  border-color: rgba(88,166,255,0.7);
+}
+
+.ops-submit {
+  width: 100%;
+  justify-content: center;
+}
+
+.ops-app-card,
+.ops-result,
+.ops-section,
+.ops-evidence {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+}
+
+.ops-app-card {
+  padding: 10px;
+}
+
+.ops-app-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.ops-app-desc {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.ops-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ops-chip-row span {
+  border: 1px solid rgba(88,166,255,0.35);
+  border-radius: 999px;
+  color: var(--accent-blue);
+  background: rgba(88,166,255,0.08);
+  font-size: 10px;
+  padding: 2px 7px;
+}
+
+.ops-error {
+  color: var(--accent-red);
+  font-size: 11px;
+  border: 1px solid rgba(248,81,73,0.35);
+  background: rgba(248,81,73,0.08);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.ops-result {
+  padding: 10px;
+}
+
+.ops-result-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ops-result-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.ops-result-subtitle {
+  margin-top: 3px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.ops-section {
+  padding: 8px;
+  margin-top: 8px;
+}
+
+.ops-section h4 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.ops-line {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  padding: 3px 0;
+}
+
+.ops-line.muted {
+  color: var(--text-muted);
+}
+
+.ops-evidence {
+  padding: 8px;
+  margin-top: 6px;
+}
+
+.ops-evidence strong {
+  display: block;
+  font-size: 11px;
+  color: var(--accent-blue);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-evidence span {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.ops-evidence pre {
+  margin: 6px 0 0;
+  max-height: 120px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  padding: 7px;
+}
+
 /* Agents list */
 .agent-overview {
   display: grid;
