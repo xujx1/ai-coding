@@ -1,0 +1,69 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Content Service",
+    "version": "0.1.0",
+    "description": "Manages product content, posts, short videos, live sessions, comments, creators, and moderation workflow."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/knowledge": {
+      "get": {
+        "summary": "Domain knowledge facts",
+        "responses": {
+          "200": {
+            "description": "Domain facts"
+          }
+        }
+      }
+    },
+    "/sample": {
+      "get": {
+        "summary": "Sample domain objects",
+        "responses": {
+          "200": {
+            "description": "Sample payload"
+          }
+        }
+      }
+    },
+    "/validate-requirement": {
+      "post": {
+        "summary": "Validate requirement impact for this domain",
+        "responses": {
+          "200": {
+            "description": "Validation result"
+          }
+        }
+      }
+    }
+  },
+  "x-repository": "ecom-content",
+  "x-domain": "content",
+  "x-capabilities": [
+    "post",
+    "short-video",
+    "live-session",
+    "comment",
+    "creator",
+    "content-moderation"
+  ],
+  "x-upstream": [
+    "product",
+    "merchant",
+    "user"
+  ],
+  "x-downstream": [
+    "marketing",
+    "customer-service"
+  ]
+}

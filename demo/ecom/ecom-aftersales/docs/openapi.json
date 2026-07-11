@@ -1,0 +1,69 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Aftersales Service",
+    "version": "0.1.0",
+    "description": "Handles refund, return, exchange, aftersales workflow, evidence, and dispute decisions."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/knowledge": {
+      "get": {
+        "summary": "Domain knowledge facts",
+        "responses": {
+          "200": {
+            "description": "Domain facts"
+          }
+        }
+      }
+    },
+    "/sample": {
+      "get": {
+        "summary": "Sample domain objects",
+        "responses": {
+          "200": {
+            "description": "Sample payload"
+          }
+        }
+      }
+    },
+    "/validate-requirement": {
+      "post": {
+        "summary": "Validate requirement impact for this domain",
+        "responses": {
+          "200": {
+            "description": "Validation result"
+          }
+        }
+      }
+    }
+  },
+  "x-repository": "ecom-aftersales",
+  "x-domain": "aftersales",
+  "x-capabilities": [
+    "refund",
+    "return",
+    "exchange",
+    "aftersales-workflow",
+    "dispute-evidence"
+  ],
+  "x-upstream": [
+    "trade",
+    "payment",
+    "fulfillment"
+  ],
+  "x-downstream": [
+    "inventory",
+    "finance",
+    "customer-service"
+  ]
+}

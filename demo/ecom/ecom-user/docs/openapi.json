@@ -1,0 +1,67 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "User CRM Service",
+    "version": "0.1.0",
+    "description": "Owns account, authentication profile, membership level, user tags, identity verification, and address book."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/knowledge": {
+      "get": {
+        "summary": "Domain knowledge facts",
+        "responses": {
+          "200": {
+            "description": "Domain facts"
+          }
+        }
+      }
+    },
+    "/sample": {
+      "get": {
+        "summary": "Sample domain objects",
+        "responses": {
+          "200": {
+            "description": "Sample payload"
+          }
+        }
+      }
+    },
+    "/validate-requirement": {
+      "post": {
+        "summary": "Validate requirement impact for this domain",
+        "responses": {
+          "200": {
+            "description": "Validation result"
+          }
+        }
+      }
+    }
+  },
+  "x-repository": "ecom-user",
+  "x-domain": "user",
+  "x-capabilities": [
+    "account",
+    "member-level",
+    "user-profile",
+    "identity-verification",
+    "address-book",
+    "user-tags"
+  ],
+  "x-upstream": [],
+  "x-downstream": [
+    "trade",
+    "marketing",
+    "fulfillment",
+    "customer-service"
+  ]
+}

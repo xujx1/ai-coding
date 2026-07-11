@@ -1,0 +1,46 @@
+{
+  "repository": "ecom-customer-service",
+  "domain": "customer-service",
+  "domainName": "客服域",
+  "serviceName": "Customer Service",
+  "port": 4221,
+  "summary": "Handles consultation, work orders, dispute tickets, aftersales support, and bot intent routing.",
+  "capabilities": [
+    "consultation",
+    "work-order",
+    "dispute-ticket",
+    "bot-intent",
+    "service-sla"
+  ],
+  "owns": [
+    "ticket",
+    "conversation",
+    "work-order",
+    "service-sla"
+  ],
+  "upstreamDependencies": [
+    "user",
+    "trade",
+    "aftersales",
+    "logistics"
+  ],
+  "downstreamConsumers": [],
+  "requirementKeywords": [
+    "客服",
+    "咨询",
+    "工单",
+    "纠纷",
+    "智能客服",
+    "SLA"
+  ],
+  "sampleRoutes": [
+    "/tickets",
+    "/conversations",
+    "/bot/intents"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}

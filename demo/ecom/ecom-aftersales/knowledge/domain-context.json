@@ -1,0 +1,49 @@
+{
+  "repository": "ecom-aftersales",
+  "domain": "aftersales",
+  "domainName": "售后域",
+  "serviceName": "Aftersales Service",
+  "port": 4213,
+  "summary": "Handles refund, return, exchange, aftersales workflow, evidence, and dispute decisions.",
+  "capabilities": [
+    "refund",
+    "return",
+    "exchange",
+    "aftersales-workflow",
+    "dispute-evidence"
+  ],
+  "owns": [
+    "aftersales-order",
+    "refund-request",
+    "return-package",
+    "dispute-case"
+  ],
+  "upstreamDependencies": [
+    "trade",
+    "payment",
+    "fulfillment"
+  ],
+  "downstreamConsumers": [
+    "inventory",
+    "finance",
+    "customer-service"
+  ],
+  "requirementKeywords": [
+    "售后",
+    "退款",
+    "退货",
+    "换货",
+    "纠纷",
+    "仲裁"
+  ],
+  "sampleRoutes": [
+    "/aftersales",
+    "/aftersales/:caseId/approve",
+    "/refunds"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}

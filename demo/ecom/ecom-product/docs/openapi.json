@@ -1,0 +1,67 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Product Service",
+    "version": "0.1.0",
+    "description": "Manages SPU, SKU, category attributes, brand data, product media, and base price facts."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/knowledge": {
+      "get": {
+        "summary": "Domain knowledge facts",
+        "responses": {
+          "200": {
+            "description": "Domain facts"
+          }
+        }
+      }
+    },
+    "/sample": {
+      "get": {
+        "summary": "Sample domain objects",
+        "responses": {
+          "200": {
+            "description": "Sample payload"
+          }
+        }
+      }
+    },
+    "/validate-requirement": {
+      "post": {
+        "summary": "Validate requirement impact for this domain",
+        "responses": {
+          "200": {
+            "description": "Validation result"
+          }
+        }
+      }
+    }
+  },
+  "x-repository": "ecom-product",
+  "x-domain": "product",
+  "x-capabilities": [
+    "spu-management",
+    "sku-management",
+    "category-attributes",
+    "brand-catalog",
+    "product-media",
+    "base-price-facts"
+  ],
+  "x-upstream": [],
+  "x-downstream": [
+    "search",
+    "trade",
+    "marketing",
+    "inventory"
+  ]
+}

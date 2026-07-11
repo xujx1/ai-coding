@@ -1,0 +1,68 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Inventory Service",
+    "version": "0.1.0",
+    "description": "Tracks physical stock, available stock, reserved stock, stock release, and multi-warehouse allocation."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/knowledge": {
+      "get": {
+        "summary": "Domain knowledge facts",
+        "responses": {
+          "200": {
+            "description": "Domain facts"
+          }
+        }
+      }
+    },
+    "/sample": {
+      "get": {
+        "summary": "Sample domain objects",
+        "responses": {
+          "200": {
+            "description": "Sample payload"
+          }
+        }
+      }
+    },
+    "/validate-requirement": {
+      "post": {
+        "summary": "Validate requirement impact for this domain",
+        "responses": {
+          "200": {
+            "description": "Validation result"
+          }
+        }
+      }
+    }
+  },
+  "x-repository": "ecom-inventory",
+  "x-domain": "inventory",
+  "x-capabilities": [
+    "physical-stock",
+    "available-stock",
+    "reserve-stock",
+    "release-stock",
+    "multi-warehouse-stock"
+  ],
+  "x-upstream": [
+    "product",
+    "trade",
+    "aftersales"
+  ],
+  "x-downstream": [
+    "fulfillment",
+    "supply-chain"
+  ]
+}

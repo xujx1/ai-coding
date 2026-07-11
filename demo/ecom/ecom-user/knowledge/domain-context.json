@@ -1,0 +1,48 @@
+{
+  "repository": "ecom-user",
+  "domain": "user",
+  "domainName": "用户域",
+  "serviceName": "User CRM Service",
+  "port": 4218,
+  "summary": "Owns account, authentication profile, membership level, user tags, identity verification, and address book.",
+  "capabilities": [
+    "account",
+    "member-level",
+    "user-profile",
+    "identity-verification",
+    "address-book",
+    "user-tags"
+  ],
+  "owns": [
+    "user-account",
+    "member-profile",
+    "address",
+    "identity-record"
+  ],
+  "upstreamDependencies": [],
+  "downstreamConsumers": [
+    "trade",
+    "marketing",
+    "fulfillment",
+    "customer-service"
+  ],
+  "requirementKeywords": [
+    "用户",
+    "会员",
+    "账号",
+    "地址",
+    "实名",
+    "画像",
+    "等级"
+  ],
+  "sampleRoutes": [
+    "/users/:userId",
+    "/users/:userId/addresses",
+    "/members/:userId/level"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}

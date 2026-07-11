@@ -1,0 +1,51 @@
+{
+  "repository": "ecom-marketing",
+  "domain": "marketing",
+  "domainName": "营销域",
+  "serviceName": "Marketing Service",
+  "port": 4214,
+  "summary": "Manages campaigns, coupons, discount rules, flash sale, group-buy, points, and eligibility checks.",
+  "capabilities": [
+    "campaign",
+    "coupon",
+    "discount-rule",
+    "flash-sale",
+    "group-buy",
+    "points",
+    "eligibility-check"
+  ],
+  "owns": [
+    "campaign",
+    "coupon-template",
+    "coupon-instance",
+    "promotion-rule",
+    "points-ledger"
+  ],
+  "upstreamDependencies": [
+    "product",
+    "user"
+  ],
+  "downstreamConsumers": [
+    "trade",
+    "finance"
+  ],
+  "requirementKeywords": [
+    "营销",
+    "优惠券",
+    "满减",
+    "秒杀",
+    "拼团",
+    "积分",
+    "活动"
+  ],
+  "sampleRoutes": [
+    "/campaigns",
+    "/coupons/claim",
+    "/promotions/preview"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}

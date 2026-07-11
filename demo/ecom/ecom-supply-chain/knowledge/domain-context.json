@@ -1,0 +1,49 @@
+{
+  "repository": "ecom-supply-chain",
+  "domain": "supply-chain",
+  "domainName": "供应链域",
+  "serviceName": "Supply Chain Service",
+  "port": 4223,
+  "summary": "Coordinates procurement, suppliers, replenishment, quality inspection, production planning, and SRM facts.",
+  "capabilities": [
+    "procurement",
+    "supplier",
+    "replenishment",
+    "quality-inspection",
+    "production-plan",
+    "srm"
+  ],
+  "owns": [
+    "purchase-order",
+    "supplier",
+    "quality-check",
+    "replenishment-plan"
+  ],
+  "upstreamDependencies": [
+    "inventory",
+    "finance"
+  ],
+  "downstreamConsumers": [
+    "inventory",
+    "merchant"
+  ],
+  "requirementKeywords": [
+    "供应链",
+    "采购",
+    "供应商",
+    "SRM",
+    "质检",
+    "补货",
+    "生产计划"
+  ],
+  "sampleRoutes": [
+    "/purchase-orders",
+    "/suppliers",
+    "/replenishment/plans"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}

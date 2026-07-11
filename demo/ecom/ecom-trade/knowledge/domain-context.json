@@ -1,0 +1,51 @@
+{
+  "repository": "ecom-trade",
+  "domain": "trade",
+  "domainName": "交易域",
+  "serviceName": "Trade Service",
+  "port": 4211,
+  "summary": "Owns cart, order creation, order state machine, order cancellation, and trade orchestration.",
+  "capabilities": [
+    "cart",
+    "order-create",
+    "order-state-machine",
+    "order-cancel",
+    "trade-orchestration"
+  ],
+  "owns": [
+    "cart",
+    "order",
+    "order-line",
+    "trade-state"
+  ],
+  "upstreamDependencies": [
+    "product",
+    "user",
+    "marketing",
+    "inventory"
+  ],
+  "downstreamConsumers": [
+    "payment",
+    "fulfillment",
+    "aftersales",
+    "finance"
+  ],
+  "requirementKeywords": [
+    "购物车",
+    "下单",
+    "订单",
+    "订单状态",
+    "取消订单",
+    "交易"
+  ],
+  "sampleRoutes": [
+    "/carts/:userId",
+    "/orders",
+    "/orders/:orderId/state"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}

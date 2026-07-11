@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ecom Dubbo Demo</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <aside>
+    <h1>Ecom Dubbo Demo</h1>
+    <p>14 个电商域服务，HTTP 操作入口，交易服务通过 Dubbo 串联完整链路。</p>
+    <button data-action="health">检查 14 服务</button>
+    <button data-action="productOnSale">商品上架</button>
+    <button data-action="campaignCreate">新建营销活动</button>
+    <button data-action="campaignDelete">删除营销活动</button>
+    <button data-action="checkout">交易下单完整链路</button>
+    <button data-action="cancel">交易取消释放链路</button>
+    <button data-action="full">14 域完整演示链路</button>
+  </aside>
+  <main>
+    <section>
+      <h2>当前操作</h2>
+      <pre id="request"></pre>
+    </section>
+    <section>
+      <h2>返回结果</h2>
+      <pre id="output">等待操作...</pre>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

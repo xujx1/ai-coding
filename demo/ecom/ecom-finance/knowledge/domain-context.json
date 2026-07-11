@@ -1,0 +1,49 @@
+{
+  "repository": "ecom-finance",
+  "domain": "finance",
+  "domainName": "财务结算域",
+  "serviceName": "Finance Settlement Service",
+  "port": 4222,
+  "summary": "Owns reconciliation, merchant settlement, revenue share, invoice facts, tax compliance, and ledger events.",
+  "capabilities": [
+    "reconciliation",
+    "merchant-settlement",
+    "revenue-share",
+    "invoice",
+    "tax-compliance",
+    "ledger"
+  ],
+  "owns": [
+    "settlement-bill",
+    "reconciliation-task",
+    "invoice",
+    "ledger-entry"
+  ],
+  "upstreamDependencies": [
+    "payment",
+    "trade",
+    "marketing",
+    "merchant"
+  ],
+  "downstreamConsumers": [
+    "supply-chain"
+  ],
+  "requirementKeywords": [
+    "财务",
+    "结算",
+    "对账",
+    "分润",
+    "发票",
+    "税务"
+  ],
+  "sampleRoutes": [
+    "/settlements",
+    "/reconciliation/tasks",
+    "/invoices"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}

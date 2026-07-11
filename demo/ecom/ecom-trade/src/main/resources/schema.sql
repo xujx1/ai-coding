@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS trade_orders (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL,
+  sku_id VARCHAR(255) NOT NULL,
+  quantity INT NOT NULL,
+  pay_amount_cent BIGINT NOT NULL,
+  promotion_reservation_id VARCHAR(255) NOT NULL,
+  stock_reservation_id VARCHAR(255) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  payload_json JSON NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

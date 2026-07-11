@@ -1,0 +1,65 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Logistics Service",
+    "version": "0.1.0",
+    "description": "Integrates carriers, creates waybills, tracks delivery traces, and reports delivery exceptions."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/knowledge": {
+      "get": {
+        "summary": "Domain knowledge facts",
+        "responses": {
+          "200": {
+            "description": "Domain facts"
+          }
+        }
+      }
+    },
+    "/sample": {
+      "get": {
+        "summary": "Sample domain objects",
+        "responses": {
+          "200": {
+            "description": "Sample payload"
+          }
+        }
+      }
+    },
+    "/validate-requirement": {
+      "post": {
+        "summary": "Validate requirement impact for this domain",
+        "responses": {
+          "200": {
+            "description": "Validation result"
+          }
+        }
+      }
+    }
+  },
+  "x-repository": "ecom-logistics",
+  "x-domain": "logistics",
+  "x-capabilities": [
+    "carrier-integration",
+    "waybill",
+    "tracking",
+    "delivery-exception",
+    "tms-adapter"
+  ],
+  "x-upstream": [
+    "fulfillment"
+  ],
+  "x-downstream": [
+    "customer-service"
+  ]
+}

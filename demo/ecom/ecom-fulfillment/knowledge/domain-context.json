@@ -1,0 +1,48 @@
+{
+  "repository": "ecom-fulfillment",
+  "domain": "fulfillment",
+  "domainName": "履约域",
+  "serviceName": "Fulfillment Service",
+  "port": 4216,
+  "summary": "Creates fulfillment orders, splits packages, sources warehouses, dispatches WMS tasks, and syncs delivery status.",
+  "capabilities": [
+    "fulfillment-order",
+    "order-split",
+    "warehouse-sourcing",
+    "wms-dispatch",
+    "delivery-status-sync"
+  ],
+  "owns": [
+    "fulfillment-order",
+    "package",
+    "shipment-plan",
+    "wms-task"
+  ],
+  "upstreamDependencies": [
+    "trade",
+    "inventory",
+    "user"
+  ],
+  "downstreamConsumers": [
+    "logistics",
+    "aftersales"
+  ],
+  "requirementKeywords": [
+    "履约",
+    "拆单",
+    "寻源",
+    "发货",
+    "签收",
+    "WMS"
+  ],
+  "sampleRoutes": [
+    "/fulfillments",
+    "/fulfillments/:id/split",
+    "/shipments/:id/status"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}

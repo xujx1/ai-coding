@@ -1,0 +1,68 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Supply Chain Service",
+    "version": "0.1.0",
+    "description": "Coordinates procurement, suppliers, replenishment, quality inspection, production planning, and SRM facts."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/knowledge": {
+      "get": {
+        "summary": "Domain knowledge facts",
+        "responses": {
+          "200": {
+            "description": "Domain facts"
+          }
+        }
+      }
+    },
+    "/sample": {
+      "get": {
+        "summary": "Sample domain objects",
+        "responses": {
+          "200": {
+            "description": "Sample payload"
+          }
+        }
+      }
+    },
+    "/validate-requirement": {
+      "post": {
+        "summary": "Validate requirement impact for this domain",
+        "responses": {
+          "200": {
+            "description": "Validation result"
+          }
+        }
+      }
+    }
+  },
+  "x-repository": "ecom-supply-chain",
+  "x-domain": "supply-chain",
+  "x-capabilities": [
+    "procurement",
+    "supplier",
+    "replenishment",
+    "quality-inspection",
+    "production-plan",
+    "srm"
+  ],
+  "x-upstream": [
+    "inventory",
+    "finance"
+  ],
+  "x-downstream": [
+    "inventory",
+    "merchant"
+  ]
+}

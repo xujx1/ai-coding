@@ -1,0 +1,66 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Payment Service",
+    "version": "0.1.0",
+    "description": "Provides payment order, cashier, channel callback, refund payment, and reconciliation facts."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/knowledge": {
+      "get": {
+        "summary": "Domain knowledge facts",
+        "responses": {
+          "200": {
+            "description": "Domain facts"
+          }
+        }
+      }
+    },
+    "/sample": {
+      "get": {
+        "summary": "Sample domain objects",
+        "responses": {
+          "200": {
+            "description": "Sample payload"
+          }
+        }
+      }
+    },
+    "/validate-requirement": {
+      "post": {
+        "summary": "Validate requirement impact for this domain",
+        "responses": {
+          "200": {
+            "description": "Validation result"
+          }
+        }
+      }
+    }
+  },
+  "x-repository": "ecom-payment",
+  "x-domain": "payment",
+  "x-capabilities": [
+    "payment-order",
+    "cashier",
+    "channel-callback",
+    "refund-payment",
+    "payment-reconciliation"
+  ],
+  "x-upstream": [
+    "trade",
+    "aftersales"
+  ],
+  "x-downstream": [
+    "finance"
+  ]
+}

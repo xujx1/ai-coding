@@ -1,0 +1,50 @@
+{
+  "repository": "ecom-product",
+  "domain": "product",
+  "domainName": "商品域",
+  "serviceName": "Product Service",
+  "port": 4210,
+  "summary": "Manages SPU, SKU, category attributes, brand data, product media, and base price facts.",
+  "capabilities": [
+    "spu-management",
+    "sku-management",
+    "category-attributes",
+    "brand-catalog",
+    "product-media",
+    "base-price-facts"
+  ],
+  "owns": [
+    "spu",
+    "sku",
+    "category",
+    "brand",
+    "product-asset"
+  ],
+  "upstreamDependencies": [],
+  "downstreamConsumers": [
+    "search",
+    "trade",
+    "marketing",
+    "inventory"
+  ],
+  "requirementKeywords": [
+    "商品",
+    "SPU",
+    "SKU",
+    "类目",
+    "属性",
+    "品牌",
+    "素材",
+    "价格"
+  ],
+  "sampleRoutes": [
+    "/products",
+    "/products/:spuId/skus",
+    "/categories/:categoryId/attributes"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}

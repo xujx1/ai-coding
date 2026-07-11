@@ -1,0 +1,45 @@
+{
+  "repository": "ecom-payment",
+  "domain": "payment",
+  "domainName": "支付域",
+  "serviceName": "Payment Service",
+  "port": 4212,
+  "summary": "Provides payment order, cashier, channel callback, refund payment, and reconciliation facts.",
+  "capabilities": [
+    "payment-order",
+    "cashier",
+    "channel-callback",
+    "refund-payment",
+    "payment-reconciliation"
+  ],
+  "owns": [
+    "payment-order",
+    "payment-channel",
+    "refund-payment-order"
+  ],
+  "upstreamDependencies": [
+    "trade",
+    "aftersales"
+  ],
+  "downstreamConsumers": [
+    "finance"
+  ],
+  "requirementKeywords": [
+    "支付",
+    "收银台",
+    "支付单",
+    "回调",
+    "退款支付",
+    "支付渠道"
+  ],
+  "sampleRoutes": [
+    "/payments",
+    "/payments/:paymentId/callbacks",
+    "/refund-payments"
+  ],
+  "validationUse": {
+    "knowledgeBase": "Used as application/domain knowledge source for fanout and impact analysis.",
+    "requirementValidation": "POST /validate-requirement returns keyword hits and dependency hints.",
+    "crossDomain": "GET /knowledge exposes upstream/downstream relationships for graph validation."
+  }
+}
