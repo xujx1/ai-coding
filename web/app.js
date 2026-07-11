@@ -8,6 +8,7 @@ const state = {
   runId: null,
   ws: null,
   pipeline: null,
+  lifecycle: null,
   events: [],
   agents: [],
   selectedNodeId: null,
@@ -25,8 +26,6 @@ const state = {
   pendingConfirmation: null,
   confirmationWizard: null,
   confirmationWizardKey: '',
-  pendingDeleteRunId: null,
-  deleteConfirmTimer: null,
   expandedTools: new Set(),
   expandedBranchIds: new Set(),
   showWorkflowView: false,
@@ -39,6 +38,18 @@ const state = {
   fileTreeCache: {},
   lastEventTimestamp: 0,
   refreshTimer: null,
+  activeModule: 'requirements',
+  managementOverview: { repositories: [], knowledgeBases: [], requirements: [], pipelines: [] },
+  selectedKnowledgeBaseId: '',
+  selectedKnowledgeBaseIds: new Set(),
+  knowledgeInitRunning: false,
+  knowledgeInitStatus: '',
+  opsApps: [],
+  selectedOpsAppId: '',
+  opsAlertDraft: '',
+  opsAnalyzing: false,
+  opsAnalysis: null,
+  opsError: '',
 };
 
 const PIPELINE_STAGES = [
@@ -101,6 +112,8 @@ const TOOL_ICONS = {
 // ── Initialization ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadPipelineDefinition();
+  renderManagementNav();
+  loadManagementOverview();
   loadSessions();
   loadModels();
   loadRuntimeSettings();
@@ -199,7 +212,7 @@ function renderPipelineBar() {
   const summary = document.getElementById('session-workflow-summary');
   const workflowToggle = document.getElementById('workflow-toggle-btn');
   if (!bar || !container) return;
-  bar.classList.toggle('hidden', !state.pipeline);
+  bar.classList.toggle('hidden', !state.pipeline || state.activeModule !== 'pipeline');
   bar.classList.toggle('workflow-mode', Boolean(state.showWorkflowView));
   if (statusBadge) {
     statusBadge.className = `pipeline-status-badge ${pipelineStatus}`;
@@ -447,126 +460,274 @@ function isActivePipelineStatus(status = state.pipeline?.status) {
   return ACTIVE_PIPELINE_STATUSES.has(status);
 }
 
+// ── Management Modules ─────────────────────────────────────────────────
+const MANAGEMENT_MODULES = {
+  requirements: { title: '需求管理', listTitle: '需求列表', empty: '暂无需求' },
+  repositories: { title: '仓库管理', listTitle: '仓库列表', empty: '暂无仓库' },
+  knowledge: { title: '知识库管理', listTitle: '知识库列表', empty: '暂无知识库' },
+  pipeline: { title: '迭代 PI', listTitle: '迭代详情', empty: '暂无迭代详情' },
+};
+
+function renderManagementNav() {
+  document.querySelectorAll('.management-nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.module === state.activeModule);
+  });
+  renderManagementLayoutMode();
+}
+
+function renderManagementLayoutMode() {
+  const layout = document.getElementById('main-layout');
+  if (!layout) return;
+  layout.classList.toggle('module-pipeline', state.activeModule === 'pipeline');
+  layout.classList.toggle('module-knowledge', state.activeModule === 'knowledge');
+}
+
+async function loadManagementOverview() {
+  try {
+    const res = await fetch('/api/management/overview');
+    state.managementOverview = await res.json();
+    if (state.activeModule !== 'pipeline') renderExecutionTrace();
+  } catch {
+    state.managementOverview = { repositories: [], knowledgeBases: [], requirements: [], pipelines: [] };
+  }
+}
+
+function switchManagementModule(module) {
+  if (!MANAGEMENT_MODULES[module]) return;
+  state.activeModule = module;
+  renderManagementNav();
+  renderPipelineBar();
+  renderExecutionTrace();
+}
+
+function renderManagementWorkspace() {
+  const module = state.activeModule;
+  const title = MANAGEMENT_MODULES[module]?.title || '管理';
+  if (module === 'repositories') {
+    return renderManagementPage({
+      title,
+      subtitle: '按应用维护代码仓库资产，查看 Git 地址并下载当前应用代码。',
+      stats: [
+        ['仓库', state.managementOverview.repositories?.length || 0],
+        ['已接入 Git', (state.managementOverview.repositories || []).filter(repo => repo.isGitRepo).length],
+        ['有远端地址', (state.managementOverview.repositories || []).filter(repo => repo.remoteUrl).length],
+      ],
+      columns: ['应用', '简介', 'Git 地址', '代码'],
+      rows: (state.managementOverview.repositories || []).map(repo => [
+        repo.name || repo.appId,
+        { text: repo.description || '暂无简介', className: 'management-table-description' },
+        repo.gitAddress || repo.root || repo.gitError || '',
+        repo.downloadUrl
+          ? { html: `<a class="table-action-link" href="${escAttr(repo.downloadUrl)}">下载代码</a>` }
+          : '',
+      ]),
+    });
+  }
+  if (module === 'knowledge') {
+    return renderManagementPage({
+      title,
+      subtitle: '管理应用知识库、全局图谱、vector-index 和归档知识增量。',
+      actions: `
+        <button class="btn btn-secondary" onclick="viewSelectedKnowledgeBases()" ${state.selectedKnowledgeBaseIds.size ? '' : 'disabled'}>
+          查看已选
+        </button>
+        <button class="btn btn-primary" onclick="triggerInitAllAppKnowledge()" ${state.knowledgeInitRunning ? 'disabled' : ''}>
+          ${state.knowledgeInitRunning ? '生成中...' : '全量生成知识库'}
+        </button>
+        ${state.knowledgeInitStatus ? `<span class="inline-status">${esc(state.knowledgeInitStatus)}</span>` : ''}
+      `,
+      stats: [
+        ['知识库', state.managementOverview.knowledgeBases?.length || 0],
+        ['全局', (state.managementOverview.knowledgeBases || []).filter(kb => kb.scope === 'global').length],
+        ['应用级', (state.managementOverview.knowledgeBases || []).filter(kb => kb.type === 'application').length],
+      ],
+      columns: ['选择', '范围', '级别', '应用描述', '最近更新时间', '产物数', '操作'],
+      rows: (state.managementOverview.knowledgeBases || []).map(kb => [
+        kb.id
+          ? { html: `<input class="knowledge-select" type="checkbox" ${state.selectedKnowledgeBaseIds.has(kb.id) ? 'checked' : ''} onchange="toggleKnowledgeSelection('${escAttr(kb.id)}', this.checked)">` }
+          : '',
+        kb.scope || '',
+        kb.level || (kb.type === 'global' ? '全局' : '应用'),
+        {
+          text: kb.description || (kb.type === 'global' ? '全局知识上下文' : '暂无描述'),
+          title: kb.description || (kb.type === 'global' ? '全局知识上下文' : '暂无描述'),
+          className: 'management-table-description',
+        },
+        formatDateTime(kb.updatedAt),
+        String(kb.artifactCount || 0),
+        kb.id
+          ? { html: `<button class="table-action-link" type="button" onclick="viewKnowledgeBase('${escAttr(kb.id)}')">查看</button>` }
+          : '',
+      ]),
+    });
+  }
+  if (module === 'requirements') {
+    return renderManagementPage({
+      title,
+      subtitle: '按 requirementId 管理需求状态、阶段、审批门和交付范围。',
+      stats: [
+        ['需求', state.managementOverview.requirements?.length || 0],
+        ['待审批', (state.managementOverview.requirements || []).reduce((sum, req) => sum + (req.waitingApprovals || 0), 0)],
+        ['应用数', (state.managementOverview.requirements || []).reduce((sum, req) => sum + (req.appCount || 0), 0)],
+      ],
+      columns: ['需求', '阶段', '状态', '应用', '审批', '操作'],
+      rows: (state.managementOverview.requirements || []).map(req => [
+        req.name || req.requirementId,
+        req.phase || '',
+        req.status || '',
+        String(req.appCount || 0),
+        `${req.waitingApprovals || 0} 待 / ${req.completedApprovals || 0} 完成`,
+        req.runId
+          ? { html: `<button class="table-action-link" type="button" onclick="openRequirementDetail('${escAttr(req.runId)}')">详情</button>` }
+          : '',
+      ]),
+    });
+  }
+  return '';
+}
+
+function renderManagementPage({ title, subtitle, stats, columns, rows, actions = '' }) {
+  return `
+    <div class="management-page">
+      <div class="management-page-header">
+        <div>
+          <h2>${esc(title)}</h2>
+          <p>${esc(subtitle)}</p>
+        </div>
+        ${actions ? `<div class="management-actions">${actions}</div>` : ''}
+      </div>
+      <div class="management-stats">
+        ${stats.map(([label, value]) => `
+          <div class="management-stat">
+            <span>${esc(label)}</span>
+            <strong>${esc(value)}</strong>
+          </div>
+        `).join('')}
+      </div>
+      <div class="management-table-wrap">
+        <table class="management-table">
+          <thead><tr>${columns.map(column => `<th>${esc(column)}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${rows.length ? rows.map(row => `
+              <tr>${row.map(cell => renderManagementTableCell(cell)).join('')}</tr>
+            `).join('') : `<tr><td colspan="${columns.length}">暂无数据</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function triggerInitAllAppKnowledge() {
+  if (state.knowledgeInitRunning) return;
+  state.knowledgeInitRunning = true;
+  state.knowledgeInitStatus = '正在扫描 15 个应用并生成知识库...';
+  renderExecutionTrace();
+  try {
+    const res = await fetch('/api/management/knowledge/init-all', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '全量生成知识库失败');
+    state.knowledgeInitStatus = `已生成 ${data.versionId || '新版本'}：${data.appCount || 0} 个应用，GitNexus ${data.gitNexusIndexed || 0} 个成功`;
+    await loadManagementOverview();
+  } catch (error) {
+    state.knowledgeInitStatus = error.message || String(error);
+  } finally {
+    state.knowledgeInitRunning = false;
+    renderExecutionTrace();
+  }
+}
+
+function renderManagementTableCell(cell) {
+  if (cell && typeof cell === 'object' && typeof cell.html === 'string') {
+    return `<td${cell.className ? ` class="${escAttr(cell.className)}"` : ''}>${cell.html}</td>`;
+  }
+  if (cell && typeof cell === 'object' && typeof cell.text === 'string') {
+    return `<td${cell.className ? ` class="${escAttr(cell.className)}"` : ''}${cell.title ? ` title="${escAttr(cell.title)}"` : ''}>${esc(cell.text)}</td>`;
+  }
+  return `<td>${esc(cell)}</td>`;
+}
+
+function uniqueCount(values) {
+  return new Set(values.filter(Boolean)).size;
+}
+
+function statusClass(status = '') {
+  if (status === 'completed' || status === 'passed' || status === 'available') return 'completed';
+  if (status === 'running' || status === 'implementing') return 'running';
+  if (status === 'failed') return 'failed';
+  return status || 'idle';
+}
+
+function formatDateTime(value) {
+  if (!value) return '暂无';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 // ── Sessions ────────────────────────────────────────────────────────────
 function loadSessions() {
   fetch('/api/sessions').then(r => r.json()).then(data => {
     const sessions = data.sessions || [];
-    renderSessionList(sessions);
     if (!state.runId && sessions.length) {
       loadSession(sessions[0].runId);
     }
   });
 }
 
-function renderSessionList(sessions) {
-  const container = document.getElementById('session-list');
-  if (!sessions.length) {
-    container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:8px">暂无会话</div>';
-    return;
-  }
-  container.innerHTML = sessions.map(s => `
-    <div class="session-item ${s.runId === state.runId ? 'active' : ''}" data-run-id="${esc(s.runId)}" role="button" tabindex="0">
-      <div class="session-main">
-        <div class="session-name">${esc(s.name)}</div>
-        <div class="session-meta">
-          <span class="status-badge ${s.status}">${statusLabel(s.status)}</span>
-          ${s.currentNodeId || s.currentNodeName ? ' @ ' + stageName(s.currentNodeId, s.currentNodeName) : ''}
-          <span style="margin-left:auto">${Math.round(s.progress * 100)}%</span>
-        </div>
-      </div>
-      <button class="session-delete ${state.pendingDeleteRunId === s.runId ? 'confirming' : ''}" title="${state.pendingDeleteRunId === s.runId ? '再次点击确认删除' : '删除会话'}" data-delete-run-id="${esc(s.runId)}" aria-label="${state.pendingDeleteRunId === s.runId ? '确认删除会话' : '删除会话'}">
-        ${state.pendingDeleteRunId === s.runId ? '<span>确认</span>' : trashIcon()}
-      </button>
-    </div>
-  `).join('');
-  bindSessionListEvents(container);
-}
-
-function bindSessionListEvents(container) {
-  container.querySelectorAll('.session-item').forEach(item => {
-    item.addEventListener('click', () => selectSession(item.dataset.runId));
-    item.addEventListener('keydown', event => handleSessionKey(event, item.dataset.runId));
-  });
-  container.querySelectorAll('.session-delete').forEach(btn => {
-    btn.addEventListener('click', event => requestDeleteSession(event, btn.dataset.deleteRunId));
-  });
-}
-
-function trashIcon() {
-  return `<svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M3 6h18"></path>
-    <path d="M8 6V4h8v2"></path>
-    <path d="M19 6l-1 14H6L5 6"></path>
-    <path d="M10 11v5"></path>
-    <path d="M14 11v5"></path>
-  </svg>`;
-}
-
-function handleSessionKey(event, runId) {
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.preventDefault();
-    selectSession(runId);
-  }
-}
-
-async function selectSession(runId) {
+async function openRequirementDetail(runId) {
   if (!runId) return;
-  const clearedDeleteConfirmation = clearPendingDeleteSession();
-  if (runId === state.runId) {
-    updateSessionActiveState();
-    if (clearedDeleteConfirmation) loadSessions();
-    return;
-  }
+  state.activeModule = 'pipeline';
+  renderManagementNav();
   await loadSession(runId);
-  if (clearedDeleteConfirmation) loadSessions();
 }
 
-function requestDeleteSession(event, runId) {
-  event.stopPropagation();
-  if (!runId) return;
-  if (state.pendingDeleteRunId !== runId) {
-    state.pendingDeleteRunId = runId;
-    resetDeleteConfirmTimer();
-    loadSessions();
-    return;
+async function viewKnowledgeBase(knowledgeId) {
+  if (!knowledgeId) return;
+  state.selectedKnowledgeBaseId = knowledgeId;
+  renderManagementLayoutMode();
+  activateTab('artifacts');
+  await loadKnowledgeFileTree(knowledgeId);
+}
+
+function toggleKnowledgeSelection(knowledgeId, checked) {
+  if (!knowledgeId) return;
+  if (checked) state.selectedKnowledgeBaseIds.add(knowledgeId);
+  else state.selectedKnowledgeBaseIds.delete(knowledgeId);
+  renderExecutionTrace();
+}
+
+async function viewSelectedKnowledgeBases() {
+  const selected = getSelectedKnowledgeBasesWithGlobal();
+  if (!selected.length) return;
+  state.selectedKnowledgeBaseId = selected.length === 1 ? selected[0].id : '';
+  renderManagementLayoutMode();
+  activateTab('artifacts');
+  await loadKnowledgeFileTrees(selected);
+}
+
+function getSelectedKnowledgeBasesWithGlobal() {
+  const bases = state.managementOverview.knowledgeBases || [];
+  const selected = bases.filter(kb => state.selectedKnowledgeBaseIds.has(kb.id));
+  const selectedApps = selected.filter(kb => kb.type === 'application');
+  if (!selectedApps.length) return selected;
+  const selectedIds = new Set(selected.map(kb => kb.id));
+  const globals = [];
+  for (const appKb of selectedApps) {
+    const matchedGlobal = bases.find(kb => kb.type === 'global' && kb.runId === appKb.runId)
+      || bases.find(kb => kb.type === 'global');
+    if (matchedGlobal && !selectedIds.has(matchedGlobal.id)) {
+      globals.push(matchedGlobal);
+      selectedIds.add(matchedGlobal.id);
+    }
   }
-  deleteSession(runId);
-}
-
-function resetDeleteConfirmTimer() {
-  if (state.deleteConfirmTimer) clearTimeout(state.deleteConfirmTimer);
-  state.deleteConfirmTimer = setTimeout(() => {
-    state.pendingDeleteRunId = null;
-    state.deleteConfirmTimer = null;
-    loadSessions();
-  }, 5000);
-}
-
-function clearPendingDeleteSession() {
-  const hadPending = Boolean(state.pendingDeleteRunId || state.deleteConfirmTimer);
-  if (state.deleteConfirmTimer) clearTimeout(state.deleteConfirmTimer);
-  state.pendingDeleteRunId = null;
-  state.deleteConfirmTimer = null;
-  return hadPending;
-}
-
-async function deleteSession(runId) {
-  clearPendingDeleteSession();
-  await fetch(`/api/sessions/${runId}`, { method: 'DELETE' });
-  if (state.runId === runId) {
-    if (state.ws) state.ws.close();
-    state.runId = null;
-    state.pipeline = null;
-    state.events = [];
-    state.agents = [];
-    state.selectedNodeId = null;
-    state.selectedBranchNode = null;
-    state.lastEventTimestamp = 0;
-    renderPipelineBar();
-    renderExecutionTraceEmpty();
-    clearFilePanels();
-  }
-  await loadSessions();
+  return [...globals, ...selected];
 }
 
 function renderExecutionTraceEmpty() {
@@ -607,6 +768,7 @@ async function loadSession(runId) {
   const data = await res.json();
   if (state.runId !== runId) return;
   state.pipeline = data.state;
+  state.lifecycle = data.lifecycle || null;
   if (switchingRun) {
     state.selectedNodeId = null;
     state.selectedBranchNode = null;
@@ -628,17 +790,10 @@ async function loadSession(runId) {
   renderExecutionTrace();
   dismissStaleConfirmationIfNeeded();
   await restorePendingConfirmationIfNeeded();
-  updateSessionActiveState();
   renderSessionInfo();
   loadFileTree('artifacts');
   loadAgents();
   connectWebSocket(runId);
-}
-
-function updateSessionActiveState() {
-  document.querySelectorAll('.session-item').forEach(item => {
-    item.classList.toggle('active', item.dataset.runId === state.runId);
-  });
 }
 
 function renderSessionInfo() {
@@ -969,6 +1124,7 @@ async function refreshCurrentRunView(options = {}) {
     const data = await res.json();
     if (state.runId !== runId) return;
     state.pipeline = data.state;
+    state.lifecycle = data.lifecycle || null;
     ensureSelectedNode();
     state.events = data.events || state.events || [];
     state.agents = data.agents || state.agents || [];
@@ -1154,6 +1310,11 @@ async function resolveConfirmation(approved) {
 function renderExecutionTrace() {
   const container = document.getElementById('execution-trace');
   const welcome = document.getElementById('welcome-screen');
+  if (!container) return;
+  if (state.activeModule !== 'pipeline') {
+    container.innerHTML = renderManagementWorkspace();
+    return;
+  }
   if (!state.pipeline) {
     renderExecutionTraceEmpty();
     return;
@@ -2683,24 +2844,42 @@ async function restorePendingConfirmationIfNeeded() {
   const event = [...(state.events || [])]
     .reverse()
     .find(item => item.type === 'confirmation_waiting' && isConfirmationWaitingEventActive(item));
-  if (!event) return;
-  const data = event.data || {};
-  const nodeId = data.nodeId || event.nodeId;
-  if (!nodeId) return;
-  const artifactContent = data.artifactPath
-    ? await loadArtifactText(data.artifactPath).catch(() => '')
+  if (event) {
+    const data = event.data || {};
+    const nodeId = data.nodeId || event.nodeId;
+    if (!nodeId) return;
+    const artifactContent = data.artifactPath
+      ? await loadArtifactText(data.artifactPath).catch(() => '')
+      : '';
+    currentConfirmNode = nodeId;
+    showConfirmation({
+      type: 'confirmation_required',
+      nodeId,
+      title: normalizeConfirmationTitle(data.title),
+      content: artifactContent || data.content || '',
+      artifactPath: data.artifactPath,
+      confirmationKind: data.confirmationKind,
+      clarificationOptions: data.clarificationOptions,
+      structuredPayload: data.structuredPayload,
+    });
+    return;
+  }
+  const pending = state.lifecycle?.pendingConfirmation;
+  if (!isLifecyclePendingConfirmationActive(pending)) return;
+  const artifactContent = pending.artifactPath
+    ? await loadArtifactText(pending.artifactPath).catch(() => '')
     : '';
-  currentConfirmNode = nodeId;
+  currentConfirmNode = pending.nodeId;
   showConfirmation({
-    type: 'confirmation_required',
-    nodeId,
-    title: normalizeConfirmationTitle(data.title),
-    content: artifactContent || data.content || '',
-    artifactPath: data.artifactPath,
-    confirmationKind: data.confirmationKind,
-    clarificationOptions: data.clarificationOptions,
-    structuredPayload: data.structuredPayload,
+    ...pending,
+    content: artifactContent || pending.content || '',
   });
+}
+
+function isLifecyclePendingConfirmationActive(pending) {
+  if (!pending || pending.status !== 'waiting' || !pending.nodeId) return false;
+  const node = getPipelineNodeById(pending.nodeId);
+  return !node || node.status === 'waiting_confirmation';
 }
 
 async function loadArtifactText(artifactPath) {
@@ -3293,7 +3472,20 @@ function syncConfirmOptionStyles() {
 function switchTab(tab) {
   if (!document.getElementById(`tab-${tab}`)) tab = 'artifacts';
   activateTab(tab);
+  if (tab === 'ops') {
+    loadOpsPanel();
+    return;
+  }
   if (tab === 'preview') {
+    if (state.activeModule === 'knowledge') {
+      const firstFile = findFirstKnowledgeFile(state.fileTreeCache.knowledge || []);
+      if (firstFile) previewKnowledgeFile(firstFile.path, firstFile.knowledgeId);
+      else {
+        const container = document.getElementById('file-preview');
+        if (container) container.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">当前知识库暂无可预览产物</div>';
+      }
+      return;
+    }
     const branchArtifact = getSelectedBranchArtifacts()[0];
     const artifact = branchArtifact || (state.selectedNodeId === 'spec-generate'
       ? findFirstFilePath(state.fileTreeCache.artifacts || [])
@@ -3328,6 +3520,60 @@ async function loadFileTree(scope) {
       if (firstFile) previewFile('artifacts', firstFile);
     }
   } catch(e) {}
+}
+
+async function loadKnowledgeFileTree(knowledgeId = state.selectedKnowledgeBaseId) {
+  if (!knowledgeId) return;
+  const container = document.getElementById('artifact-tree');
+  const actions = document.getElementById('artifact-actions');
+  if (actions) actions.style.display = 'none';
+  if (container) container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:8px">正在加载知识库产物...</div>';
+  try {
+    const res = await fetch(`/api/management/knowledge/${encodeURIComponent(knowledgeId)}/files`);
+    const data = await res.json();
+    if (state.selectedKnowledgeBaseId !== knowledgeId) return;
+    if (!res.ok) throw new Error(data.error || '知识库产物加载失败');
+    state.fileTreeCache.knowledge = annotateKnowledgeTree(data.tree || [], knowledgeId);
+    if (container) container.innerHTML = renderFileTree(state.fileTreeCache.knowledge, 'knowledge');
+    const preview = document.getElementById('file-preview');
+    if (preview) preview.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">选择知识库文件查看预览</div>';
+  } catch (error) {
+    if (container) container.innerHTML = `<div style="color:var(--accent-red);font-size:11px;padding:8px">${esc(error.message || String(error))}</div>`;
+  }
+}
+
+async function loadKnowledgeFileTrees(knowledgeBases) {
+  const container = document.getElementById('artifact-tree');
+  const actions = document.getElementById('artifact-actions');
+  if (actions) actions.style.display = 'none';
+  if (container) container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:8px">正在加载已选知识库产物...</div>';
+  try {
+    const trees = await Promise.all(knowledgeBases.map(async kb => {
+      const res = await fetch(`/api/management/knowledge/${encodeURIComponent(kb.id)}/files`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `${kb.scope || kb.id} 加载失败`);
+      return {
+        name: `${kb.level || (kb.type === 'global' ? '全局' : '应用')} · ${kb.scope || kb.id}`,
+        path: kb.id,
+        type: 'directory',
+        children: annotateKnowledgeTree(data.tree || [], kb.id),
+      };
+    }));
+    state.fileTreeCache.knowledge = trees;
+    if (container) container.innerHTML = renderFileTree(trees, 'knowledge');
+    const preview = document.getElementById('file-preview');
+    if (preview) preview.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">选择知识库文件查看预览</div>';
+  } catch (error) {
+    if (container) container.innerHTML = `<div style="color:var(--accent-red);font-size:11px;padding:8px">${esc(error.message || String(error))}</div>`;
+  }
+}
+
+function annotateKnowledgeTree(nodes, knowledgeId) {
+  return (nodes || []).map(node => ({
+    ...node,
+    knowledgeId,
+    children: node.children ? annotateKnowledgeTree(node.children, knowledgeId) : node.children,
+  }));
 }
 
 function filterArtifactTreeForSelectedNode(tree) {
@@ -3382,6 +3628,17 @@ function findFirstFilePath(nodes) {
     }
   }
   return '';
+}
+
+function findFirstKnowledgeFile(nodes) {
+  for (const node of nodes || []) {
+    if (node.type === 'file') return { path: node.path, knowledgeId: node.knowledgeId || state.selectedKnowledgeBaseId };
+    if (node.type === 'directory') {
+      const child = findFirstKnowledgeFile(node.children || []);
+      if (child) return child;
+    }
+  }
+  return null;
 }
 
 function getStageArtifacts(nodeId) {
@@ -3476,6 +3733,9 @@ function sortStageArtifacts(nodeId, paths) {
 
 function renderFileTree(nodes, scope, depth = 0) {
   if (!nodes || !nodes.length) {
+    if (scope === 'knowledge') {
+      return '<div style="color:var(--text-muted);font-size:11px;padding:8px">当前知识库暂无产物</div>';
+    }
     const branchSelection = state.selectedBranchNode;
     if (branchSelection) {
       const label = `${branchSelection.projectName || branchSelection.branchId}${branchSelection.trackId ? ` / ${branchSelection.trackId}` : ''} / ${stageName(branchSelection.stageId, branchSelection.stageId)}`;
@@ -3491,12 +3751,35 @@ function renderFileTree(nodes, scope, depth = 0) {
         <div class="tree-children">${renderFileTree(n.children, scope, depth+1)}</div>
       </div>`;
     } else {
-      return `<div class="tree-file" onclick="previewFile('${scope}', '${esc(n.path.replace(/'/g,"\\'"))}')">
+      const click = scope === 'knowledge'
+        ? `previewKnowledgeFile(${escAttr(JSON.stringify(n.path))}, ${escAttr(JSON.stringify(n.knowledgeId || state.selectedKnowledgeBaseId))})`
+        : `previewFile('${scope}', '${esc(n.path.replace(/'/g,"\\'"))}')`;
+      return `<div class="tree-file" onclick="${click}">
         <span>📄 ${esc(n.name)}</span>
         <span style="margin-left:auto;font-size:10px;color:var(--text-muted)">${n.size ? (n.size/1024).toFixed(1)+'KB' : ''}</span>
       </div>`;
     }
   }).join('');
+}
+
+async function previewKnowledgeFile(filePath, knowledgeId = state.selectedKnowledgeBaseId) {
+  if (!knowledgeId) return;
+  activateTab('preview');
+  const res = await fetch(`/api/management/knowledge/${encodeURIComponent(knowledgeId)}/files/content?path=${encodeURIComponent(filePath)}`);
+  const data = await res.json();
+  const container = document.getElementById('file-preview');
+  if (!container) return;
+  if (data.error) {
+    container.innerHTML = `<div style="padding:20px;color:var(--accent-red)">${esc(data.error)}</div>`;
+    return;
+  }
+  container.innerHTML = `
+    <div class="file-preview-header">
+      <span>${esc(data.path)}</span>
+      <span>${(data.size/1024).toFixed(1)}KB</span>
+    </div>
+    <div class="file-preview-content">${esc(data.content || '')}</div>
+  `;
 }
 
 async function previewFile(scope, filePath) {
@@ -3531,6 +3814,140 @@ function clearPreviewForSelectedNode() {
   if (container) {
     container.innerHTML = `<div style="padding:20px;color:var(--text-muted);text-align:center">当前节点暂无可预览产物：${esc(stageName(node?.id, node?.name))}</div>`;
   }
+}
+
+// ── Ops Panel ──────────────────────────────────────────────────────────
+async function loadOpsPanel() {
+  const container = document.getElementById('ops-panel');
+  if (!container) return;
+  if (!state.opsApps.length) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:8px">正在加载应用...</div>';
+    try {
+      const res = await fetch('/api/ops/apps');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '应用加载失败');
+      state.opsApps = data.apps || [];
+      if (!state.selectedOpsAppId && state.opsApps.length) state.selectedOpsAppId = state.opsApps[0].appId;
+    } catch (error) {
+      state.opsError = error.message || String(error);
+    }
+  }
+  renderOpsPanel();
+}
+
+function renderOpsPanel() {
+  const container = document.getElementById('ops-panel');
+  if (!container) return;
+  const selected = state.opsApps.find(app => app.appId === state.selectedOpsAppId);
+  container.innerHTML = `
+    <div class="ops-panel">
+      <div class="ops-field">
+        <label>应用</label>
+        <select onchange="selectOpsApp(this.value)">
+          ${state.opsApps.map(app => `<option value="${escAttr(app.appId)}" ${app.appId === state.selectedOpsAppId ? 'selected' : ''}>${esc(app.name || app.appId)}</option>`).join('')}
+        </select>
+      </div>
+      ${selected ? `
+        <div class="ops-app-card">
+          <div class="ops-app-title">${esc(selected.appId)}</div>
+          <div class="ops-app-desc">${esc(selected.description || '暂无描述')}</div>
+          <div class="ops-chip-row">
+            ${(selected.codeSignals || []).map(signal => `<span>${esc(signal)}</span>`).join('')}
+            <span>API ${selected.apiCount || 0}</span>
+          </div>
+        </div>
+      ` : ''}
+      <div class="ops-field">
+        <label>告警内容</label>
+        <textarea rows="7" placeholder="粘贴报警标题、错误日志、traceId、实例、时间窗口..." oninput="updateOpsAlert(this.value)">${esc(state.opsAlertDraft)}</textarea>
+      </div>
+      <button class="btn btn-primary ops-submit" onclick="analyzeOpsAlert()" ${state.opsAnalyzing || !state.selectedOpsAppId ? 'disabled' : ''}>
+        ${state.opsAnalyzing ? '分析中...' : '分析告警'}
+      </button>
+      ${state.opsError ? `<div class="ops-error">${esc(state.opsError)}</div>` : ''}
+      ${state.opsAnalysis ? renderOpsAnalysis(state.opsAnalysis) : ''}
+    </div>
+  `;
+}
+
+function selectOpsApp(appId) {
+  state.selectedOpsAppId = appId;
+  state.opsAnalysis = null;
+  state.opsError = '';
+  renderOpsPanel();
+}
+
+function updateOpsAlert(value) {
+  state.opsAlertDraft = value;
+}
+
+async function analyzeOpsAlert() {
+  if (!state.selectedOpsAppId || !state.opsAlertDraft.trim()) {
+    state.opsError = '请先选择应用并填写告警内容';
+    renderOpsPanel();
+    return;
+  }
+  state.opsAnalyzing = true;
+  state.opsError = '';
+  renderOpsPanel();
+  try {
+    const res = await fetch('/api/ops/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appId: state.selectedOpsAppId, alert: state.opsAlertDraft }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '告警分析失败');
+    state.opsAnalysis = data.analysis || null;
+  } catch (error) {
+    state.opsError = error.message || String(error);
+  } finally {
+    state.opsAnalyzing = false;
+    renderOpsPanel();
+  }
+}
+
+function renderOpsAnalysis(analysis) {
+  return `
+    <div class="ops-result">
+      <div class="ops-result-head">
+        <div>
+          <div class="ops-result-title">${esc(analysis.categoryLabel || analysis.category)}</div>
+          <div class="ops-result-subtitle">置信度 ${Math.round((analysis.confidence || 0) * 100)}% · ${esc((analysis.matchedKeywords || []).join('、') || '未命中关键词')}</div>
+        </div>
+        <span class="status-badge ${analysis.category === 'UNKNOWN' ? 'idle' : 'running'}">${esc(analysis.category || 'UNKNOWN')}</span>
+      </div>
+      <div class="ops-section">
+        <h4>可能原因</h4>
+        ${(analysis.likelyCauses || []).map(item => `<div class="ops-line">${esc(item)}</div>`).join('')}
+      </div>
+      <div class="ops-section">
+        <h4>影响面</h4>
+        <div class="ops-line">${esc(analysis.impact?.blastRadius || '')}</div>
+        <div class="ops-chip-row">
+          ${(analysis.impact?.upstream || []).map(item => `<span>上游 ${esc(item)}</span>`).join('')}
+          ${(analysis.impact?.downstream || []).map(item => `<span>下游 ${esc(item)}</span>`).join('')}
+        </div>
+      </div>
+      <div class="ops-section">
+        <h4>代码证据</h4>
+        ${(analysis.codeEvidence || []).length ? (analysis.codeEvidence || []).map(item => `
+          <div class="ops-evidence">
+            <div><strong>${esc(item.path)}</strong><span>${esc(item.reason)}</span></div>
+            ${item.snippet ? `<pre>${esc(item.snippet)}</pre>` : ''}
+          </div>
+        `).join('') : '<div class="ops-line muted">暂无明显命中文件</div>'}
+      </div>
+      <div class="ops-section">
+        <h4>建议动作</h4>
+        ${(analysis.recommendedActions || []).map(item => `<div class="ops-line">${esc(item)}</div>`).join('')}
+      </div>
+      <div class="ops-section">
+        <h4>Runbook</h4>
+        ${(analysis.runbook || []).map(item => `<div class="ops-line">${esc(item)}</div>`).join('')}
+      </div>
+    </div>
+  `;
 }
 
 // ── Agents Panel ──────────────────────────────────────────────────────

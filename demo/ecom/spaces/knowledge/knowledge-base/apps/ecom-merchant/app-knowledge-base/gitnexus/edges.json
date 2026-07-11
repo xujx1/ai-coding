@@ -1,0 +1,137 @@
+[
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/merchants",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/merchants/:merchantId/audits",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/shops/:shopId",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/business/create-merchant",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/business/approve-merchant",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/business/disable-shop",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "api:ecom-merchant:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:MerchantDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:MerchantDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-merchant",
+    "to": "component:ecom-merchant:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

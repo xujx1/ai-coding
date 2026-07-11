@@ -1,0 +1,155 @@
+[
+  {
+    "id": "app:ecom-payment",
+    "kind": "app",
+    "label": "ecom-payment"
+  },
+  {
+    "id": "api:ecom-payment:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-payment:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-payment:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-payment:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-payment:/payments",
+    "kind": "api",
+    "label": "/payments"
+  },
+  {
+    "id": "api:ecom-payment:/payments/:paymentId/callbacks",
+    "kind": "api",
+    "label": "/payments/:paymentId/callbacks"
+  },
+  {
+    "id": "api:ecom-payment:/refund-payments",
+    "kind": "api",
+    "label": "/refund-payments"
+  },
+  {
+    "id": "api:ecom-payment:/business/create-payment",
+    "kind": "api",
+    "label": "/business/create-payment"
+  },
+  {
+    "id": "api:ecom-payment:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-payment:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-payment:/business/mark-paid",
+    "kind": "api",
+    "label": "/business/mark-paid"
+  },
+  {
+    "id": "api:ecom-payment:/business/create-refund-payment",
+    "kind": "api",
+    "label": "/business/create-refund-payment"
+  },
+  {
+    "id": "api:ecom-payment:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-payment:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-payment:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-payment:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-payment:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-payment:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-payment:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-payment:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-payment:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-payment:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-payment:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-payment:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-payment:PaymentDubboService",
+    "kind": "component",
+    "label": "PaymentDubboService"
+  },
+  {
+    "id": "component:ecom-payment:PaymentDubboServiceImpl",
+    "kind": "component",
+    "label": "PaymentDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-payment:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "gitnexus:ecom-payment",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 20,
+      "nodes": 180,
+      "edges": 416,
+      "communities": 12,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]

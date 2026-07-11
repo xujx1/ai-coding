@@ -1,0 +1,869 @@
+{
+  "generatedFrom": "app-knowledge-base + domain dependency metadata",
+  "usage": {
+    "technicalDesign": "Use changedApp.impactedApps to decide cross-app design scope.",
+    "testCaseGeneration": "Use impactedApps + exposedApis + dbTables to derive integration/E2E coverage.",
+    "testDataPlanning": "Use upstreamDependencies to prepare required upstream fixtures before app scenario data."
+  },
+  "apps": {
+    "console": {
+      "changedApp": "console",
+      "domain": "console",
+      "impactedApps": [],
+      "upstreamDependencies": [],
+      "downstreamConsumers": [],
+      "exposedApis": [
+        "/health",
+        "/business/create-sku",
+        "/business/enable-sale",
+        "/business/create-campaign",
+        "/business/enable-campaign",
+        "/business/delete-campaign",
+        "/business/demo-checkout",
+        "/business/demo-cancel",
+        "/business/demo-full-chain"
+      ],
+      "dbTables": [],
+      "coreComponents": [
+        "run",
+        "get",
+        "post",
+        "show",
+        "services",
+        "out",
+        "req",
+        "payload"
+      ],
+      "evidence": [
+        "apps/console/app-knowledge-base/CONTEXT.md",
+        "apps/console/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/console/gitnexus.json"
+      ]
+    },
+    "ecom-aftersales": {
+      "changedApp": "ecom-aftersales",
+      "domain": "售后域",
+      "impactedApps": [
+        "ecom-customer-service",
+        "ecom-inventory",
+        "ecom-payment"
+      ],
+      "upstreamDependencies": [
+        "ecom-trade",
+        "ecom-payment",
+        "ecom-fulfillment"
+      ],
+      "downstreamConsumers": [
+        "ecom-customer-service",
+        "ecom-inventory",
+        "ecom-payment"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/aftersales",
+        "/aftersales/:caseId/approve",
+        "/refunds",
+        "/business/create-refund-case",
+        "/business/list",
+        "/business/get",
+        "/business/approve-case",
+        "/business/reject-case",
+        "/business/mark-returned",
+        "/business"
+      ],
+      "dbTables": [
+        "aftersales_cases"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "AftersalesDubboService",
+        "AftersalesDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-aftersales/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-aftersales/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-aftersales/gitnexus.json"
+      ]
+    },
+    "ecom-content": {
+      "changedApp": "ecom-content",
+      "domain": "内容域",
+      "impactedApps": [],
+      "upstreamDependencies": [
+        "ecom-product",
+        "ecom-merchant",
+        "ecom-user"
+      ],
+      "downstreamConsumers": [],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/posts",
+        "/videos",
+        "/comments/moderation",
+        "/business/create-post",
+        "/business/list",
+        "/business/get",
+        "/business/bind-product",
+        "/business/approve-content",
+        "/business/reject-content",
+        "/business"
+      ],
+      "dbTables": [
+        "content_items"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "ContentDubboService",
+        "ContentDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-content/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-content/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-content/gitnexus.json"
+      ]
+    },
+    "ecom-customer-service": {
+      "changedApp": "ecom-customer-service",
+      "domain": "客服域",
+      "impactedApps": [],
+      "upstreamDependencies": [
+        "ecom-user",
+        "ecom-trade",
+        "ecom-aftersales",
+        "ecom-logistics"
+      ],
+      "downstreamConsumers": [],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/tickets",
+        "/conversations",
+        "/bot/intents",
+        "/business/create-ticket",
+        "/business/list",
+        "/business/get",
+        "/business/assign-ticket",
+        "/business/resolve-ticket",
+        "/business"
+      ],
+      "dbTables": [
+        "customer_service_tickets"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "CustomerServiceDubboService",
+        "CustomerServiceDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-customer-service/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-customer-service/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-customer-service/gitnexus.json"
+      ]
+    },
+    "ecom-finance": {
+      "changedApp": "ecom-finance",
+      "domain": "财务结算域",
+      "impactedApps": [
+        "ecom-merchant",
+        "ecom-supply-chain"
+      ],
+      "upstreamDependencies": [
+        "ecom-payment",
+        "ecom-trade",
+        "ecom-marketing",
+        "ecom-merchant"
+      ],
+      "downstreamConsumers": [
+        "ecom-merchant",
+        "ecom-supply-chain"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/settlements",
+        "/reconciliation/tasks",
+        "/invoices",
+        "/business/record-payment",
+        "/business/list",
+        "/business/get",
+        "/business/create-reconciliation-task",
+        "/business/create-merchant-settlement",
+        "/business/create-invoice",
+        "/business"
+      ],
+      "dbTables": [
+        "finance_settlements"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "FinanceDubboService",
+        "FinanceDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-finance/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-finance/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-finance/gitnexus.json"
+      ]
+    },
+    "ecom-fulfillment": {
+      "changedApp": "ecom-fulfillment",
+      "domain": "履约域",
+      "impactedApps": [
+        "ecom-aftersales",
+        "ecom-logistics"
+      ],
+      "upstreamDependencies": [
+        "ecom-trade",
+        "ecom-inventory",
+        "ecom-user"
+      ],
+      "downstreamConsumers": [
+        "ecom-aftersales",
+        "ecom-logistics"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/fulfillments",
+        "/fulfillments/:id/split",
+        "/shipments/:id/status",
+        "/business/create-fulfillment",
+        "/business/list",
+        "/business/get",
+        "/business/split-package",
+        "/business/ship-package",
+        "/business/mark-delivered",
+        "/business"
+      ],
+      "dbTables": [
+        "fulfillment_orders"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "FulfillmentDubboService",
+        "FulfillmentDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-fulfillment/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-fulfillment/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-fulfillment/gitnexus.json"
+      ]
+    },
+    "ecom-inventory": {
+      "changedApp": "ecom-inventory",
+      "domain": "库存域",
+      "impactedApps": [
+        "ecom-fulfillment",
+        "ecom-supply-chain",
+        "ecom-trade"
+      ],
+      "upstreamDependencies": [
+        "ecom-product",
+        "ecom-trade",
+        "ecom-aftersales"
+      ],
+      "downstreamConsumers": [
+        "ecom-fulfillment",
+        "ecom-supply-chain",
+        "ecom-trade"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/stocks/:skuId",
+        "/reservations",
+        "/reservations/:reservationId/release",
+        "/business/set-stock",
+        "/business/list",
+        "/business/get",
+        "/business/reserve-stock",
+        "/business/release-reservation",
+        "/business/deduct-reservation",
+        "/business/return-stock",
+        "/business"
+      ],
+      "dbTables": [
+        "inventory_stocks"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "InventoryDubboService",
+        "InventoryDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-inventory/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-inventory/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-inventory/gitnexus.json"
+      ]
+    },
+    "ecom-logistics": {
+      "changedApp": "ecom-logistics",
+      "domain": "物流域",
+      "impactedApps": [
+        "ecom-customer-service"
+      ],
+      "upstreamDependencies": [
+        "ecom-fulfillment"
+      ],
+      "downstreamConsumers": [
+        "ecom-customer-service"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/waybills",
+        "/tracks/:waybillNo",
+        "/delivery-exceptions",
+        "/business/create-waybill",
+        "/business/list",
+        "/business/get",
+        "/business/mark-picked-up",
+        "/business/mark-in-transit",
+        "/business/mark-signed",
+        "/business/report-exception",
+        "/business"
+      ],
+      "dbTables": [
+        "logistics_waybills"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "LogisticsDubboService",
+        "LogisticsDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-logistics/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-logistics/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-logistics/gitnexus.json"
+      ]
+    },
+    "ecom-marketing": {
+      "changedApp": "ecom-marketing",
+      "domain": "营销域",
+      "impactedApps": [
+        "ecom-finance",
+        "ecom-trade"
+      ],
+      "upstreamDependencies": [
+        "ecom-product",
+        "ecom-user"
+      ],
+      "downstreamConsumers": [
+        "ecom-finance",
+        "ecom-trade"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/campaigns",
+        "/coupons/claim",
+        "/promotions/preview",
+        "/business/create-campaign",
+        "/business/list",
+        "/business/get",
+        "/business/enable-campaign",
+        "/business/disable-campaign",
+        "/business/reserve-promotion",
+        "/business/confirm-use",
+        "/business/cancel-reservation",
+        "/business/delete-campaign",
+        "/business"
+      ],
+      "dbTables": [
+        "marketing_campaigns"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "MarketingDubboService",
+        "MarketingDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-marketing/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-marketing/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-marketing/gitnexus.json"
+      ]
+    },
+    "ecom-merchant": {
+      "changedApp": "ecom-merchant",
+      "domain": "店铺商家域",
+      "impactedApps": [
+        "ecom-content",
+        "ecom-finance"
+      ],
+      "upstreamDependencies": [
+        "ecom-finance"
+      ],
+      "downstreamConsumers": [
+        "ecom-content",
+        "ecom-finance"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/merchants",
+        "/merchants/:merchantId/audits",
+        "/shops/:shopId",
+        "/business/create-merchant",
+        "/business/list",
+        "/business/get",
+        "/business/approve-merchant",
+        "/business/disable-shop",
+        "/business"
+      ],
+      "dbTables": [
+        "merchant_shops"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "MerchantDubboService",
+        "MerchantDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-merchant/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-merchant/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-merchant/gitnexus.json"
+      ]
+    },
+    "ecom-payment": {
+      "changedApp": "ecom-payment",
+      "domain": "支付域",
+      "impactedApps": [
+        "ecom-aftersales",
+        "ecom-finance"
+      ],
+      "upstreamDependencies": [
+        "ecom-trade",
+        "ecom-aftersales"
+      ],
+      "downstreamConsumers": [
+        "ecom-aftersales",
+        "ecom-finance"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/payments",
+        "/payments/:paymentId/callbacks",
+        "/refund-payments",
+        "/business/create-payment",
+        "/business/list",
+        "/business/get",
+        "/business/mark-paid",
+        "/business/create-refund-payment",
+        "/business"
+      ],
+      "dbTables": [
+        "payment_orders"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "PaymentDubboService",
+        "PaymentDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-payment/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-payment/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-payment/gitnexus.json"
+      ]
+    },
+    "ecom-product": {
+      "changedApp": "ecom-product",
+      "domain": "商品域",
+      "impactedApps": [
+        "ecom-content",
+        "ecom-inventory",
+        "ecom-marketing",
+        "ecom-trade"
+      ],
+      "upstreamDependencies": [],
+      "downstreamConsumers": [
+        "ecom-content",
+        "ecom-inventory",
+        "ecom-marketing",
+        "ecom-trade"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/products",
+        "/products/:spuId/skus",
+        "/categories/:categoryId/attributes",
+        "/business/create-sku",
+        "/business/list",
+        "/business/get",
+        "/business/enable-sale",
+        "/business/disable-sale",
+        "/business"
+      ],
+      "dbTables": [
+        "product_skus"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "ProductDubboService",
+        "ProductDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-product/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-product/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-product/gitnexus.json"
+      ]
+    },
+    "ecom-supply-chain": {
+      "changedApp": "ecom-supply-chain",
+      "domain": "供应链域",
+      "impactedApps": [],
+      "upstreamDependencies": [
+        "ecom-inventory",
+        "ecom-finance"
+      ],
+      "downstreamConsumers": [],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/purchase-orders",
+        "/suppliers",
+        "/replenishment/plans",
+        "/business/create-purchase-order",
+        "/business/list",
+        "/business/get",
+        "/business/approve-quality-check",
+        "/business/reject-quality-check",
+        "/business/create-replenishment-plan",
+        "/business"
+      ],
+      "dbTables": [
+        "supply_chain_purchase_orders"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "SupplyChainDubboService",
+        "SupplyChainDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-supply-chain/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-supply-chain/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-supply-chain/gitnexus.json"
+      ]
+    },
+    "ecom-trade": {
+      "changedApp": "ecom-trade",
+      "domain": "交易域",
+      "impactedApps": [
+        "ecom-aftersales",
+        "ecom-customer-service",
+        "ecom-finance",
+        "ecom-fulfillment",
+        "ecom-inventory",
+        "ecom-payment"
+      ],
+      "upstreamDependencies": [
+        "ecom-product",
+        "ecom-user",
+        "ecom-marketing",
+        "ecom-inventory"
+      ],
+      "downstreamConsumers": [
+        "ecom-aftersales",
+        "ecom-customer-service",
+        "ecom-finance",
+        "ecom-fulfillment",
+        "ecom-inventory",
+        "ecom-payment"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/carts/:userId",
+        "/orders",
+        "/orders/:orderId/state",
+        "/business/create-order",
+        "/business/demo-checkout",
+        "/business/demo-cancel",
+        "/business/demo-full-chain",
+        "/business/list",
+        "/business/get",
+        "/business/confirm-paid",
+        "/business/cancel-order",
+        "/business/complete-order",
+        "/business"
+      ],
+      "dbTables": [
+        "trade_orders"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RemoteDomainClient",
+        "RequestParser",
+        "TradeOrchestrationService",
+        "TradeDubboService",
+        "TradeDubboServiceImpl",
+        "BusinessServiceTest",
+        "TradeOrchestrationServiceTest",
+        "FakeRemoteDomainClient"
+      ],
+      "evidence": [
+        "apps/ecom-trade/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-trade/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-trade/gitnexus.json"
+      ]
+    },
+    "ecom-user": {
+      "changedApp": "ecom-user",
+      "domain": "用户域",
+      "impactedApps": [
+        "ecom-content",
+        "ecom-customer-service",
+        "ecom-fulfillment",
+        "ecom-marketing",
+        "ecom-trade"
+      ],
+      "upstreamDependencies": [],
+      "downstreamConsumers": [
+        "ecom-content",
+        "ecom-customer-service",
+        "ecom-fulfillment",
+        "ecom-marketing",
+        "ecom-trade"
+      ],
+      "exposedApis": [
+        "/health",
+        "/knowledge",
+        "/sample",
+        "/validate-requirement",
+        "/users/:userId",
+        "/users/:userId/addresses",
+        "/members/:userId/level",
+        "/business/create-user",
+        "/business/list",
+        "/business/get",
+        "/business/add-address",
+        "/business/upgrade-member",
+        "/business"
+      ],
+      "dbTables": [
+        "user_profiles"
+      ],
+      "coreComponents": [
+        "AppServer",
+        "BusinessRecord",
+        "BusinessRepository",
+        "BusinessService",
+        "DomainContext",
+        "DomainService",
+        "DubboSupport",
+        "InMemoryBusinessRepository",
+        "JdbcBusinessRepository",
+        "JsonSupport",
+        "RequestParser",
+        "UserDubboService",
+        "UserDubboServiceImpl",
+        "BusinessServiceTest"
+      ],
+      "evidence": [
+        "apps/ecom-user/app-knowledge-base/CONTEXT.md",
+        "apps/ecom-user/app-knowledge-base/KB_INDEX.md",
+        "global/gitnexus-graph/edges.json",
+        "global/gitnexus-graph/nodes.json",
+        "global/gitnexus-indexes/ecom-user/gitnexus.json"
+      ]
+    }
+  }
+}

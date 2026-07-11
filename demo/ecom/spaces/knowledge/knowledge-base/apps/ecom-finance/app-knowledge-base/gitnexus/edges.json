@@ -1,0 +1,142 @@
+[
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/settlements",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/reconciliation/tasks",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/invoices",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/business/record-payment",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/business/create-reconciliation-task",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/business/create-merchant-settlement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/business/create-invoice",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "api:ecom-finance:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:FinanceDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:FinanceDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-finance",
+    "to": "component:ecom-finance:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

@@ -1602,6 +1602,8 @@ test('workflow UI exposes nested tracks, planner evidence, and track-scoped arti
   assert.ok(appJs.includes('findPlanNodeContractSummary'), 'UI should resolve plan node contract summaries');
   assert.ok(appJs.includes('plan?.currentRevisionId'), 'UI should display plan revision provenance');
   assert.ok(appJs.includes('structuredPayload: data.structuredPayload'), 'UI should restore structured confirmation payloads after refresh');
+  assert.ok(appJs.includes('state.lifecycle?.pendingConfirmation'), 'UI should restore lifecycle-backed pending confirmations after refresh');
+  assert.ok(appJs.includes('isLifecyclePendingConfirmationActive'), 'UI should validate lifecycle pending confirmation state');
   assert.ok(appJs.includes('selection.trackId'), 'artifact filtering should account for selected track');
   assert.ok(appJs.includes('track?.artifactIndex?.[stageId]'), 'artifact filtering should read track artifact index');
   assert.ok(appCss.includes('.fanout-track-stack'), 'CSS should style nested fanout tracks');

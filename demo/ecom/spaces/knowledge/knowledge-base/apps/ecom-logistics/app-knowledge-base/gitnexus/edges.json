@@ -1,0 +1,147 @@
+[
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/waybills",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/tracks/:waybillNo",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/delivery-exceptions",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/business/create-waybill",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/business/mark-picked-up",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/business/mark-in-transit",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/business/mark-signed",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/business/report-exception",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "api:ecom-logistics:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:LogisticsDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:LogisticsDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-logistics",
+    "to": "component:ecom-logistics:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

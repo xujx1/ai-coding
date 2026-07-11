@@ -13,6 +13,10 @@ runtime-projects/
 
 npm-debug.log*
 tsconfig.tsbuildinfo
+.gitnexus-home/
+**/.gitnexus-home/
+.gitnexus/
+**/.gitnexus/
 
 # Fixture snapshots keep replayable state, not generated runtime payloads.
 fixtures/**/run/workspace/
@@ -24,3 +28,13 @@ fixtures/**/run/artifacts/**/e2e/*.log
 fixtures/**/run/artifacts/**/e2e/playwright-report/
 fixtures/**/run/artifacts/**/e2e/screenshots/
 fixtures/**/run/artifacts/**/e2e/test-results/
+.mrd-to-code-config.json
+
+# Ecom demo runtime/build outputs.
+demo/ecom/logs/
+demo/ecom/pids/
+demo/ecom/**/target/
+demo/ecom/.git-service/
+demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/
+/.codex/
+/openspec/

@@ -1,0 +1,155 @@
+[
+  {
+    "id": "app:ecom-product",
+    "kind": "app",
+    "label": "ecom-product"
+  },
+  {
+    "id": "api:ecom-product:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-product:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-product:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-product:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-product:/products",
+    "kind": "api",
+    "label": "/products"
+  },
+  {
+    "id": "api:ecom-product:/products/:spuId/skus",
+    "kind": "api",
+    "label": "/products/:spuId/skus"
+  },
+  {
+    "id": "api:ecom-product:/categories/:categoryId/attributes",
+    "kind": "api",
+    "label": "/categories/:categoryId/attributes"
+  },
+  {
+    "id": "api:ecom-product:/business/create-sku",
+    "kind": "api",
+    "label": "/business/create-sku"
+  },
+  {
+    "id": "api:ecom-product:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-product:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-product:/business/enable-sale",
+    "kind": "api",
+    "label": "/business/enable-sale"
+  },
+  {
+    "id": "api:ecom-product:/business/disable-sale",
+    "kind": "api",
+    "label": "/business/disable-sale"
+  },
+  {
+    "id": "api:ecom-product:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-product:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-product:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-product:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-product:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-product:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-product:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-product:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-product:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-product:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-product:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-product:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-product:ProductDubboService",
+    "kind": "component",
+    "label": "ProductDubboService"
+  },
+  {
+    "id": "component:ecom-product:ProductDubboServiceImpl",
+    "kind": "component",
+    "label": "ProductDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-product:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "gitnexus:ecom-product",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 20,
+      "nodes": 180,
+      "edges": 416,
+      "communities": 12,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]

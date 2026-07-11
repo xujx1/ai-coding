@@ -1,0 +1,137 @@
+[
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/users/:userId",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/users/:userId/addresses",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/members/:userId/level",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/business/create-user",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/business/add-address",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/business/upgrade-member",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "api:ecom-user:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:UserDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:UserDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-user",
+    "to": "component:ecom-user:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

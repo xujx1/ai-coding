@@ -1,0 +1,92 @@
+{
+  "console": {
+    "domain": "console",
+    "domainName": "console",
+    "serviceName": "console",
+    "summary": ""
+  },
+  "ecom-aftersales": {
+    "domain": "aftersales",
+    "domainName": "售后域",
+    "serviceName": "Aftersales Service",
+    "summary": "Handles refund, return, exchange, aftersales workflow, evidence, and dispute decisions."
+  },
+  "ecom-content": {
+    "domain": "content",
+    "domainName": "内容域",
+    "serviceName": "Content Service",
+    "summary": "Manages product content, posts, short videos, live sessions, comments, creators, and moderation workflow."
+  },
+  "ecom-customer-service": {
+    "domain": "customer-service",
+    "domainName": "客服域",
+    "serviceName": "Customer Service",
+    "summary": "Handles consultation, work orders, dispute tickets, aftersales support, and bot intent routing."
+  },
+  "ecom-finance": {
+    "domain": "finance",
+    "domainName": "财务结算域",
+    "serviceName": "Finance Settlement Service",
+    "summary": "Owns reconciliation, merchant settlement, revenue share, invoice facts, tax compliance, and ledger events."
+  },
+  "ecom-fulfillment": {
+    "domain": "fulfillment",
+    "domainName": "履约域",
+    "serviceName": "Fulfillment Service",
+    "summary": "Creates fulfillment orders, splits packages, sources warehouses, dispatches WMS tasks, and syncs delivery status."
+  },
+  "ecom-inventory": {
+    "domain": "inventory",
+    "domainName": "库存域",
+    "serviceName": "Inventory Service",
+    "summary": "Tracks physical stock, available stock, reserved stock, stock release, and multi-warehouse allocation."
+  },
+  "ecom-logistics": {
+    "domain": "logistics",
+    "domainName": "物流域",
+    "serviceName": "Logistics Service",
+    "summary": "Integrates carriers, creates waybills, tracks delivery traces, and reports delivery exceptions."
+  },
+  "ecom-marketing": {
+    "domain": "marketing",
+    "domainName": "营销域",
+    "serviceName": "Marketing Service",
+    "summary": "Manages campaigns, coupons, discount rules, flash sale, group-buy, points, and eligibility checks."
+  },
+  "ecom-merchant": {
+    "domain": "merchant",
+    "domainName": "店铺商家域",
+    "serviceName": "Merchant Shop Service",
+    "summary": "Supports merchant onboarding, qualification audit, shop profile, shop decoration, and merchant console facts."
+  },
+  "ecom-payment": {
+    "domain": "payment",
+    "domainName": "支付域",
+    "serviceName": "Payment Service",
+    "summary": "Provides payment order, cashier, channel callback, refund payment, and reconciliation facts."
+  },
+  "ecom-product": {
+    "domain": "product",
+    "domainName": "商品域",
+    "serviceName": "Product Service",
+    "summary": "Manages SPU, SKU, category attributes, brand data, product media, and base price facts."
+  },
+  "ecom-supply-chain": {
+    "domain": "supply-chain",
+    "domainName": "供应链域",
+    "serviceName": "Supply Chain Service",
+    "summary": "Coordinates procurement, suppliers, replenishment, quality inspection, production planning, and SRM facts."
+  },
+  "ecom-trade": {
+    "domain": "trade",
+    "domainName": "交易域",
+    "serviceName": "Trade Service",
+    "summary": "Owns cart, order creation, order state machine, order cancellation, and trade orchestration."
+  },
+  "ecom-user": {
+    "domain": "user",
+    "domainName": "用户域",
+    "serviceName": "User CRM Service",
+    "summary": "Owns account, authentication profile, membership level, user tags, identity verification, and address book."
+  }
+}

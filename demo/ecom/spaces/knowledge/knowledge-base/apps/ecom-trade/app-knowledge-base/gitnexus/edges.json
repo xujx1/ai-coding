@@ -1,0 +1,177 @@
+[
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/carts/:userId",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/orders",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/orders/:orderId/state",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business/create-order",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business/demo-checkout",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business/demo-cancel",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business/demo-full-chain",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business/confirm-paid",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business/cancel-order",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business/complete-order",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "api:ecom-trade:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:RemoteDomainClient",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:TradeOrchestrationService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:TradeDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:TradeDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:BusinessServiceTest",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:TradeOrchestrationServiceTest",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-trade",
+    "to": "component:ecom-trade:FakeRemoteDomainClient",
+    "kind": "contains"
+  }
+]

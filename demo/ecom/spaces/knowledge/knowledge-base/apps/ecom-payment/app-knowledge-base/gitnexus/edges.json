@@ -1,0 +1,137 @@
+[
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/payments",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/payments/:paymentId/callbacks",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/refund-payments",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/business/create-payment",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/business/mark-paid",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/business/create-refund-payment",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "api:ecom-payment:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:PaymentDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:PaymentDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-payment",
+    "to": "component:ecom-payment:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

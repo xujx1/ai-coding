@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Coding Pipeline - MRD 到代码工作台</title>
-  <link rel="stylesheet" href="/app.css?v=20260630-dynamic-workflow-4">
+  <link rel="stylesheet" href="/app.css?v=20260711-knowledge-init-1">
 </head>
 <body>
   <div id="app">
@@ -14,14 +14,26 @@
       <div class="panel-left">
         <div class="sidebar-header">
           <div class="sidebar-brand">AI Coding Pipeline</div>
+          <button class="sidebar-new-task" onclick="openNewTaskPage()" title="新建运行">+</button>
           <button class="sidebar-settings" onclick="showModelSelector()" title="设置">⚙</button>
         </div>
-        <div class="panel-section">
-          <div class="panel-title-row">
-            <h3>会话列表</h3>
-            <button class="sidebar-new-task" onclick="openNewTaskPage()" title="新建运行">+</button>
-          </div>
-          <div class="session-list" id="session-list"></div>
+        <div class="management-nav" id="management-nav">
+          <button class="management-nav-item active" data-module="requirements" onclick="switchManagementModule('requirements')" title="需求管理">
+            <span class="management-nav-icon">☷</span>
+            <span>需求管理</span>
+          </button>
+          <button class="management-nav-item" data-module="repositories" onclick="switchManagementModule('repositories')" title="仓库管理">
+            <span class="management-nav-icon">▣</span>
+            <span>仓库管理</span>
+          </button>
+          <button class="management-nav-item" data-module="knowledge" onclick="switchManagementModule('knowledge')" title="知识库管理">
+            <span class="management-nav-icon">◇</span>
+            <span>知识库管理</span>
+          </button>
+          <button class="management-nav-item" data-module="pipeline" onclick="switchManagementModule('pipeline')" title="迭代 PI">
+            <span class="management-nav-icon">↦</span>
+            <span>迭代 PI</span>
+          </button>
         </div>
       </div>
 
@@ -72,6 +84,7 @@
         <div class="tab-bar">
           <button class="tab-btn active" data-tab="artifacts" onclick="switchTab('artifacts')">📁 产物</button>
           <button class="tab-btn" data-tab="preview" onclick="switchTab('preview')">📄 预览</button>
+          <button class="tab-btn" data-tab="ops" onclick="switchTab('ops')">▣ 运维</button>
           <button class="tab-btn" data-tab="agents" onclick="switchTab('agents')">🤖 Agent</button>
         </div>
         <div class="tab-panel active" id="tab-artifacts">
@@ -82,6 +95,9 @@
         </div>
         <div class="tab-panel" id="tab-preview">
           <div class="file-preview" id="file-preview"><div style="padding:20px;color:var(--text-muted);text-align:center">选择文件查看预览</div></div>
+        </div>
+        <div class="tab-panel" id="tab-ops">
+          <div id="ops-panel"><div style="color:var(--text-muted);font-size:11px;padding:8px">正在加载应用运维...</div></div>
         </div>
         <div class="tab-panel" id="tab-agents">
           <div id="agents-list"><div style="color:var(--text-muted);font-size:11px;padding:8px">暂无 Agent</div></div>
@@ -233,6 +249,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=20260630-dynamic-workflow-8"></script>
+  <script src="/app.js?v=20260711-knowledge-init-1"></script>
 </body>
 </html>

@@ -1,0 +1,584 @@
+{
+  "generatedFrom": "app-knowledge-base + db-schema + api-index",
+  "usage": {
+    "unit": "Use ownedEntities and coreComponents to build focused fixtures.",
+    "integration": "Use requiredUpstreamFixtures before invoking exposedApis.",
+    "e2e": "Use scenarioSeedApis and dbTables to create business-state setup/cleanup plans."
+  },
+  "apps": {
+    "console": {
+      "domain": "console",
+      "ownedEntities": [],
+      "capabilities": [],
+      "dbTables": [],
+      "scenarioSeedApis": [
+        "/business/create-sku",
+        "/business/create-campaign",
+        "/business/enable-campaign",
+        "/business/delete-campaign"
+      ],
+      "verificationApis": [
+        "/health"
+      ],
+      "requiredUpstreamFixtures": [],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/console/app-knowledge-base/db-schema.md",
+        "apps/console/app-knowledge-base/api-index.md",
+        "apps/console/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-aftersales": {
+      "domain": "售后域",
+      "ownedEntities": [
+        "aftersales-order",
+        "refund-request",
+        "return-package",
+        "dispute-case"
+      ],
+      "capabilities": [
+        "refund",
+        "return",
+        "exchange",
+        "aftersales-workflow",
+        "dispute-evidence"
+      ],
+      "dbTables": [
+        "aftersales_cases"
+      ],
+      "scenarioSeedApis": [
+        "/business/create-refund-case"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-trade",
+        "ecom-payment",
+        "ecom-fulfillment"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-aftersales/app-knowledge-base/db-schema.md",
+        "apps/ecom-aftersales/app-knowledge-base/api-index.md",
+        "apps/ecom-aftersales/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-content": {
+      "domain": "内容域",
+      "ownedEntities": [
+        "post",
+        "video",
+        "live-room",
+        "comment",
+        "creator-profile"
+      ],
+      "capabilities": [
+        "post",
+        "short-video",
+        "live-session",
+        "comment",
+        "creator",
+        "content-moderation"
+      ],
+      "dbTables": [
+        "content_items"
+      ],
+      "scenarioSeedApis": [
+        "/business/create-post",
+        "/business/bind-product"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-product",
+        "ecom-merchant",
+        "ecom-user"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-content/app-knowledge-base/db-schema.md",
+        "apps/ecom-content/app-knowledge-base/api-index.md",
+        "apps/ecom-content/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-customer-service": {
+      "domain": "客服域",
+      "ownedEntities": [
+        "ticket",
+        "conversation",
+        "work-order",
+        "service-sla"
+      ],
+      "capabilities": [
+        "consultation",
+        "work-order",
+        "dispute-ticket",
+        "bot-intent",
+        "service-sla"
+      ],
+      "dbTables": [
+        "customer_service_tickets"
+      ],
+      "scenarioSeedApis": [
+        "/business/create-ticket"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-user",
+        "ecom-trade",
+        "ecom-aftersales",
+        "ecom-logistics"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-customer-service/app-knowledge-base/db-schema.md",
+        "apps/ecom-customer-service/app-knowledge-base/api-index.md",
+        "apps/ecom-customer-service/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-finance": {
+      "domain": "财务结算域",
+      "ownedEntities": [
+        "settlement-bill",
+        "reconciliation-task",
+        "invoice",
+        "ledger-entry"
+      ],
+      "capabilities": [
+        "reconciliation",
+        "merchant-settlement",
+        "revenue-share",
+        "invoice",
+        "tax-compliance",
+        "ledger"
+      ],
+      "dbTables": [
+        "finance_settlements"
+      ],
+      "scenarioSeedApis": [
+        "/business/record-payment",
+        "/business/create-reconciliation-task",
+        "/business/create-merchant-settlement",
+        "/business/create-invoice"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-payment",
+        "ecom-trade",
+        "ecom-marketing",
+        "ecom-merchant"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-finance/app-knowledge-base/db-schema.md",
+        "apps/ecom-finance/app-knowledge-base/api-index.md",
+        "apps/ecom-finance/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-fulfillment": {
+      "domain": "履约域",
+      "ownedEntities": [
+        "fulfillment-order",
+        "package",
+        "shipment-plan",
+        "wms-task"
+      ],
+      "capabilities": [
+        "fulfillment-order",
+        "order-split",
+        "warehouse-sourcing",
+        "wms-dispatch",
+        "delivery-status-sync"
+      ],
+      "dbTables": [
+        "fulfillment_orders"
+      ],
+      "scenarioSeedApis": [
+        "/business/create-fulfillment"
+      ],
+      "verificationApis": [
+        "/health",
+        "/shipments/:id/status",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-trade",
+        "ecom-inventory",
+        "ecom-user"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-fulfillment/app-knowledge-base/db-schema.md",
+        "apps/ecom-fulfillment/app-knowledge-base/api-index.md",
+        "apps/ecom-fulfillment/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-inventory": {
+      "domain": "库存域",
+      "ownedEntities": [
+        "stock-item",
+        "stock-reservation",
+        "warehouse-stock",
+        "inventory-ledger"
+      ],
+      "capabilities": [
+        "physical-stock",
+        "available-stock",
+        "reserve-stock",
+        "release-stock",
+        "multi-warehouse-stock"
+      ],
+      "dbTables": [
+        "inventory_stocks"
+      ],
+      "scenarioSeedApis": [],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-product",
+        "ecom-trade",
+        "ecom-aftersales"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-inventory/app-knowledge-base/db-schema.md",
+        "apps/ecom-inventory/app-knowledge-base/api-index.md",
+        "apps/ecom-inventory/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-logistics": {
+      "domain": "物流域",
+      "ownedEntities": [
+        "waybill",
+        "carrier",
+        "tracking-event",
+        "delivery-exception"
+      ],
+      "capabilities": [
+        "carrier-integration",
+        "waybill",
+        "tracking",
+        "delivery-exception",
+        "tms-adapter"
+      ],
+      "dbTables": [
+        "logistics_waybills"
+      ],
+      "scenarioSeedApis": [
+        "/business/create-waybill"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-fulfillment"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-logistics/app-knowledge-base/db-schema.md",
+        "apps/ecom-logistics/app-knowledge-base/api-index.md",
+        "apps/ecom-logistics/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-marketing": {
+      "domain": "营销域",
+      "ownedEntities": [
+        "campaign",
+        "coupon-template",
+        "coupon-instance",
+        "promotion-rule",
+        "points-ledger"
+      ],
+      "capabilities": [
+        "campaign",
+        "coupon",
+        "discount-rule",
+        "flash-sale",
+        "group-buy",
+        "points",
+        "eligibility-check"
+      ],
+      "dbTables": [
+        "marketing_campaigns"
+      ],
+      "scenarioSeedApis": [
+        "/campaigns",
+        "/coupons/claim",
+        "/business/create-campaign",
+        "/business/enable-campaign",
+        "/business/disable-campaign",
+        "/business/delete-campaign"
+      ],
+      "verificationApis": [
+        "/health",
+        "/promotions/preview",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-product",
+        "ecom-user"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-marketing/app-knowledge-base/db-schema.md",
+        "apps/ecom-marketing/app-knowledge-base/api-index.md",
+        "apps/ecom-marketing/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-merchant": {
+      "domain": "店铺商家域",
+      "ownedEntities": [
+        "merchant",
+        "shop",
+        "qualification",
+        "shop-theme"
+      ],
+      "capabilities": [
+        "merchant-onboarding",
+        "qualification-audit",
+        "shop-profile",
+        "shop-decoration",
+        "merchant-console"
+      ],
+      "dbTables": [
+        "merchant_shops"
+      ],
+      "scenarioSeedApis": [
+        "/business/create-merchant"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-finance"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-merchant/app-knowledge-base/db-schema.md",
+        "apps/ecom-merchant/app-knowledge-base/api-index.md",
+        "apps/ecom-merchant/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-payment": {
+      "domain": "支付域",
+      "ownedEntities": [
+        "payment-order",
+        "payment-channel",
+        "refund-payment-order"
+      ],
+      "capabilities": [
+        "payment-order",
+        "cashier",
+        "channel-callback",
+        "refund-payment",
+        "payment-reconciliation"
+      ],
+      "dbTables": [
+        "payment_orders"
+      ],
+      "scenarioSeedApis": [
+        "/payments",
+        "/payments/:paymentId/callbacks",
+        "/refund-payments",
+        "/business/create-payment",
+        "/business/create-refund-payment"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-trade",
+        "ecom-aftersales"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-payment/app-knowledge-base/db-schema.md",
+        "apps/ecom-payment/app-knowledge-base/api-index.md",
+        "apps/ecom-payment/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-product": {
+      "domain": "商品域",
+      "ownedEntities": [
+        "spu",
+        "sku",
+        "category",
+        "brand",
+        "product-asset"
+      ],
+      "capabilities": [
+        "spu-management",
+        "sku-management",
+        "category-attributes",
+        "brand-catalog",
+        "product-media",
+        "base-price-facts"
+      ],
+      "dbTables": [
+        "product_skus"
+      ],
+      "scenarioSeedApis": [
+        "/products",
+        "/products/:spuId/skus",
+        "/business/create-sku"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-product/app-knowledge-base/db-schema.md",
+        "apps/ecom-product/app-knowledge-base/api-index.md",
+        "apps/ecom-product/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-supply-chain": {
+      "domain": "供应链域",
+      "ownedEntities": [
+        "purchase-order",
+        "supplier",
+        "quality-check",
+        "replenishment-plan"
+      ],
+      "capabilities": [
+        "procurement",
+        "supplier",
+        "replenishment",
+        "quality-inspection",
+        "production-plan",
+        "srm"
+      ],
+      "dbTables": [
+        "supply_chain_purchase_orders"
+      ],
+      "scenarioSeedApis": [
+        "/purchase-orders",
+        "/business/create-purchase-order",
+        "/business/create-replenishment-plan"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-inventory",
+        "ecom-finance"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-supply-chain/app-knowledge-base/db-schema.md",
+        "apps/ecom-supply-chain/app-knowledge-base/api-index.md",
+        "apps/ecom-supply-chain/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-trade": {
+      "domain": "交易域",
+      "ownedEntities": [
+        "cart",
+        "order",
+        "order-line",
+        "trade-state"
+      ],
+      "capabilities": [
+        "cart",
+        "order-create",
+        "order-state-machine",
+        "order-cancel",
+        "trade-orchestration"
+      ],
+      "dbTables": [
+        "trade_orders"
+      ],
+      "scenarioSeedApis": [
+        "/orders",
+        "/orders/:orderId/state",
+        "/business/create-order",
+        "/business/cancel-order",
+        "/business/complete-order"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [
+        "ecom-product",
+        "ecom-user",
+        "ecom-marketing",
+        "ecom-inventory"
+      ],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-trade/app-knowledge-base/db-schema.md",
+        "apps/ecom-trade/app-knowledge-base/api-index.md",
+        "apps/ecom-trade/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    },
+    "ecom-user": {
+      "domain": "用户域",
+      "ownedEntities": [
+        "user-account",
+        "member-profile",
+        "address",
+        "identity-record"
+      ],
+      "capabilities": [
+        "account",
+        "member-level",
+        "user-profile",
+        "identity-verification",
+        "address-book",
+        "user-tags"
+      ],
+      "dbTables": [
+        "user_profiles"
+      ],
+      "scenarioSeedApis": [
+        "/users/:userId/addresses",
+        "/business/create-user",
+        "/business/add-address"
+      ],
+      "verificationApis": [
+        "/health",
+        "/business/list",
+        "/business/get"
+      ],
+      "requiredUpstreamFixtures": [],
+      "fixtureEvidence": [
+        "global/gitnexus-graph/impact-map.json",
+        "apps/ecom-user/app-knowledge-base/db-schema.md",
+        "apps/ecom-user/app-knowledge-base/api-index.md",
+        "apps/ecom-user/app-knowledge-base/03_核心流程与逻辑层.md"
+      ]
+    }
+  }
+}

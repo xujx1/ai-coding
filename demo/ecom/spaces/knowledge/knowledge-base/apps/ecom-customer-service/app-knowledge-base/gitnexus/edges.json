@@ -1,0 +1,137 @@
+[
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/tickets",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/conversations",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/bot/intents",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/business/create-ticket",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/business/assign-ticket",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/business/resolve-ticket",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "api:ecom-customer-service:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:CustomerServiceDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:CustomerServiceDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-customer-service",
+    "to": "component:ecom-customer-service:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

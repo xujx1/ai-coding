@@ -10,7 +10,8 @@
     "test": "npm run build && node --test dist/__tests__/*.test.js",
     "playwright:install": "playwright install chromium",
     "start": "node dist/server/app.js",
-    "dev": "tsx watch src/server/app.ts"
+    "dev": "tsx watch src/server/app.ts",
+    "ecom:git": "tsx src/cli/local-git-service.ts --root demo/ecom"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
@@ -18,6 +19,7 @@
     "@langchain/langgraph": "1.4.7",
     "adm-zip": "^0.5.16",
     "diff": "^7.0.0",
+    "gitnexus": "^1.6.9",
     "hono": "^4.6.0",
     "multer": "^1.4.5-lts.1",
     "nanoid": "^5.0.7",

@@ -1,0 +1,160 @@
+[
+  {
+    "id": "app:ecom-finance",
+    "kind": "app",
+    "label": "ecom-finance"
+  },
+  {
+    "id": "api:ecom-finance:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-finance:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-finance:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-finance:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-finance:/settlements",
+    "kind": "api",
+    "label": "/settlements"
+  },
+  {
+    "id": "api:ecom-finance:/reconciliation/tasks",
+    "kind": "api",
+    "label": "/reconciliation/tasks"
+  },
+  {
+    "id": "api:ecom-finance:/invoices",
+    "kind": "api",
+    "label": "/invoices"
+  },
+  {
+    "id": "api:ecom-finance:/business/record-payment",
+    "kind": "api",
+    "label": "/business/record-payment"
+  },
+  {
+    "id": "api:ecom-finance:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-finance:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-finance:/business/create-reconciliation-task",
+    "kind": "api",
+    "label": "/business/create-reconciliation-task"
+  },
+  {
+    "id": "api:ecom-finance:/business/create-merchant-settlement",
+    "kind": "api",
+    "label": "/business/create-merchant-settlement"
+  },
+  {
+    "id": "api:ecom-finance:/business/create-invoice",
+    "kind": "api",
+    "label": "/business/create-invoice"
+  },
+  {
+    "id": "api:ecom-finance:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-finance:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-finance:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-finance:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-finance:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-finance:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-finance:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-finance:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-finance:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-finance:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-finance:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-finance:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-finance:FinanceDubboService",
+    "kind": "component",
+    "label": "FinanceDubboService"
+  },
+  {
+    "id": "component:ecom-finance:FinanceDubboServiceImpl",
+    "kind": "component",
+    "label": "FinanceDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-finance:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "gitnexus:ecom-finance",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 20,
+      "nodes": 181,
+      "edges": 420,
+      "communities": 12,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]

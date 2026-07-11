@@ -1,0 +1,157 @@
+[
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/campaigns",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/coupons/claim",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/promotions/preview",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business/create-campaign",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business/enable-campaign",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business/disable-campaign",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business/reserve-promotion",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business/confirm-use",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business/cancel-reservation",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business/delete-campaign",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "api:ecom-marketing:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:MarketingDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:MarketingDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-marketing",
+    "to": "component:ecom-marketing:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

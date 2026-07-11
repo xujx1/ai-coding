@@ -1,0 +1,50 @@
+# Payment Service API Index
+
+> 标准用途：接口测试、E2E 编排、技术方案入口识别。生成依据为 OpenAPI、领域配置 sampleRoutes 和源码静态路由扫描。
+
+- 应用：ecom-payment
+- 领域：支付域
+- 接口数量：13
+- 端口：4212
+
+## 接口清单
+
+| 路径 | 方法 | 业务用途 | 测试类型 | 造数/校验提示 |
+|------|------|---------|---------|---------------|
+| `/health` | GET | 服务健康检查 | 冒烟测试 | 无需业务数据 |
+| `/knowledge` | GET | 返回领域知识和依赖事实 | 知识库/影响面验证 | 可直接调用作为领域事实 |
+| `/sample` | GET | 返回样例业务对象 | 结果断言 | 可直接调用作为领域事实 |
+| `/validate-requirement` | 待确认 | 校验需求是否命中本领域能力或依赖 | 知识库/影响面验证 | 传入需求关键词和目标应用 |
+| `/payments` | POST/PUT/DELETE | 支付域业务接口 | 集成/E2E 种子步骤 | 准备payment order、payment channel、refund payment order最小字段 |
+| `/payments/:paymentId/callbacks` | POST/PUT/DELETE | 支付域业务接口 | 集成/E2E 种子步骤 | 准备payment order、payment channel、refund payment order最小字段 |
+| `/refund-payments` | POST/PUT/DELETE | 支付域业务接口 | 集成/E2E 种子步骤 | 准备payment order、payment channel、refund payment order最小字段 |
+| `/business/create-payment` | POST/PUT/DELETE | 创建或提交支付域业务对象 | 集成/E2E 种子步骤 | 准备payment order、payment channel、refund payment order最小字段 |
+| `/business/list` | GET | 查询支付域业务对象状态 | 结果断言 | 使用本域或上游 fixture |
+| `/business/get` | GET | 查询支付域业务对象状态 | 结果断言 | 使用本域或上游 fixture |
+| `/business/mark-paid` | 待确认 | 支付域业务接口 | 按场景确认 | 使用本域或上游 fixture |
+| `/business/create-refund-payment` | POST/PUT/DELETE | 创建或提交支付域业务对象 | 集成/E2E 种子步骤 | 准备payment order、payment channel、refund payment order最小字段 |
+| `/business` | 待确认 | 支付域业务接口 | 按场景确认 | 使用本域或上游 fixture |
+
+## 测试入口分组
+
+### 种子/写入类接口
+
+- `/payments`：用于创建、发布、提交、支付、删除或状态变更类测试数据。
+- `/payments/:paymentId/callbacks`：用于创建、发布、提交、支付、删除或状态变更类测试数据。
+- `/refund-payments`：用于创建、发布、提交、支付、删除或状态变更类测试数据。
+- `/business/create-payment`：用于创建、发布、提交、支付、删除或状态变更类测试数据。
+- `/business/create-refund-payment`：用于创建、发布、提交、支付、删除或状态变更类测试数据。
+
+### 查询/校验类接口
+
+- `/health`：用于断言业务状态、列表结果或健康状态。
+- `/knowledge`：用于断言业务状态、列表结果或健康状态。
+- `/sample`：用于断言业务状态、列表结果或健康状态。
+- `/business/list`：用于断言业务状态、列表结果或健康状态。
+- `/business/get`：用于断言业务状态、列表结果或健康状态。
+
+## 跨应用影响提示
+
+- 上游依赖：trade、aftersales
+- 下游消费者：finance
+- 技术方案和测试用例必须从 `global/gitnexus-graph/impact-map.json` 读取最终影响面。

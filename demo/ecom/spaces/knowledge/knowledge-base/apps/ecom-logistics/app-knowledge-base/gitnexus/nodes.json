@@ -1,0 +1,165 @@
+[
+  {
+    "id": "app:ecom-logistics",
+    "kind": "app",
+    "label": "ecom-logistics"
+  },
+  {
+    "id": "api:ecom-logistics:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-logistics:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-logistics:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-logistics:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-logistics:/waybills",
+    "kind": "api",
+    "label": "/waybills"
+  },
+  {
+    "id": "api:ecom-logistics:/tracks/:waybillNo",
+    "kind": "api",
+    "label": "/tracks/:waybillNo"
+  },
+  {
+    "id": "api:ecom-logistics:/delivery-exceptions",
+    "kind": "api",
+    "label": "/delivery-exceptions"
+  },
+  {
+    "id": "api:ecom-logistics:/business/create-waybill",
+    "kind": "api",
+    "label": "/business/create-waybill"
+  },
+  {
+    "id": "api:ecom-logistics:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-logistics:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-logistics:/business/mark-picked-up",
+    "kind": "api",
+    "label": "/business/mark-picked-up"
+  },
+  {
+    "id": "api:ecom-logistics:/business/mark-in-transit",
+    "kind": "api",
+    "label": "/business/mark-in-transit"
+  },
+  {
+    "id": "api:ecom-logistics:/business/mark-signed",
+    "kind": "api",
+    "label": "/business/mark-signed"
+  },
+  {
+    "id": "api:ecom-logistics:/business/report-exception",
+    "kind": "api",
+    "label": "/business/report-exception"
+  },
+  {
+    "id": "api:ecom-logistics:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-logistics:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-logistics:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-logistics:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-logistics:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-logistics:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-logistics:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-logistics:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-logistics:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-logistics:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-logistics:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-logistics:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-logistics:LogisticsDubboService",
+    "kind": "component",
+    "label": "LogisticsDubboService"
+  },
+  {
+    "id": "component:ecom-logistics:LogisticsDubboServiceImpl",
+    "kind": "component",
+    "label": "LogisticsDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-logistics:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "gitnexus:ecom-logistics",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 20,
+      "nodes": 181,
+      "edges": 424,
+      "communities": 11,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]

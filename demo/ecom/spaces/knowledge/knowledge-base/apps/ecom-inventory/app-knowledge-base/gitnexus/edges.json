@@ -1,0 +1,147 @@
+[
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/stocks/:skuId",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/reservations",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/reservations/:reservationId/release",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/business/set-stock",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/business/reserve-stock",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/business/release-reservation",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/business/deduct-reservation",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/business/return-stock",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "api:ecom-inventory:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:InventoryDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:InventoryDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-inventory",
+    "to": "component:ecom-inventory:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

@@ -1,0 +1,108 @@
+{
+  "console": [],
+  "ecom-aftersales": [
+    "refund",
+    "return",
+    "exchange",
+    "aftersales-workflow",
+    "dispute-evidence"
+  ],
+  "ecom-content": [
+    "post",
+    "short-video",
+    "live-session",
+    "comment",
+    "creator",
+    "content-moderation"
+  ],
+  "ecom-customer-service": [
+    "consultation",
+    "work-order",
+    "dispute-ticket",
+    "bot-intent",
+    "service-sla"
+  ],
+  "ecom-finance": [
+    "reconciliation",
+    "merchant-settlement",
+    "revenue-share",
+    "invoice",
+    "tax-compliance",
+    "ledger"
+  ],
+  "ecom-fulfillment": [
+    "fulfillment-order",
+    "order-split",
+    "warehouse-sourcing",
+    "wms-dispatch",
+    "delivery-status-sync"
+  ],
+  "ecom-inventory": [
+    "physical-stock",
+    "available-stock",
+    "reserve-stock",
+    "release-stock",
+    "multi-warehouse-stock"
+  ],
+  "ecom-logistics": [
+    "carrier-integration",
+    "waybill",
+    "tracking",
+    "delivery-exception",
+    "tms-adapter"
+  ],
+  "ecom-marketing": [
+    "campaign",
+    "coupon",
+    "discount-rule",
+    "flash-sale",
+    "group-buy",
+    "points",
+    "eligibility-check"
+  ],
+  "ecom-merchant": [
+    "merchant-onboarding",
+    "qualification-audit",
+    "shop-profile",
+    "shop-decoration",
+    "merchant-console"
+  ],
+  "ecom-payment": [
+    "payment-order",
+    "cashier",
+    "channel-callback",
+    "refund-payment",
+    "payment-reconciliation"
+  ],
+  "ecom-product": [
+    "spu-management",
+    "sku-management",
+    "category-attributes",
+    "brand-catalog",
+    "product-media",
+    "base-price-facts"
+  ],
+  "ecom-supply-chain": [
+    "procurement",
+    "supplier",
+    "replenishment",
+    "quality-inspection",
+    "production-plan",
+    "srm"
+  ],
+  "ecom-trade": [
+    "cart",
+    "order-create",
+    "order-state-machine",
+    "order-cancel",
+    "trade-orchestration"
+  ],
+  "ecom-user": [
+    "account",
+    "member-level",
+    "user-profile",
+    "identity-verification",
+    "address-book",
+    "user-tags"
+  ]
+}

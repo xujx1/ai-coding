@@ -1,0 +1,87 @@
+[
+  {
+    "from": "app:console",
+    "to": "api:console:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:console",
+    "to": "api:console:/business/create-sku",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:console",
+    "to": "api:console:/business/enable-sale",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:console",
+    "to": "api:console:/business/create-campaign",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:console",
+    "to": "api:console:/business/enable-campaign",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:console",
+    "to": "api:console:/business/delete-campaign",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:console",
+    "to": "api:console:/business/demo-checkout",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:console",
+    "to": "api:console:/business/demo-cancel",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:console",
+    "to": "api:console:/business/demo-full-chain",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:console",
+    "to": "component:console:run",
+    "kind": "contains"
+  },
+  {
+    "from": "app:console",
+    "to": "component:console:get",
+    "kind": "contains"
+  },
+  {
+    "from": "app:console",
+    "to": "component:console:post",
+    "kind": "contains"
+  },
+  {
+    "from": "app:console",
+    "to": "component:console:show",
+    "kind": "contains"
+  },
+  {
+    "from": "app:console",
+    "to": "component:console:services",
+    "kind": "contains"
+  },
+  {
+    "from": "app:console",
+    "to": "component:console:out",
+    "kind": "contains"
+  },
+  {
+    "from": "app:console",
+    "to": "component:console:req",
+    "kind": "contains"
+  },
+  {
+    "from": "app:console",
+    "to": "component:console:payload",
+    "kind": "contains"
+  }
+]

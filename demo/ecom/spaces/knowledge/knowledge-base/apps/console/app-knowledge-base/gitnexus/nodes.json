@@ -1,0 +1,105 @@
+[
+  {
+    "id": "app:console",
+    "kind": "app",
+    "label": "console"
+  },
+  {
+    "id": "api:console:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:console:/business/create-sku",
+    "kind": "api",
+    "label": "/business/create-sku"
+  },
+  {
+    "id": "api:console:/business/enable-sale",
+    "kind": "api",
+    "label": "/business/enable-sale"
+  },
+  {
+    "id": "api:console:/business/create-campaign",
+    "kind": "api",
+    "label": "/business/create-campaign"
+  },
+  {
+    "id": "api:console:/business/enable-campaign",
+    "kind": "api",
+    "label": "/business/enable-campaign"
+  },
+  {
+    "id": "api:console:/business/delete-campaign",
+    "kind": "api",
+    "label": "/business/delete-campaign"
+  },
+  {
+    "id": "api:console:/business/demo-checkout",
+    "kind": "api",
+    "label": "/business/demo-checkout"
+  },
+  {
+    "id": "api:console:/business/demo-cancel",
+    "kind": "api",
+    "label": "/business/demo-cancel"
+  },
+  {
+    "id": "api:console:/business/demo-full-chain",
+    "kind": "api",
+    "label": "/business/demo-full-chain"
+  },
+  {
+    "id": "component:console:run",
+    "kind": "component",
+    "label": "run"
+  },
+  {
+    "id": "component:console:get",
+    "kind": "component",
+    "label": "get"
+  },
+  {
+    "id": "component:console:post",
+    "kind": "component",
+    "label": "post"
+  },
+  {
+    "id": "component:console:show",
+    "kind": "component",
+    "label": "show"
+  },
+  {
+    "id": "component:console:services",
+    "kind": "component",
+    "label": "services"
+  },
+  {
+    "id": "component:console:out",
+    "kind": "component",
+    "label": "out"
+  },
+  {
+    "id": "component:console:req",
+    "kind": "component",
+    "label": "req"
+  },
+  {
+    "id": "component:console:payload",
+    "kind": "component",
+    "label": "payload"
+  },
+  {
+    "id": "gitnexus:console",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 3,
+      "nodes": 11,
+      "edges": 15,
+      "communities": 1,
+      "processes": 0,
+      "embeddings": 0
+    }
+  }
+]

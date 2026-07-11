@@ -1,2 +1,0 @@
-{"id":"demo-1","type":"pipeline_started","runId":"langgraph-demo-run","timestamp":1782639000000,"data":{"runtime":"langgraph"}}
-{"id":"demo-2","type":"pipeline_completed","runId":"langgraph-demo-run","timestamp":1782639000300,"data":{"runtime":"langgraph"}}

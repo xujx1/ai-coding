@@ -1,0 +1,142 @@
+[
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/purchase-orders",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/suppliers",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/replenishment/plans",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/business/create-purchase-order",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/business/approve-quality-check",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/business/reject-quality-check",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/business/create-replenishment-plan",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "api:ecom-supply-chain:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:SupplyChainDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:SupplyChainDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-supply-chain",
+    "to": "component:ecom-supply-chain:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

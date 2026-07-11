@@ -1,0 +1,165 @@
+[
+  {
+    "id": "app:ecom-inventory",
+    "kind": "app",
+    "label": "ecom-inventory"
+  },
+  {
+    "id": "api:ecom-inventory:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-inventory:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-inventory:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-inventory:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-inventory:/stocks/:skuId",
+    "kind": "api",
+    "label": "/stocks/:skuId"
+  },
+  {
+    "id": "api:ecom-inventory:/reservations",
+    "kind": "api",
+    "label": "/reservations"
+  },
+  {
+    "id": "api:ecom-inventory:/reservations/:reservationId/release",
+    "kind": "api",
+    "label": "/reservations/:reservationId/release"
+  },
+  {
+    "id": "api:ecom-inventory:/business/set-stock",
+    "kind": "api",
+    "label": "/business/set-stock"
+  },
+  {
+    "id": "api:ecom-inventory:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-inventory:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-inventory:/business/reserve-stock",
+    "kind": "api",
+    "label": "/business/reserve-stock"
+  },
+  {
+    "id": "api:ecom-inventory:/business/release-reservation",
+    "kind": "api",
+    "label": "/business/release-reservation"
+  },
+  {
+    "id": "api:ecom-inventory:/business/deduct-reservation",
+    "kind": "api",
+    "label": "/business/deduct-reservation"
+  },
+  {
+    "id": "api:ecom-inventory:/business/return-stock",
+    "kind": "api",
+    "label": "/business/return-stock"
+  },
+  {
+    "id": "api:ecom-inventory:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-inventory:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-inventory:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-inventory:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-inventory:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-inventory:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-inventory:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-inventory:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-inventory:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-inventory:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-inventory:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-inventory:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-inventory:InventoryDubboService",
+    "kind": "component",
+    "label": "InventoryDubboService"
+  },
+  {
+    "id": "component:ecom-inventory:InventoryDubboServiceImpl",
+    "kind": "component",
+    "label": "InventoryDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-inventory:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "gitnexus:ecom-inventory",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 20,
+      "nodes": 181,
+      "edges": 424,
+      "communities": 11,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]

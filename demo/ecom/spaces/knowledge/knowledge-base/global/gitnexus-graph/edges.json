@@ -1,0 +1,290 @@
+[
+  {
+    "fromAppId": "ecom-aftersales",
+    "toAppId": "ecom-trade",
+    "type": "upstream-dependency",
+    "summary": "ecom-aftersales depends on ecom-trade",
+    "evidence": [
+      "apps/ecom-aftersales/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-aftersales",
+    "toAppId": "ecom-payment",
+    "type": "upstream-dependency",
+    "summary": "ecom-aftersales depends on ecom-payment",
+    "evidence": [
+      "apps/ecom-aftersales/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-aftersales",
+    "toAppId": "ecom-fulfillment",
+    "type": "upstream-dependency",
+    "summary": "ecom-aftersales depends on ecom-fulfillment",
+    "evidence": [
+      "apps/ecom-aftersales/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-content",
+    "toAppId": "ecom-product",
+    "type": "upstream-dependency",
+    "summary": "ecom-content depends on ecom-product",
+    "evidence": [
+      "apps/ecom-content/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-content",
+    "toAppId": "ecom-merchant",
+    "type": "upstream-dependency",
+    "summary": "ecom-content depends on ecom-merchant",
+    "evidence": [
+      "apps/ecom-content/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-content",
+    "toAppId": "ecom-user",
+    "type": "upstream-dependency",
+    "summary": "ecom-content depends on ecom-user",
+    "evidence": [
+      "apps/ecom-content/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-customer-service",
+    "toAppId": "ecom-user",
+    "type": "upstream-dependency",
+    "summary": "ecom-customer-service depends on ecom-user",
+    "evidence": [
+      "apps/ecom-customer-service/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-customer-service",
+    "toAppId": "ecom-trade",
+    "type": "upstream-dependency",
+    "summary": "ecom-customer-service depends on ecom-trade",
+    "evidence": [
+      "apps/ecom-customer-service/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-customer-service",
+    "toAppId": "ecom-aftersales",
+    "type": "upstream-dependency",
+    "summary": "ecom-customer-service depends on ecom-aftersales",
+    "evidence": [
+      "apps/ecom-customer-service/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-customer-service",
+    "toAppId": "ecom-logistics",
+    "type": "upstream-dependency",
+    "summary": "ecom-customer-service depends on ecom-logistics",
+    "evidence": [
+      "apps/ecom-customer-service/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-finance",
+    "toAppId": "ecom-payment",
+    "type": "upstream-dependency",
+    "summary": "ecom-finance depends on ecom-payment",
+    "evidence": [
+      "apps/ecom-finance/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-finance",
+    "toAppId": "ecom-trade",
+    "type": "upstream-dependency",
+    "summary": "ecom-finance depends on ecom-trade",
+    "evidence": [
+      "apps/ecom-finance/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-finance",
+    "toAppId": "ecom-marketing",
+    "type": "upstream-dependency",
+    "summary": "ecom-finance depends on ecom-marketing",
+    "evidence": [
+      "apps/ecom-finance/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-finance",
+    "toAppId": "ecom-merchant",
+    "type": "upstream-dependency",
+    "summary": "ecom-finance depends on ecom-merchant",
+    "evidence": [
+      "apps/ecom-finance/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-fulfillment",
+    "toAppId": "ecom-trade",
+    "type": "upstream-dependency",
+    "summary": "ecom-fulfillment depends on ecom-trade",
+    "evidence": [
+      "apps/ecom-fulfillment/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-fulfillment",
+    "toAppId": "ecom-inventory",
+    "type": "upstream-dependency",
+    "summary": "ecom-fulfillment depends on ecom-inventory",
+    "evidence": [
+      "apps/ecom-fulfillment/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-fulfillment",
+    "toAppId": "ecom-user",
+    "type": "upstream-dependency",
+    "summary": "ecom-fulfillment depends on ecom-user",
+    "evidence": [
+      "apps/ecom-fulfillment/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-inventory",
+    "toAppId": "ecom-product",
+    "type": "upstream-dependency",
+    "summary": "ecom-inventory depends on ecom-product",
+    "evidence": [
+      "apps/ecom-inventory/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-inventory",
+    "toAppId": "ecom-trade",
+    "type": "upstream-dependency",
+    "summary": "ecom-inventory depends on ecom-trade",
+    "evidence": [
+      "apps/ecom-inventory/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-inventory",
+    "toAppId": "ecom-aftersales",
+    "type": "upstream-dependency",
+    "summary": "ecom-inventory depends on ecom-aftersales",
+    "evidence": [
+      "apps/ecom-inventory/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-logistics",
+    "toAppId": "ecom-fulfillment",
+    "type": "upstream-dependency",
+    "summary": "ecom-logistics depends on ecom-fulfillment",
+    "evidence": [
+      "apps/ecom-logistics/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-marketing",
+    "toAppId": "ecom-product",
+    "type": "upstream-dependency",
+    "summary": "ecom-marketing depends on ecom-product",
+    "evidence": [
+      "apps/ecom-marketing/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-marketing",
+    "toAppId": "ecom-user",
+    "type": "upstream-dependency",
+    "summary": "ecom-marketing depends on ecom-user",
+    "evidence": [
+      "apps/ecom-marketing/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-merchant",
+    "toAppId": "ecom-finance",
+    "type": "upstream-dependency",
+    "summary": "ecom-merchant depends on ecom-finance",
+    "evidence": [
+      "apps/ecom-merchant/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-payment",
+    "toAppId": "ecom-trade",
+    "type": "upstream-dependency",
+    "summary": "ecom-payment depends on ecom-trade",
+    "evidence": [
+      "apps/ecom-payment/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-payment",
+    "toAppId": "ecom-aftersales",
+    "type": "upstream-dependency",
+    "summary": "ecom-payment depends on ecom-aftersales",
+    "evidence": [
+      "apps/ecom-payment/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-supply-chain",
+    "toAppId": "ecom-inventory",
+    "type": "upstream-dependency",
+    "summary": "ecom-supply-chain depends on ecom-inventory",
+    "evidence": [
+      "apps/ecom-supply-chain/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-supply-chain",
+    "toAppId": "ecom-finance",
+    "type": "upstream-dependency",
+    "summary": "ecom-supply-chain depends on ecom-finance",
+    "evidence": [
+      "apps/ecom-supply-chain/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-trade",
+    "toAppId": "ecom-product",
+    "type": "upstream-dependency",
+    "summary": "ecom-trade depends on ecom-product",
+    "evidence": [
+      "apps/ecom-trade/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-trade",
+    "toAppId": "ecom-user",
+    "type": "upstream-dependency",
+    "summary": "ecom-trade depends on ecom-user",
+    "evidence": [
+      "apps/ecom-trade/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-trade",
+    "toAppId": "ecom-marketing",
+    "type": "upstream-dependency",
+    "summary": "ecom-trade depends on ecom-marketing",
+    "evidence": [
+      "apps/ecom-trade/app-knowledge-base/CONTEXT.md"
+    ]
+  },
+  {
+    "fromAppId": "ecom-trade",
+    "toAppId": "ecom-inventory",
+    "type": "upstream-dependency",
+    "summary": "ecom-trade depends on ecom-inventory",
+    "evidence": [
+      "apps/ecom-trade/app-knowledge-base/CONTEXT.md"
+    ]
+  }
+]

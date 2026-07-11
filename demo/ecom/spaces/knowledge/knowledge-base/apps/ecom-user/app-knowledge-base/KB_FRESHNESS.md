@@ -1,0 +1,10 @@
+# KB Freshness
+- versionId: kb-20260711T154713Z
+- appId: ecom-user
+- sourceCommitSha: 3002e6de736a08a4cfe0389c906e7abad1a369d6
+- lastGeneratedAt: 2026-07-11T15:47:13.747Z
+- status: fresh
+- updateMethod: template
+- modelId: none
+- gitNexusStatus: indexed
+- gitNexusIndexedAt: 2026-07-11T15:48:47.369Z

@@ -1,0 +1,484 @@
+{
+  "versionId": "kb-20260711T154713Z",
+  "generatedAt": "2026-07-11T15:47:13.747Z",
+  "apps": [
+    {
+      "appId": "console",
+      "name": "console",
+      "domains": [
+        "console"
+      ],
+      "tags": [
+        "frontend",
+        "console"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "console",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/console",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/console/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/console"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-aftersales",
+      "name": "ecom-aftersales",
+      "domains": [
+        "aftersales"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-aftersales",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-aftersales/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-aftersales"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-content",
+      "name": "ecom-content",
+      "domains": [
+        "content"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-content",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-content/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-content"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-customer-service",
+      "name": "ecom-customer-service",
+      "domains": [
+        "customer-service"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-customer-service",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-customer-service/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-customer-service"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-finance",
+      "name": "ecom-finance",
+      "domains": [
+        "finance"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-finance",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-finance/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-finance"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "name": "ecom-fulfillment",
+      "domains": [
+        "fulfillment"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-fulfillment",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-fulfillment/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-fulfillment"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-inventory",
+      "name": "ecom-inventory",
+      "domains": [
+        "inventory"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-inventory",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-inventory/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-inventory"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-logistics",
+      "name": "ecom-logistics",
+      "domains": [
+        "logistics"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-logistics",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-logistics/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-logistics"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-marketing",
+      "name": "ecom-marketing",
+      "domains": [
+        "marketing"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-marketing",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-marketing/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-marketing"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-merchant",
+      "name": "ecom-merchant",
+      "domains": [
+        "merchant"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-merchant",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-merchant/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-merchant"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-payment",
+      "name": "ecom-payment",
+      "domains": [
+        "payment"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-payment",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-payment/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-payment"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-product",
+      "name": "ecom-product",
+      "domains": [
+        "product"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-product",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-product/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-product"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "name": "ecom-supply-chain",
+      "domains": [
+        "supply-chain"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-supply-chain",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-supply-chain/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-supply-chain"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-trade",
+      "name": "ecom-trade",
+      "domains": [
+        "trade"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-trade",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-trade/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-trade"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    },
+    {
+      "appId": "ecom-user",
+      "name": "ecom-user",
+      "domains": [
+        "user"
+      ],
+      "tags": [
+        "backend",
+        "java",
+        "dubbo",
+        "http"
+      ],
+      "codeRepo": {
+        "provider": "local-git-service",
+        "repoPath": "ecom-user",
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
+        "defaultBranch": "main"
+      },
+      "knowledgeRepo": {
+        "provider": "local",
+        "repoPath": "spaces/knowledge/knowledge-base",
+        "kbPath": "apps/ecom-user/app-knowledge-base",
+        "globalGitNexusGraphPath": "global/gitnexus-graph",
+        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-user"
+      },
+      "freshness": {
+        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "status": "fresh",
+        "updateMethod": "template"
+      }
+    }
+  ]
+}

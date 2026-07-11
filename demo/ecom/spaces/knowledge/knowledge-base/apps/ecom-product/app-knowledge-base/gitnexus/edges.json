@@ -1,0 +1,137 @@
+[
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/products",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/products/:spuId/skus",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/categories/:categoryId/attributes",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/business/create-sku",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/business/enable-sale",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/business/disable-sale",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "api:ecom-product:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:ProductDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:ProductDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-product",
+    "to": "component:ecom-product:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

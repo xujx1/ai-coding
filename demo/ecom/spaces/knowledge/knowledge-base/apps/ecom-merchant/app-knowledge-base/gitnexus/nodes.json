@@ -1,0 +1,155 @@
+[
+  {
+    "id": "app:ecom-merchant",
+    "kind": "app",
+    "label": "ecom-merchant"
+  },
+  {
+    "id": "api:ecom-merchant:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-merchant:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-merchant:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-merchant:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-merchant:/merchants",
+    "kind": "api",
+    "label": "/merchants"
+  },
+  {
+    "id": "api:ecom-merchant:/merchants/:merchantId/audits",
+    "kind": "api",
+    "label": "/merchants/:merchantId/audits"
+  },
+  {
+    "id": "api:ecom-merchant:/shops/:shopId",
+    "kind": "api",
+    "label": "/shops/:shopId"
+  },
+  {
+    "id": "api:ecom-merchant:/business/create-merchant",
+    "kind": "api",
+    "label": "/business/create-merchant"
+  },
+  {
+    "id": "api:ecom-merchant:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-merchant:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-merchant:/business/approve-merchant",
+    "kind": "api",
+    "label": "/business/approve-merchant"
+  },
+  {
+    "id": "api:ecom-merchant:/business/disable-shop",
+    "kind": "api",
+    "label": "/business/disable-shop"
+  },
+  {
+    "id": "api:ecom-merchant:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-merchant:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-merchant:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-merchant:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-merchant:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-merchant:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-merchant:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-merchant:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-merchant:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-merchant:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-merchant:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-merchant:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-merchant:MerchantDubboService",
+    "kind": "component",
+    "label": "MerchantDubboService"
+  },
+  {
+    "id": "component:ecom-merchant:MerchantDubboServiceImpl",
+    "kind": "component",
+    "label": "MerchantDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-merchant:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "gitnexus:ecom-merchant",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 20,
+      "nodes": 180,
+      "edges": 416,
+      "communities": 12,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]

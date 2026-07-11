@@ -1,0 +1,160 @@
+[
+  {
+    "id": "app:ecom-aftersales",
+    "kind": "app",
+    "label": "ecom-aftersales"
+  },
+  {
+    "id": "api:ecom-aftersales:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-aftersales:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-aftersales:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-aftersales:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-aftersales:/aftersales",
+    "kind": "api",
+    "label": "/aftersales"
+  },
+  {
+    "id": "api:ecom-aftersales:/aftersales/:caseId/approve",
+    "kind": "api",
+    "label": "/aftersales/:caseId/approve"
+  },
+  {
+    "id": "api:ecom-aftersales:/refunds",
+    "kind": "api",
+    "label": "/refunds"
+  },
+  {
+    "id": "api:ecom-aftersales:/business/create-refund-case",
+    "kind": "api",
+    "label": "/business/create-refund-case"
+  },
+  {
+    "id": "api:ecom-aftersales:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-aftersales:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-aftersales:/business/approve-case",
+    "kind": "api",
+    "label": "/business/approve-case"
+  },
+  {
+    "id": "api:ecom-aftersales:/business/reject-case",
+    "kind": "api",
+    "label": "/business/reject-case"
+  },
+  {
+    "id": "api:ecom-aftersales:/business/mark-returned",
+    "kind": "api",
+    "label": "/business/mark-returned"
+  },
+  {
+    "id": "api:ecom-aftersales:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-aftersales:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-aftersales:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-aftersales:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-aftersales:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-aftersales:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-aftersales:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-aftersales:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-aftersales:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-aftersales:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-aftersales:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-aftersales:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-aftersales:AftersalesDubboService",
+    "kind": "component",
+    "label": "AftersalesDubboService"
+  },
+  {
+    "id": "component:ecom-aftersales:AftersalesDubboServiceImpl",
+    "kind": "component",
+    "label": "AftersalesDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-aftersales:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "gitnexus:ecom-aftersales",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 20,
+      "nodes": 181,
+      "edges": 420,
+      "communities": 12,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]

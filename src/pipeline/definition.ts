@@ -105,7 +105,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
     id: 'testcode-generate',
     name: 'Test Code Generate',
     description: 'Generate unit test code, run Maven tests, and classify failures',
-    hasConfirmationGate: false,
+    hasConfirmationGate: true,
     usesReActLoop: true,
     maxTurns: 50,
     planModeRequired: false,

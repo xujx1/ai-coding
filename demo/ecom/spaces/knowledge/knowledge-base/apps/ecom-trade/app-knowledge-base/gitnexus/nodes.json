@@ -1,0 +1,195 @@
+[
+  {
+    "id": "app:ecom-trade",
+    "kind": "app",
+    "label": "ecom-trade"
+  },
+  {
+    "id": "api:ecom-trade:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-trade:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-trade:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-trade:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-trade:/carts/:userId",
+    "kind": "api",
+    "label": "/carts/:userId"
+  },
+  {
+    "id": "api:ecom-trade:/orders",
+    "kind": "api",
+    "label": "/orders"
+  },
+  {
+    "id": "api:ecom-trade:/orders/:orderId/state",
+    "kind": "api",
+    "label": "/orders/:orderId/state"
+  },
+  {
+    "id": "api:ecom-trade:/business/create-order",
+    "kind": "api",
+    "label": "/business/create-order"
+  },
+  {
+    "id": "api:ecom-trade:/business/demo-checkout",
+    "kind": "api",
+    "label": "/business/demo-checkout"
+  },
+  {
+    "id": "api:ecom-trade:/business/demo-cancel",
+    "kind": "api",
+    "label": "/business/demo-cancel"
+  },
+  {
+    "id": "api:ecom-trade:/business/demo-full-chain",
+    "kind": "api",
+    "label": "/business/demo-full-chain"
+  },
+  {
+    "id": "api:ecom-trade:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-trade:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-trade:/business/confirm-paid",
+    "kind": "api",
+    "label": "/business/confirm-paid"
+  },
+  {
+    "id": "api:ecom-trade:/business/cancel-order",
+    "kind": "api",
+    "label": "/business/cancel-order"
+  },
+  {
+    "id": "api:ecom-trade:/business/complete-order",
+    "kind": "api",
+    "label": "/business/complete-order"
+  },
+  {
+    "id": "api:ecom-trade:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-trade:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-trade:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-trade:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-trade:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-trade:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-trade:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-trade:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-trade:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-trade:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-trade:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-trade:RemoteDomainClient",
+    "kind": "component",
+    "label": "RemoteDomainClient"
+  },
+  {
+    "id": "component:ecom-trade:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-trade:TradeOrchestrationService",
+    "kind": "component",
+    "label": "TradeOrchestrationService"
+  },
+  {
+    "id": "component:ecom-trade:TradeDubboService",
+    "kind": "component",
+    "label": "TradeDubboService"
+  },
+  {
+    "id": "component:ecom-trade:TradeDubboServiceImpl",
+    "kind": "component",
+    "label": "TradeDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-trade:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "component:ecom-trade:TradeOrchestrationServiceTest",
+    "kind": "component",
+    "label": "TradeOrchestrationServiceTest"
+  },
+  {
+    "id": "component:ecom-trade:FakeRemoteDomainClient",
+    "kind": "component",
+    "label": "FakeRemoteDomainClient"
+  },
+  {
+    "id": "gitnexus:ecom-trade",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 23,
+      "nodes": 225,
+      "edges": 555,
+      "communities": 16,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]

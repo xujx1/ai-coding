@@ -149,6 +149,18 @@ import { createLegacyStageRunnerRegistry } from './node-runners/legacyStageRunne
 import { runE2EVerificationStage } from './node-runners/e2eVerificationRunner.js';
 import { runUploadInitStage } from './node-runners/uploadInitRunner.js';
 import { runE2EVerification } from '../e2e/runner.js';
+import {
+  ensurePipelineLifecycleForExecution,
+  recordPipelineLifecycleApprovalResolved,
+  recordPipelineLifecycleApprovalWaiting,
+  recordPipelineLifecycleCompleted,
+  recordPipelineLifecycleFailed,
+  recordPipelineLifecycleNodeCompleted,
+  recordPipelineLifecycleNodeFailed,
+  recordPipelineLifecycleNodeStarted,
+  recordPipelineLifecycleRollback,
+  recordPipelineLifecycleStarted,
+} from '../lifecycle/pipelineBridge.js';
 
 export type PipelineEvent =
   | { type: 'stage_start'; nodeId: string; nodeName: string; index: number }
@@ -224,6 +236,8 @@ export class PipelineEngine extends EventEmitter {
     if (recoverInterruptedState(state)) {
       store.saveExecutionState(state);
     }
+    state = ensurePipelineLifecycleForExecution(state, { workflowId: 'legacy-pipeline' });
+    store.saveExecutionState(state);
     this.state = state;
     this.toolRegistry = createToolRegistry();
   }
@@ -271,6 +285,7 @@ export class PipelineEngine extends EventEmitter {
     }
 
     eventLog.logEvent('pipeline_started', { fromNode: startIndex });
+    recordPipelineLifecycleStarted(this.state, { workflowId: 'legacy-pipeline' });
 
     for (let i = startIndex; i < PIPELINE_NODES.length; i++) {
       if (this.aborted) break;
@@ -291,6 +306,11 @@ export class PipelineEngine extends EventEmitter {
       nodeState.failureCount = nodeState.failureCount ?? 0;
       nodeState.childAgentIds = nodeState.childAgentIds ?? [];
       this.markProjectsForNode(node.id, 'running');
+      recordPipelineLifecycleNodeStarted({
+        execution: this.state,
+        node,
+        nodeState,
+      });
       store.saveExecutionState(this.state);
 
       eventLog.logEvent('pipeline_node_start', { nodeId: node.id, nodeName: node.name }, undefined, node.id);
@@ -307,6 +327,13 @@ export class PipelineEngine extends EventEmitter {
         this.updateArtifactIndex(node.id, nodeState.outputArtifacts);
         this.markProjectsForNode(node.id, 'completed');
         this.saveContextManifest(node.id, nodeState, output);
+        recordPipelineLifecycleNodeCompleted({
+          execution: this.state,
+          node,
+          nodeState,
+          outputArtifacts: nodeState.outputArtifacts,
+          paths: getRunPaths(this.runId),
+        });
         store.saveExecutionState(this.state);
 
         eventLog.logEvent('pipeline_node_end', { nodeId: node.id, success: true }, undefined, node.id);
@@ -360,6 +387,11 @@ export class PipelineEngine extends EventEmitter {
             artifactPath,
             ...confirmationData.extra,
           }, undefined, node.id);
+          recordPipelineLifecycleApprovalWaiting({
+            execution: this.state,
+            nodeId: node.id,
+            artifactPaths: artifactPath ? [artifactPath] : nodeState.outputArtifacts,
+          });
 
           this.emit('event', {
             type: 'confirmation_required',
@@ -373,6 +405,12 @@ export class PipelineEngine extends EventEmitter {
           // 等待期间进程可以重启；resolveConfirmation 会把用户决策写回 state，再从当前节点恢复。
           const { approved, feedback } = await this.waitForConfirmation(node.id);
           eventLog.logEvent('confirmation_resolved', { nodeId: node.id, approved, feedback }, undefined, node.id);
+          recordPipelineLifecycleApprovalResolved({
+            execution: this.state,
+            nodeId: node.id,
+            approved,
+            feedback,
+          });
           this.emit('event', { type: 'confirmation_resolved', nodeId: node.id, approved, feedback } as PipelineEvent);
 
           if (!approved) {
@@ -408,6 +446,12 @@ export class PipelineEngine extends EventEmitter {
         nodeState.error = (err as Error).message;
         nodeState.failureCount = (nodeState.failureCount ?? 0) + 1;
         this.markProjectsForNode(node.id, 'failed');
+        recordPipelineLifecycleNodeFailed({
+          execution: this.state,
+          node,
+          nodeState,
+          error: (err as Error).message,
+        });
         store.saveExecutionState(this.state);
 
         eventLog.logEvent('pipeline_node_end', { nodeId: node.id, success: false, error: (err as Error).message }, undefined, node.id);
@@ -439,6 +483,7 @@ export class PipelineEngine extends EventEmitter {
         this.state.status = 'failed';
         this.state.error = (err as Error).message;
         this.state.completedAt = Date.now();
+        recordPipelineLifecycleFailed(this.state, (err as Error).message);
         store.saveExecutionState(this.state);
         eventLog.logEvent('pipeline_failed', { nodeId: node.id, error: (err as Error).message });
         this.emit('event', { type: 'pipeline_failed', runId: this.runId, error: (err as Error).message } as PipelineEvent);
@@ -452,6 +497,7 @@ export class PipelineEngine extends EventEmitter {
       this.state.status = 'completed';
       this.state.error = undefined;
       this.state.completedAt = Date.now();
+      recordPipelineLifecycleCompleted(this.state);
       store.saveExecutionState(this.state);
       eventLog.logEvent('pipeline_completed', { runId: this.runId });
       this.emit('event', { type: 'pipeline_complete', runId: this.runId } as PipelineEvent);
@@ -480,6 +526,12 @@ export class PipelineEngine extends EventEmitter {
     const store = getStateStore(this.runId);
     const eventLog = getEventLog(this.runId);
     eventLog.logEvent('confirmation_resolved', { nodeId: normalizedNodeId, approved, feedback }, undefined, normalizedNodeId);
+    recordPipelineLifecycleApprovalResolved({
+      execution: this.state,
+      nodeId: normalizedNodeId,
+      approved,
+      feedback,
+    });
     this.emit('event', { type: 'confirmation_resolved', nodeId: normalizedNodeId, approved, feedback } as PipelineEvent);
 
     if (!approved && !feedback) {
@@ -488,6 +540,7 @@ export class PipelineEngine extends EventEmitter {
       nodeState.error = '用户拒绝确认';
       this.state.status = 'cancelled';
       this.state.completedAt = Date.now();
+      recordPipelineLifecycleFailed(this.state, '用户拒绝确认');
       store.saveExecutionState(this.state);
       eventLog.logEvent('pipeline_cancelled', { reason: 'user_rejected' });
       this.emit('event', { type: 'pipeline_cancelled', runId: this.runId } as PipelineEvent);
@@ -544,6 +597,7 @@ export class PipelineEngine extends EventEmitter {
     }
     store.saveExecutionState(this.state);
     this.running = false;
+    recordPipelineLifecycleFailed(this.state, '用户中断流程');
     this.emit('event', { type: 'pipeline_cancelled', runId: this.runId } as PipelineEvent);
   }
 
@@ -853,6 +907,10 @@ export class PipelineEngine extends EventEmitter {
   private applyRollback(rollback: NonNullable<ExecutionState['rollback']>): void {
     const eventLog = getEventLog(this.runId);
     eventLog.logEvent('node_rollback_requested', { ...rollback }, undefined, rollback.sourceNodeId);
+    recordPipelineLifecycleRollback({
+      execution: this.state,
+      rollback,
+    });
     this.emit('event', { type: 'stage_progress', nodeId: rollback.sourceNodeId, event: { type: 'node_rollback_requested', ...rollback } } as PipelineEvent);
 
     this.state.rollback = rollback;
@@ -1117,6 +1175,11 @@ export class PipelineEngine extends EventEmitter {
         confirmationKind: 'mrd-clarify-questions',
         structuredPayload: requirementOwnership,
       }, agentId, node.id);
+      recordPipelineLifecycleApprovalWaiting({
+        execution: this.state,
+        nodeId: node.id,
+        artifactPaths: ['artifacts/mrd-clarify-questions.md', REQUIREMENT_OWNERSHIP_ARTIFACT_PATH],
+      });
       this.emit('event', {
         type: 'confirmation_required',
         nodeId: node.id,
@@ -1129,6 +1192,12 @@ export class PipelineEngine extends EventEmitter {
 
       const { approved, feedback } = await this.waitForConfirmation(node.id);
       eventLog.logEvent('confirmation_resolved', { nodeId: node.id, approved, feedback }, undefined, node.id);
+      recordPipelineLifecycleApprovalResolved({
+        execution: this.state,
+        nodeId: node.id,
+        approved,
+        feedback,
+      });
       this.emit('event', { type: 'confirmation_resolved', nodeId: node.id, approved, feedback } as PipelineEvent);
 
       if (!approved && !feedback) {
@@ -3093,6 +3162,12 @@ export class PipelineEngine extends EventEmitter {
         confirmationKind: 'plan',
         projectName: project.name,
       }, undefined, node.id);
+      recordPipelineLifecycleApprovalWaiting({
+        execution: this.state,
+        nodeId: node.id,
+        gateType: 'high_risk_command',
+        riskIds: [`plan:${project.name}:${node.id}`],
+      });
       this.emit('event', {
         type: 'confirmation_required',
         nodeId: node.id,
@@ -3104,6 +3179,12 @@ export class PipelineEngine extends EventEmitter {
       const resolved = await this.waitForPlanConfirmation(node.id);
       approved = resolved.approved;
       eventLog.logEvent('confirmation_resolved', { nodeId: node.id, approved, feedback: resolved.feedback }, undefined, node.id);
+      recordPipelineLifecycleApprovalResolved({
+        execution: this.state,
+        nodeId: node.id,
+        approved,
+        feedback: resolved.feedback,
+      });
       this.emit('event', { type: 'confirmation_resolved', nodeId: node.id, approved, feedback: resolved.feedback } as PipelineEvent);
       if (options.nodeState) {
         options.nodeState.status = 'running';

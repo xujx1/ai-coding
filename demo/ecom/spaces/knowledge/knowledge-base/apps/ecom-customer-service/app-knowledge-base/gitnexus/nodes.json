@@ -1,0 +1,155 @@
+[
+  {
+    "id": "app:ecom-customer-service",
+    "kind": "app",
+    "label": "ecom-customer-service"
+  },
+  {
+    "id": "api:ecom-customer-service:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-customer-service:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-customer-service:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-customer-service:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-customer-service:/tickets",
+    "kind": "api",
+    "label": "/tickets"
+  },
+  {
+    "id": "api:ecom-customer-service:/conversations",
+    "kind": "api",
+    "label": "/conversations"
+  },
+  {
+    "id": "api:ecom-customer-service:/bot/intents",
+    "kind": "api",
+    "label": "/bot/intents"
+  },
+  {
+    "id": "api:ecom-customer-service:/business/create-ticket",
+    "kind": "api",
+    "label": "/business/create-ticket"
+  },
+  {
+    "id": "api:ecom-customer-service:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-customer-service:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-customer-service:/business/assign-ticket",
+    "kind": "api",
+    "label": "/business/assign-ticket"
+  },
+  {
+    "id": "api:ecom-customer-service:/business/resolve-ticket",
+    "kind": "api",
+    "label": "/business/resolve-ticket"
+  },
+  {
+    "id": "api:ecom-customer-service:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-customer-service:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-customer-service:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-customer-service:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-customer-service:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-customer-service:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-customer-service:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-customer-service:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-customer-service:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-customer-service:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-customer-service:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-customer-service:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-customer-service:CustomerServiceDubboService",
+    "kind": "component",
+    "label": "CustomerServiceDubboService"
+  },
+  {
+    "id": "component:ecom-customer-service:CustomerServiceDubboServiceImpl",
+    "kind": "component",
+    "label": "CustomerServiceDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-customer-service:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "gitnexus:ecom-customer-service",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 20,
+      "nodes": 180,
+      "edges": 416,
+      "communities": 12,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]

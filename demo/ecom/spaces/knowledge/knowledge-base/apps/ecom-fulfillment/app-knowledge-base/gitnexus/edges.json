@@ -1,0 +1,142 @@
+[
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/health",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/knowledge",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/sample",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/validate-requirement",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/fulfillments",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/fulfillments/:id/split",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/shipments/:id/status",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/business/create-fulfillment",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/business/list",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/business/get",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/business/split-package",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/business/ship-package",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/business/mark-delivered",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "api:ecom-fulfillment:/business",
+    "kind": "exposes-api"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:AppServer",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:BusinessRecord",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:BusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:BusinessService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:DomainContext",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:DomainService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:DubboSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:InMemoryBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:JdbcBusinessRepository",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:JsonSupport",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:RequestParser",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:FulfillmentDubboService",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:FulfillmentDubboServiceImpl",
+    "kind": "contains"
+  },
+  {
+    "from": "app:ecom-fulfillment",
+    "to": "component:ecom-fulfillment:BusinessServiceTest",
+    "kind": "contains"
+  }
+]

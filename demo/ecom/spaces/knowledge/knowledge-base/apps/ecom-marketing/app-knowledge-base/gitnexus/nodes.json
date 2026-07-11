@@ -1,0 +1,175 @@
+[
+  {
+    "id": "app:ecom-marketing",
+    "kind": "app",
+    "label": "ecom-marketing"
+  },
+  {
+    "id": "api:ecom-marketing:/health",
+    "kind": "api",
+    "label": "/health"
+  },
+  {
+    "id": "api:ecom-marketing:/knowledge",
+    "kind": "api",
+    "label": "/knowledge"
+  },
+  {
+    "id": "api:ecom-marketing:/sample",
+    "kind": "api",
+    "label": "/sample"
+  },
+  {
+    "id": "api:ecom-marketing:/validate-requirement",
+    "kind": "api",
+    "label": "/validate-requirement"
+  },
+  {
+    "id": "api:ecom-marketing:/campaigns",
+    "kind": "api",
+    "label": "/campaigns"
+  },
+  {
+    "id": "api:ecom-marketing:/coupons/claim",
+    "kind": "api",
+    "label": "/coupons/claim"
+  },
+  {
+    "id": "api:ecom-marketing:/promotions/preview",
+    "kind": "api",
+    "label": "/promotions/preview"
+  },
+  {
+    "id": "api:ecom-marketing:/business/create-campaign",
+    "kind": "api",
+    "label": "/business/create-campaign"
+  },
+  {
+    "id": "api:ecom-marketing:/business/list",
+    "kind": "api",
+    "label": "/business/list"
+  },
+  {
+    "id": "api:ecom-marketing:/business/get",
+    "kind": "api",
+    "label": "/business/get"
+  },
+  {
+    "id": "api:ecom-marketing:/business/enable-campaign",
+    "kind": "api",
+    "label": "/business/enable-campaign"
+  },
+  {
+    "id": "api:ecom-marketing:/business/disable-campaign",
+    "kind": "api",
+    "label": "/business/disable-campaign"
+  },
+  {
+    "id": "api:ecom-marketing:/business/reserve-promotion",
+    "kind": "api",
+    "label": "/business/reserve-promotion"
+  },
+  {
+    "id": "api:ecom-marketing:/business/confirm-use",
+    "kind": "api",
+    "label": "/business/confirm-use"
+  },
+  {
+    "id": "api:ecom-marketing:/business/cancel-reservation",
+    "kind": "api",
+    "label": "/business/cancel-reservation"
+  },
+  {
+    "id": "api:ecom-marketing:/business/delete-campaign",
+    "kind": "api",
+    "label": "/business/delete-campaign"
+  },
+  {
+    "id": "api:ecom-marketing:/business",
+    "kind": "api",
+    "label": "/business"
+  },
+  {
+    "id": "component:ecom-marketing:AppServer",
+    "kind": "component",
+    "label": "AppServer"
+  },
+  {
+    "id": "component:ecom-marketing:BusinessRecord",
+    "kind": "component",
+    "label": "BusinessRecord"
+  },
+  {
+    "id": "component:ecom-marketing:BusinessRepository",
+    "kind": "component",
+    "label": "BusinessRepository"
+  },
+  {
+    "id": "component:ecom-marketing:BusinessService",
+    "kind": "component",
+    "label": "BusinessService"
+  },
+  {
+    "id": "component:ecom-marketing:DomainContext",
+    "kind": "component",
+    "label": "DomainContext"
+  },
+  {
+    "id": "component:ecom-marketing:DomainService",
+    "kind": "component",
+    "label": "DomainService"
+  },
+  {
+    "id": "component:ecom-marketing:DubboSupport",
+    "kind": "component",
+    "label": "DubboSupport"
+  },
+  {
+    "id": "component:ecom-marketing:InMemoryBusinessRepository",
+    "kind": "component",
+    "label": "InMemoryBusinessRepository"
+  },
+  {
+    "id": "component:ecom-marketing:JdbcBusinessRepository",
+    "kind": "component",
+    "label": "JdbcBusinessRepository"
+  },
+  {
+    "id": "component:ecom-marketing:JsonSupport",
+    "kind": "component",
+    "label": "JsonSupport"
+  },
+  {
+    "id": "component:ecom-marketing:RequestParser",
+    "kind": "component",
+    "label": "RequestParser"
+  },
+  {
+    "id": "component:ecom-marketing:MarketingDubboService",
+    "kind": "component",
+    "label": "MarketingDubboService"
+  },
+  {
+    "id": "component:ecom-marketing:MarketingDubboServiceImpl",
+    "kind": "component",
+    "label": "MarketingDubboServiceImpl"
+  },
+  {
+    "id": "component:ecom-marketing:BusinessServiceTest",
+    "kind": "component",
+    "label": "BusinessServiceTest"
+  },
+  {
+    "id": "gitnexus:ecom-marketing",
+    "kind": "gitnexus-index",
+    "label": "indexed",
+    "stats": {
+      "files": 20,
+      "nodes": 185,
+      "edges": 438,
+      "communities": 12,
+      "processes": 20,
+      "embeddings": 0
+    }
+  }
+]
