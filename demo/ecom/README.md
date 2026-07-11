@@ -50,6 +50,17 @@ The trade service orchestrates other services through Dubbo direct URLs.
 
 The demo can manage the 14 service repositories plus the console repository through a lightweight local Git service. It follows the same basic shape as Harness Gitness: each working repository has a local bare remote under `.git-service/remotes`, and the service exposes repository operations through a small TS wrapper around Git.
 
+The `.git-service/` directory is intentionally not committed to the main `ai-coding` GitHub repository. It is machine-local Git runtime state: bare remotes, object packs, refs, and a generated registry. After cloning `ai-coding`, rebuild that local state from the committed application source:
+
+```bash
+cd /Users/xu/IdeaProjects/ai-coding
+npm install
+npm run ecom:git:init
+npm run ecom:git:status
+```
+
+This creates local Git repositories for `console` and all `ecom-*` applications, seeds their `main` branches, and writes `.git-service/repositories.json`. Do not `git add demo/ecom/.git-service`; the main repository tracks the source snapshot, and each developer regenerates local remotes on demand.
+
 ```bash
 cd /Users/xu/IdeaProjects/ai-coding
 
