@@ -3,13 +3,13 @@ import type { FailureCategory } from './failureFix.js';
 import type { LifecycleState } from './types.js';
 import type { DataPlan, IntegrationTestCase } from './integrationTesting.js';
 import type { RepositoryRef } from './repositoryRuntime.js';
-import { AI_OPS_SOURCE_FILES, classifyOperationalFailure } from '../tools/testing/opsFailureClassifier.js';
+import { AI_OPS_SOURCE_FILES, classifyOperationalFailure } from '../app-ops/faultClassifier.js';
 import { TESTING_SOURCE_FILES, enhanceCrossAppDataPlan } from '../tools/testing/dataPlan.js';
 import { createHarnessManagedRepositoryRefs, HARNESS_SOURCE_FILES } from '../integrations/harness.js';
 
 export const REFERENCE_IMPORTS = {
   testing: 'src/tools/testing/dataPlan.ts',
-  aiOps: 'src/tools/testing/opsFailureClassifier.ts',
+  aiOps: 'src/app-ops/faultClassifier.ts',
   harness: 'src/integrations/harness.ts',
 } as const;
 

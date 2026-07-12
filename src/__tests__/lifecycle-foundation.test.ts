@@ -519,7 +519,7 @@ test('repository and local runtime contracts preserve lifecycle refs', async () 
 
   assert.deepEqual(created, [
     'src/tools/testing/dataPlan.ts',
-    'src/tools/testing/opsFailureClassifier.ts',
+    'src/app-ops/faultClassifier.ts',
     'src/integrations/harness.ts',
   ]);
   assert.equal(isolation.valid, true);
@@ -1023,7 +1023,7 @@ test('external reference imports are available through lifecycle adapters', () =
   assert.equal(capabilities.aiOps.available, true);
   assert.equal(capabilities.harness.available, true);
   assert.ok(capabilities.testing.sourceFiles.some(file => file.includes('src/tools/testing/dataPlan.ts')));
-  assert.ok(capabilities.aiOps.sourceFiles.some(file => file.includes('src/tools/testing/opsFailureClassifier.ts')));
+  assert.ok(capabilities.aiOps.sourceFiles.some(file => file.includes('src/app-ops/faultClassifier.ts')));
   assert.ok(capabilities.harness.sourceFiles.some(file => file.includes('src/integrations/harness.ts')));
 
   const state = createEmptyLifecycleState({
@@ -1070,7 +1070,7 @@ test('external reference imports are available through lifecycle adapters', () =
 
   const classified = classifyWithAiOpsReference('readiness health check failed after deploy');
   assert.equal(classified.category, 'ENVIRONMENT');
-  assert.match(classified.source, /src\/tools\/testing\/opsFailureClassifier.ts/);
+  assert.match(classified.source, /src\/app-ops\/faultClassifier.ts/);
 });
 
 test('local GitNexus graph and vector index provide fanout recall evidence', () => {

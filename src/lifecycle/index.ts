@@ -11,6 +11,7 @@ export * from './knowledge.js';
 export * from './repositoryRuntime.js';
 export * from './deployment.js';
 export * from './integrationTesting.js';
+export * from './testingArtifacts.js';
 export * from './failureFix.js';
 export * from './archive.js';
 export * from './externalAdapters.js';

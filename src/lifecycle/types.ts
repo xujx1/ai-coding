@@ -194,7 +194,7 @@ export interface TestRunRef {
   runId: string;
   deploymentSetId: string;
   environmentId: string;
-  status: 'pending' | 'running' | 'passed' | 'failed' | 'cancelled';
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'cancelled' | 'skipped';
   artifactIds: string[];
   evidenceArtifactIds: string[];
 }

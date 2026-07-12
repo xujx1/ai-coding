@@ -9,4 +9,5 @@ export type {
 export type { OpsAlertStreamEvent } from '../workflows/runtime/ops/opsFaultAnalysisTypes.js';
 export * from './analysis.js';
 export * from './applications.js';
+export * from './faultClassifier.js';
 export * from './history.js';

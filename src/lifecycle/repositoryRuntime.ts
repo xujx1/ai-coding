@@ -98,7 +98,7 @@ export function ensureReferenceImportLayout(rootDir: string): string[] {
   void rootDir;
   return [
     'src/tools/testing/dataPlan.ts',
-    'src/tools/testing/opsFailureClassifier.ts',
+    'src/app-ops/faultClassifier.ts',
     'src/integrations/harness.ts',
   ];
 }
