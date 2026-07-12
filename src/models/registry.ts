@@ -62,7 +62,7 @@ const BUILTIN_MODELS: RegisteredModel[] = [
     costLevel: 5,
     speedLevel: 2,
     intelligenceLevel: 5,
-    recommendedFor: ['implementation-plan', 'java-review', 'complex-fix'],
+    recommendedFor: ['implementation-plan', 'java-review', 'repair-plan', 'ops-fault-analysis', 'complex-fix'],
   },
   {
     id: 'claude-sonnet-4-6',
@@ -76,7 +76,7 @@ const BUILTIN_MODELS: RegisteredModel[] = [
     costLevel: 3,
     speedLevel: 4,
     intelligenceLevel: 4,
-    recommendedFor: ['mrd-render', 'spec-generate', 'java-impl', 'testcode-generate', 'general'],
+    recommendedFor: ['mrd-render', 'spec-generate', 'java-impl', 'testcode-generate', 'similar-alert', 'local-log-trace', 'code-context', 'app-knowledge', 'general'],
   },
   {
     id: 'claude-haiku-4-5',
@@ -278,6 +278,13 @@ export const STAGE_MODEL_MAP: Record<string, string> = {
   'spec-generate': 'claude-sonnet-4-6',
   'java-impl': 'claude-sonnet-4-6',
   'java-review': 'claude-opus-4-6',
+  'similar-alert': 'claude-sonnet-4-6',
+  'local-log-trace': 'claude-sonnet-4-6',
+  'code-context': 'claude-sonnet-4-6',
+  'app-knowledge': 'claude-sonnet-4-6',
+  'global-impact': 'claude-sonnet-4-6',
+  'repair-plan': 'claude-opus-4-6',
+  'ops-fault-analysis': 'claude-opus-4-6',
   'testcode-generate': 'claude-sonnet-4-6',
   'maven-test-runner': 'claude-haiku-4-5',
   'archive': 'claude-haiku-4-5',
@@ -398,8 +405,8 @@ function toLevel(value: number): 1 | 2 | 3 | 4 | 5 {
 }
 
 function recommendedForLevel(level: number): string[] {
-  if (level >= 5) return ['implementation-plan', 'java-review', 'complex-fix'];
-  if (level >= 4) return ['mrd-render', 'spec-generate', 'java-impl', 'testcode-generate', 'general'];
+  if (level >= 5) return ['implementation-plan', 'java-review', 'repair-plan', 'ops-fault-analysis', 'complex-fix'];
+  if (level >= 4) return ['mrd-render', 'spec-generate', 'java-impl', 'testcode-generate', 'similar-alert', 'local-log-trace', 'code-context', 'app-knowledge', 'general'];
   return ['archive', 'summarize', 'maven-test-runner', 'simple-tasks'];
 }
 
@@ -418,6 +425,13 @@ function buildStageOverrides(registeredModels: RegisteredModel[]): Record<string
     'spec-generate': general,
     'java-impl': coder || strongest,
     'java-review': strongest,
+    'similar-alert': general,
+    'local-log-trace': general,
+    'code-context': general,
+    'app-knowledge': general,
+    'global-impact': general,
+    'repair-plan': strongest,
+    'ops-fault-analysis': strongest,
     'testcode-generate': coder || strongest,
     'maven-test-runner': light || general,
     'archive': light || general,

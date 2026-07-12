@@ -4,7 +4,7 @@
  */
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
-import { PipelineEngine } from '../pipeline/engine.js';
+import { PipelineEngine } from '../workflows/engine/pipelineEngine.js';
 import { getEventLog } from '../events/EventLog.js';
 import { PipelineEvent as LoggedPipelineEvent } from '../events/types.js';
 

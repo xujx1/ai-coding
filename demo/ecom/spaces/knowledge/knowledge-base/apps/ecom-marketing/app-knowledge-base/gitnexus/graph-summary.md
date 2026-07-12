@@ -4,7 +4,7 @@
 - Global index path: /Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-marketing
 - Registry path: /Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/.gitnexus-home/registry.json
 - Global graph path: global/gitnexus-graph/
-- Indexed at: 2026-07-11T15:48:09.226Z
+- Indexed at: 2026-07-12T07:15:09.416Z
 - Files: 20
 - Nodes: 185
 - Edges: 438

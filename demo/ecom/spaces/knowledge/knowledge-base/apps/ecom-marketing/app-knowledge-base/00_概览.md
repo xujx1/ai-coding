@@ -1,12 +1,12 @@
 # Marketing Service 应用知识库
 
-> 模板来源：`src/knowledge/app-knowledge-agent/templates/app-kb-template.md`，按 dev-workflow app-knowledge lite 模式填充。
+> 模板来源：`prompts/template/app-knowledge-templates/app-kb-template.md`，按 dev-workflow app-knowledge lite 模式填充。
 
 - 应用：ecom-marketing
 - App ID: ecom-marketing
 - 领域：营销域
 - 仓库：ecom-marketing
-- 代码版本：3002e6de736a08a4cfe0389c906e7abad1a369d6
+- 代码版本：3238c43ec3cb810c50cb8a913fdc7e94c4568183
 - GitNexus：indexed，185 nodes / 438 edges / 20 flows
 - GitNexus: indexed (185 nodes, 438 edges, 20 flows)
 

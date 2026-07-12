@@ -55,8 +55,8 @@
 
 当前核心模块：
 
-- `src/pipeline/definition.ts`: 固定节点定义。
-- `src/pipeline/engine.ts`: 顺序执行、确认门、重试、回退、事件和产物索引。
+- `src/workflows/definitions/pipelineDefinition.ts`: 固定节点定义。
+- `src/workflows/engine/pipelineEngine.ts`: 顺序执行、确认门、重试、回退、事件和产物索引。
 - `src/persistence/stateStore.ts`: `execution-state.json`、`agents/*.json`、plan state。
 - `src/events/EventLog.ts`: `events.ndjson`。
 - `src/agent/AgentEngine.ts`: ReAct loop、工具调用、上下文压缩、模型切换。
@@ -122,15 +122,15 @@ src/langgraph/nodes/
   rollbackRouter.ts           # 回退/重试路由
   terminalNode.ts             # completed/failed/cancelled 收尾
 
-src/pipeline/
-  nodeRunners.ts              # 从旧 PipelineEngine 拆出来的节点执行函数
-  legacyEngine.ts             # 迁移期保留旧引擎
+src/workflows/runtime/
+  pipelineNodeRunners.ts      # 节点执行函数边界
+  pipeline-node-runners/      # upload、legacy stage、E2E 等 runner
 ```
 
 迁移期保留：
 
 ```text
-src/pipeline/engine.ts        # legacy mode 使用
+src/workflows/engine/pipelineEngine.ts # legacy mode 使用
 src/persistence/stateStore.ts # 产品读模型继续使用
 src/events/EventLog.ts        # 事件日志继续使用
 ```
@@ -1226,7 +1226,7 @@ Demo 注入逻辑根据 runtime flag 选择 fixture。
 
 ### 13.3 Golden tests
 
-基于当前 `pipeline.full-flow.test.ts` 增加双 runtime：
+基于当前 full-flow 覆盖增加双 runtime：
 
 ```ts
 describe.each(['legacy', 'langgraph'])(...)
@@ -1400,7 +1400,7 @@ describe.each(['legacy', 'langgraph'])(...)
 
 验收：
 
-- `pipeline.full-flow.test.ts` 双 runtime 通过。
+- full-flow 双 runtime 覆盖通过。
 - full-flow demo 可在 LangGraph runtime 下跑通或 replay。
 
 ### Phase 4: 多应用动态 workflow，1-2 周
@@ -1506,7 +1506,7 @@ describe.each(['legacy', 'langgraph'])(...)
 - LangGraph persistence: https://docs.langchain.com/oss/javascript/langgraph/persistence
 - LangGraph interrupts: https://docs.langchain.com/oss/javascript/langgraph/interrupts
 - 当前架构文档: `docs/architecture.md`
-- 当前流水线定义: `src/pipeline/definition.ts`
-- 当前执行引擎: `src/pipeline/engine.ts`
+- 当前流水线定义: `src/workflows/definitions/pipelineDefinition.ts`
+- 当前执行引擎: `src/workflows/engine/pipelineEngine.ts`
 - 当前状态持久化: `src/persistence/stateStore.ts`
 - ai-ops workflow editor: `/Users/xu/IdeaProjects/ai-ops/src/app/workflows`

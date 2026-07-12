@@ -8,7 +8,6 @@ export * from './approvals.js';
 export * from './readModel.js';
 export * from './fanout.js';
 export * from './knowledge.js';
-export * from './knowledgeGraph.js';
 export * from './repositoryRuntime.js';
 export * from './deployment.js';
 export * from './integrationTesting.js';

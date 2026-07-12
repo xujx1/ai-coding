@@ -219,7 +219,7 @@ export interface FixCycleRef {
   failedTestRunId?: string;
   failureClassificationId: string;
   status: 'planned' | 'running' | 'succeeded' | 'failed' | 'cancelled';
-  owner: 'ai-coding' | 'ai-testing' | 'ai-ops' | 'harness-runtime' | 'user';
+  owner: 'ai-coding' | 'testing' | 'ai-ops' | 'harness-runtime' | 'user';
   fixType: string;
   artifactIds: string[];
   nextDeploymentSetId?: string;
@@ -319,4 +319,3 @@ export interface LifecycleState {
   updatedAt: number;
   metadata?: Record<string, unknown>;
 }
-

@@ -1,10 +1,18 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execFileSync } from 'child_process';
-import { createEcomLocalGitService } from '../integrations/localGitService.js';
+import { createEcomLocalGitService } from '../integrations/git.js';
 import { analyzeGitNexusRepository, type GitNexusAnalyzeResult } from '../integrations/gitnexus.js';
 import { createLLMProvider } from '../models/providers.js';
 import { getCustomStageOverrides, getModel, getModelForStage } from '../models/registry.js';
+import {
+  APP_KNOWLEDGE_AGENT_PROMPT_FILES,
+  APP_KNOWLEDGE_AGENT_RESOURCE_ROOT,
+} from '../agents/knowledge/appKnowledgeAgentResources.js';
+import {
+  KNOWLEDGE_APP_WORKFLOW_FILES,
+  KNOWLEDGE_APP_WORKFLOW_RESOURCE_ROOT,
+} from '../workflows/definitions/knowledgeAppWorkflowResources.js';
 
 export interface InitAllAppKnowledgeOptions {
   ecomRoot?: string;
@@ -123,15 +131,12 @@ const APP_KNOWLEDGE_FILES = [
   'db-schema.md',
 ] as const;
 
-const APP_KNOWLEDGE_AGENT_DIR = path.join(process.cwd(), 'src', 'knowledge', 'app-knowledge-agent');
-const APP_KNOWLEDGE_TEMPLATE_DIR = path.join(APP_KNOWLEDGE_AGENT_DIR, 'templates');
-const APP_KNOWLEDGE_PROMPT_FILES = [
-  'app-knowledge-agent.md',
-  'assets/workflow-and-constraints.md',
-  'assets/step2-code-scan.md',
-  'assets/step3-db-scan.md',
-  'assets/doc-templates.md',
-] as const;
+const APP_KNOWLEDGE_AGENT_DIR = APP_KNOWLEDGE_AGENT_RESOURCE_ROOT;
+const APP_KNOWLEDGE_WORKFLOW_DIR = KNOWLEDGE_APP_WORKFLOW_RESOURCE_ROOT;
+const APP_KNOWLEDGE_TEMPLATE_DIR = path.join(process.cwd(), 'prompts', 'template', 'app-knowledge-templates');
+const APP_KNOWLEDGE_PROMPT_FILES = APP_KNOWLEDGE_AGENT_PROMPT_FILES
+  .filter(file => file !== 'assets/checkpoints.md');
+const APP_KNOWLEDGE_WORKFLOW_PROMPT_FILES = KNOWLEDGE_APP_WORKFLOW_FILES;
 const APP_KNOWLEDGE_TEMPLATE_FILES = [
   'app-kb-template.md',
   'kb-index-template.md',
@@ -508,12 +513,19 @@ function loadAppKnowledgeTemplatesForPrompt(): string {
 }
 
 function loadAppKnowledgeAgentPromptForPrompt(): string {
-  return APP_KNOWLEDGE_PROMPT_FILES
+  const agentPrompt = APP_KNOWLEDGE_PROMPT_FILES
     .map(file => {
       const content = readText(path.join(APP_KNOWLEDGE_AGENT_DIR, file)).trim();
       return content ? `### ${file}\n\n${content}` : `### ${file}\n\n[prompt asset missing]`;
     })
     .join('\n\n---\n\n');
+  const workflowPrompt = APP_KNOWLEDGE_WORKFLOW_PROMPT_FILES
+    .map(file => {
+      const content = readText(path.join(APP_KNOWLEDGE_WORKFLOW_DIR, file)).trim();
+      return content ? `### workflow/${file}\n\n${content}` : `### workflow/${file}\n\n[workflow asset missing]`;
+    })
+    .join('\n\n---\n\n');
+  return [agentPrompt, workflowPrompt].filter(Boolean).join('\n\n---\n\n');
 }
 
 function parseAiKnowledgeFiles(text: string): Map<string, string> {
@@ -675,7 +687,7 @@ function renderContext(scan: AppScan, gitNexus: GitNexusAnalyzeResult): string {
   return [
     `# ${scan.domain.serviceName ?? scan.name} 应用知识库`,
     '',
-    '> 模板来源：`src/knowledge/app-knowledge-agent/templates/app-kb-template.md`，按 dev-workflow app-knowledge lite 模式填充。',
+    '> 模板来源：`prompts/template/app-knowledge-templates/app-kb-template.md`，按 dev-workflow app-knowledge lite 模式填充。',
     '',
     `- 应用：${scan.appId}`,
     `- App ID: ${scan.appId}`,
@@ -750,7 +762,7 @@ function renderKbIndex(scan: AppScan): string {
   return [
     '# 知识库索引',
     '',
-    '> 模板来源：`src/knowledge/app-knowledge-agent/templates/kb-index-template.md`，Agent 启动时先读本文件，再按锚点下钻。',
+    '> 模板来源：`prompts/template/app-knowledge-templates/kb-index-template.md`，Agent 启动时先读本文件，再按锚点下钻。',
     '',
     `- 应用：${scan.appId}`,
     `- 领域：${domainTitle(scan)}`,

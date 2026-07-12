@@ -17,36 +17,36 @@ import {
   createEmptyRetryState,
   createInitialGraphState,
   mergeGraphState,
-} from '../langgraph/state.js';
-import { syncExecutionStateFromGraph } from '../langgraph/readModelSync.js';
+} from '../workflows/runtime/langgraph/state.js';
+import { syncExecutionStateFromGraph } from '../workflows/runtime/langgraph/readModelSync.js';
 import {
   readLatestFileCheckpoint,
   recoverFileCheckpointFromExecutionState,
   writeFileCheckpoint,
-} from '../langgraph/checkpointer.js';
+} from '../workflows/runtime/langgraph/checkpointer.js';
 import {
   createDefaultFanoutConfig,
   createFanoutBranches,
-} from '../langgraph/nodes/fanoutNode.js';
+} from '../workflows/runtime/langgraph/nodes/fanoutNode.js';
 import {
   routeAfterTestCode,
   targetNodeForFailure,
-} from '../langgraph/nodes/rollbackRouter.js';
-import { computeJoinState } from '../langgraph/nodes/joinNode.js';
+} from '../workflows/runtime/langgraph/nodes/rollbackRouter.js';
+import { computeJoinState } from '../workflows/runtime/langgraph/nodes/joinNode.js';
 import {
   AsyncSemaphore,
   createPlanResourceSemaphores,
-} from '../langgraph/concurrency.js';
-import { createLangGraphEventBridge } from '../langgraph/eventBridge.js';
-import { resolveConfirmationDecision } from '../langgraph/nodes/confirmationNode.js';
-import { writeBranchSummaryArtifact } from '../langgraph/branchSummary.js';
+} from '../workflows/runtime/langgraph/concurrency.js';
+import { createLangGraphEventBridge } from '../workflows/runtime/langgraph/eventBridge.js';
+import { resolveConfirmationDecision } from '../workflows/runtime/langgraph/nodes/confirmationNode.js';
+import { writeBranchSummaryArtifact } from '../workflows/runtime/langgraph/branchSummary.js';
 import {
   createAffectedBranchRollbackPatch,
   createMainWorkflowRollbackPatch,
   runCrossAppCodeReview,
   runCrossAppIntegrationReview,
   writeCrossAppDeliveryMetadata,
-} from '../langgraph/crossAppReview.js';
+} from '../workflows/runtime/langgraph/crossAppReview.js';
 import { closeEventLog, getEventLog } from '../events/EventLog.js';
 import { WorkflowNode } from '../workflows/types.js';
 import {
@@ -90,13 +90,13 @@ import {
   markBranchTrackNode,
   resetBranchTrackFromNode,
   runPlannedBranch,
-} from '../langgraph/branchRunner.js';
-import { detectProjectRoots } from '../pipeline/node-agents/upload-init.js';
-import { buildClarifyQuestionsArtifact } from '../pipeline/node-agents/requirement-decompose.js';
+} from '../workflows/runtime/langgraph/branchRunner.js';
+import { detectProjectRoots } from '../agents/codegen/upload-init.js';
+import { buildClarifyQuestionsArtifact } from '../agents/codegen/requirement-decompose.js';
 import {
   markProjectOpenSpecTasksCompleted,
   writeProjectOpenSpecChange,
-} from '../pipeline/node-agents/openspec-integration.js';
+} from '../agents/codegen/openspec-integration.js';
 
 test('built-in workflow mirrors pipeline stages and validates in locked mode', () => {
   const workflow = createBuiltInMrdToCodeWorkflow();
@@ -1613,7 +1613,7 @@ test('workflow UI exposes nested tracks, planner evidence, and track-scoped arti
 });
 
 test('prompt context labels legacy PRD as optional compatibility context', () => {
-  const promptContext = fsSync.readFileSync(path.resolve('src/pipeline/node-agents/prompt-context.ts'), 'utf-8');
+  const promptContext = fsSync.readFileSync(path.resolve('src/agents/codegen/prompt-context.ts'), 'utf-8');
 
   assert.ok(promptContext.includes('optional legacy compatibility context'));
   assert.ok(promptContext.includes('Legacy PRD Compatibility Context'));

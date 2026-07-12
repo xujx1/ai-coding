@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { execFileSync } from 'child_process';
-import { createEcomLocalGitService } from '../integrations/localGitService.js';
+import { createEcomLocalGitService } from '../integrations/git.js';
 
 test('local git service initializes remotes and syncs branch commits', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'local-git-service-'));

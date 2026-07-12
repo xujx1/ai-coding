@@ -4,208 +4,27 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import { getRunPaths, ensureRunDirectories, RunPaths } from '../runtime/paths.js';
-import type { SessionWorkflowInstance } from '../workflows/sessionInstance.js';
+import { ensureRunDirectories, type RunPaths } from '../runtime/paths.js';
+import type { AgentState, PlanState } from './agentTypes.js';
+import type { ExecutionState } from './executionTypes.js';
 
-// ── Pipeline node status ───────────────────────────────────────────────────
-
-export type NodeStatus = 'pending' | 'running' | 'waiting_confirmation' | 'completed' | 'failed' | 'waiting_fix' | 'suspended' | 'interrupted' | 'skipped';
-
-export interface NodeState {
-  id: string;
-  name: string;
-  status: NodeStatus;
-  startedAt?: number;
-  completedAt?: number;
-  agentRunId?: string;
-  output?: unknown;
-  outputArtifacts?: string[];
-  childAgentIds?: string[];
-  error?: string;
-  resourceWaitReason?: string;
-  confirmation?: {
-    waiting: boolean;
-    content?: string;
-    approved?: boolean;
-    feedback?: string;
-    resumeApproved?: boolean;
-  };
-  failureCount: number;
-}
-
-// ── Agent state ────────────────────────────────────────────────────────────
-
-export type AgentStatus =
-  | 'created'
-  | 'waking'
-  | 'running'
-  | 'waiting_tool'
-  | 'waiting_confirmation'
-  | 'compacting'
-  | 'suspended'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'waiting_fix'
-  | 'interrupted';
-
-export interface ModelSwitchEntry {
-  fromModel: string;
-  toModel: string;
-  timestamp: number;
-  reason: string;
-}
-
-export interface AgentState {
-  agentRunId: string;
-  runId: string;
-  nodeId: string;
-  projectName?: string;
-  projectRoot?: string;
-  taskDescription?: string;
-  status: AgentStatus;
-  systemPrompt?: string;
-  currentModelId: string;
-  currentProviderId: string;
-  intelligenceLevel: number;
-  modelSwitchHistory: ModelSwitchEntry[];
-  turnCount: number;
-  tokenUsage: { input: number; output: number };
-  compactCount: number;
-  toolCallCount: number;
-  inputArtifacts?: string[];
-  outputArtifacts?: string[];
-  transcriptPath?: string;
-  planPath?: string;
-  lastEventOffset?: number;
-  startedAt: number;
-  updatedAt: number;
-  completedAt?: number;
-  error?: string;
-  plan?: PlanState;
-}
-
-export interface PlanStep {
-  id: string;
-  title: string;
-  description?: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
-  risk?: 'low' | 'medium' | 'high';
-}
-
-export interface PlanState {
-  title: string;
-  steps: PlanStep[];
-  risks: string[];
-  confirmed?: boolean;
-  feedback?: string;
-  createdAt: number;
-  confirmedAt?: number;
-}
-
-// ── Execution state (full run state) ──────────────────────────────────────
-
-export type PipelineStatus = 'idle' | 'running' | 'waiting_confirmation' | 'suspended' | 'completed' | 'failed' | 'cancelled';
-
-export interface ProjectState {
-  name: string;
-  root: string;
-  branchId?: string;
-  currentNodeId?: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'waiting_fix' | 'suspended' | 'interrupted';
-  retry: {
-    reviewBlockCount: number;
-    testRetryCount: number;
-    coverageRetryCount: number;
-    integrationRetryCount?: number;
-    crossAppReviewBlockCount?: number;
-  };
-  nodes?: Record<string, {
-    id: string;
-    status: NodeStatus;
-    startedAt?: number;
-    completedAt?: number;
-    outputArtifacts?: string[];
-    childAgentIds?: string[];
-    error?: string;
-    failureCount: number;
-    resourceWaitReason?: string;
-  }>;
-  tracks?: Record<string, {
-    trackId: string;
-    kind: string;
-    status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'waiting_fix';
-    currentNodeId?: string;
-    nodeIds: string[];
-    artifactIndex: Record<string, string[]>;
-    error?: string;
-    startedAt?: number;
-    completedAt?: number;
-  }>;
-  artifactIndex?: Record<string, string[]>;
-  outputArtifacts?: string[];
-}
-
-export interface RollbackState {
-  active: boolean;
-  sourceNodeId: string;
-  targetNodeId: string;
-  affectedProjects: string[];
-  reason: string;
-  category?: string;
-  startedAt: number;
-  attempt: number;
-}
-
-export interface ContextManifest {
-  nodeId: string;
-  projectName?: string;
-  outputArtifacts: Array<{
-    path: string;
-    summary: string;
-    size: number;
-  }>;
-  importantDecisions: string[];
-  riskNotes: string[];
-  confirmation?: {
-    approved: boolean;
-    feedback?: string;
-  };
-  nextNodeInputs: string[];
-}
-
-export interface ExecutionState {
-  runId: string;
-  name: string;
-  description?: string;
-  status: PipelineStatus;
-  currentNodeIndex: number;
-  currentNodeId?: string;
-  nodes: NodeState[];
-  currentAgentRunId?: string;
-  permissionMode: string;
-  modelOverrides: Record<string, string>;
-  startedAt: number;
-  updatedAt: number;
-  completedAt?: number;
-  error?: string;
-  metadata?: Record<string, unknown>;
-  artifactIndex?: Record<string, string[]>;
-  projects?: ProjectState[];
-  rollback?: RollbackState;
-  contextManifests?: Record<string, ContextManifest>;
-  workflowInstance?: SessionWorkflowInstance;
-}
-
-// ── Session state ──────────────────────────────────────────────────────────
-
-export interface SessionState {
-  runId: string;
-  createdAt: number;
-  lastAccessedAt: number;
-  suspendedAt?: number;
-  resumedAt?: number;
-}
+export type {
+  AgentState,
+  AgentStatus,
+  ModelSwitchEntry,
+  PlanState,
+  PlanStep,
+} from './agentTypes.js';
+export type {
+  ContextManifest,
+  ExecutionState,
+  NodeState,
+  NodeStatus,
+  PipelineStatus,
+  ProjectState,
+  RollbackState,
+} from './executionTypes.js';
+export type { SessionState } from './sessionTypes.js';
 
 // ── StateStore class ───────────────────────────────────────────────────────
 

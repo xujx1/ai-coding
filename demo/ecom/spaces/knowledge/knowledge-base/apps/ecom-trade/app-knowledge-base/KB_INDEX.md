@@ -1,6 +1,6 @@
 # 知识库索引
 
-> 模板来源：`src/knowledge/app-knowledge-agent/templates/kb-index-template.md`，Agent 启动时先读本文件，再按锚点下钻。
+> 模板来源：`prompts/template/app-knowledge-templates/kb-index-template.md`，Agent 启动时先读本文件，再按锚点下钻。
 
 - 应用：ecom-trade
 - 领域：交易域

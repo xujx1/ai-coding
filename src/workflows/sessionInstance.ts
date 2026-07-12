@@ -1,5 +1,5 @@
-import { PIPELINE_NODES } from '../pipeline/definition.js';
-import type { NodeState } from '../persistence/stateStore.js';
+import { PIPELINE_NODES } from './definitions/pipelineDefinition.js';
+import type { NodeState } from '../persistence/executionTypes.js';
 import {
   BUILTIN_APP_BRANCH_WORKFLOW_ID,
   BUILTIN_MRD_TO_CODE_WORKFLOW_ID,
@@ -7,7 +7,7 @@ import {
 import type { FanoutDecision } from './fanoutDecision.js';
 import type { RequirementOwnershipArtifact } from './requirementOwnership.js';
 import type { WorkflowSnapshot } from './types.js';
-import type { ProjectManifest } from '../pipeline/node-agents/upload-init.js';
+import type { ProjectManifest } from '../agents/codegen/upload-init.js';
 import {
   ApplicationBranchPlan,
   AppTrackPlan,

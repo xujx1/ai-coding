@@ -57,7 +57,7 @@ Key boundaries:
 
 ## Stage Runner Contract
 
-`src/pipeline/nodeRunners.ts` defines the runner boundary used by extraction work:
+`src/workflows/runtime/pipelineNodeRunners.ts` defines the runner boundary used by extraction work:
 
 - `StageRunnerContext` carries run id, workflow id, node id, paths, execution state, node state, event log, state store, emit callback, and artifact writer callback.
 - `StageRunnerResult` returns output, output artifacts, optional context manifest, and child agent ids.

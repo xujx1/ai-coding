@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getRunPaths, ensureRunDirectories } from '../runtime/paths.js';
-import type { ExecutionState } from '../persistence/stateStore.js';
+import type { ExecutionState } from '../persistence/executionTypes.js';
 import type {
   AppDeliveryState,
   LifecyclePhase,
@@ -108,4 +108,3 @@ export function attachLifecycleReference(state: ExecutionState): ExecutionState 
     },
   };
 }
-

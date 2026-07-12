@@ -59,22 +59,24 @@ import {
   recordArchive,
   classifyWithAiOpsReference,
   createHarnessRepositoryRefs,
-  enhanceDataPlanWithAiTestingReference,
+  enhanceDataPlanWithTestingReference,
   inspectExternalCapabilityImports,
+  validateReferenceImportsAreIsolated,
+} from '../lifecycle/index.js';
+import {
   buildLocalGitNexusGraph,
   buildLocalVectorIndex,
   graphEdgesForFanout,
   queryLocalVectorIndex,
-  validateReferenceImportsAreIsolated,
-} from '../lifecycle/index.js';
+} from '../tools/knowledge/knowledgeGraph.js';
 import { ensureRunDirectories } from '../runtime/paths.js';
 import {
   ensurePipelineLifecycleForExecution,
   recordPipelineLifecycleNodeCompleted,
   recordPipelineLifecycleNodeStarted,
-} from '../lifecycle/pipelineBridge.js';
+} from '../workflows/runtime/pipelineLifecycleBridge.js';
 import { analyzeGitNexusRepository } from '../integrations/gitnexus.js';
-import type { ExecutionState } from '../persistence/stateStore.js';
+import type { ExecutionState } from '../persistence/executionTypes.js';
 
 test('lifecycle state persists under artifacts/lifecycle-state.json', () => {
   const state = createEmptyLifecycleState({
@@ -516,8 +518,8 @@ test('repository and local runtime contracts preserve lifecycle refs', async () 
   const rerun = await runtime.rerunPipeline(pipelineRun.pipelineRunId);
 
   assert.deepEqual(created, [
-    'src/integrations/ai-testing.ts',
-    'src/integrations/ai-ops.ts',
+    'src/tools/testing/dataPlan.ts',
+    'src/tools/testing/opsFailureClassifier.ts',
     'src/integrations/harness.ts',
   ]);
   assert.equal(isolation.valid, true);
@@ -1017,11 +1019,11 @@ test('lifecycle MVP chain covers fanout deploy data failure fix rerun archive an
 test('external reference imports are available through lifecycle adapters', () => {
   const capabilities = inspectExternalCapabilityImports(process.cwd());
 
-  assert.equal(capabilities.aiTesting.available, true);
+  assert.equal(capabilities.testing.available, true);
   assert.equal(capabilities.aiOps.available, true);
   assert.equal(capabilities.harness.available, true);
-  assert.ok(capabilities.aiTesting.sourceFiles.some(file => file.includes('src/integrations/ai-testing.ts')));
-  assert.ok(capabilities.aiOps.sourceFiles.some(file => file.includes('src/integrations/ai-ops.ts')));
+  assert.ok(capabilities.testing.sourceFiles.some(file => file.includes('src/tools/testing/dataPlan.ts')));
+  assert.ok(capabilities.aiOps.sourceFiles.some(file => file.includes('src/tools/testing/opsFailureClassifier.ts')));
   assert.ok(capabilities.harness.sourceFiles.some(file => file.includes('src/integrations/harness.ts')));
 
   const state = createEmptyLifecycleState({
@@ -1042,7 +1044,7 @@ test('external reference imports are available through lifecycle adapters', () =
   assert.equal(repositories[0].provider, 'local-git');
   assert.match(repositories[0].accessRef ?? '', /src\/integrations\/harness.ts/);
 
-  const enhanced = enhanceDataPlanWithAiTestingReference({
+  const enhanced = enhanceDataPlanWithTestingReference({
     dataPlan: {
       schemaVersion: 1,
       requirementId: state.requirementId,
@@ -1064,11 +1066,11 @@ test('external reference imports are available through lifecycle adapters', () =
     capabilities,
   });
   assert.equal(enhanced.steps.length, 1);
-  assert.match(enhanced.steps[0].inputRef ?? '', /ai-testing:data-plan-step/);
+  assert.match(enhanced.steps[0].inputRef ?? '', /testing:data-plan-step/);
 
   const classified = classifyWithAiOpsReference('readiness health check failed after deploy');
   assert.equal(classified.category, 'ENVIRONMENT');
-  assert.match(classified.source, /src\/integrations\/ai-ops.ts/);
+  assert.match(classified.source, /src\/tools\/testing\/opsFailureClassifier.ts/);
 });
 
 test('local GitNexus graph and vector index provide fanout recall evidence', () => {
@@ -1304,7 +1306,7 @@ test('pipeline bridge writes lifecycle deployment and integration facts from pip
   assert.equal(lifecycle?.testRuns[0].status, 'passed');
   assert.equal(fs.existsSync(`${paths.artifactsDir}/runtime/repositories.json`), true);
   assert.equal(fs.existsSync(`${paths.artifactsDir}/testing/data-plan.json`), true);
-  assert.match(fs.readFileSync(`${paths.artifactsDir}/testing/data-plan.json`, 'utf-8'), /ai-testing-cross-app-marketing/);
+  assert.match(fs.readFileSync(`${paths.artifactsDir}/testing/data-plan.json`, 'utf-8'), /testing-cross-app-marketing/);
 });
 
 function initializeGitRepository(repoRoot: string): void {

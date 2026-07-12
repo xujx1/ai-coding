@@ -152,14 +152,6 @@
   {
     "id": "gitnexus:ecom-logistics",
     "kind": "gitnexus-index",
-    "label": "indexed",
-    "stats": {
-      "files": 20,
-      "nodes": 181,
-      "edges": 424,
-      "communities": 11,
-      "processes": 20,
-      "embeddings": 0
-    }
+    "label": "failed"
   }
 ]

@@ -8,13 +8,11 @@ import * as path from 'path';
 import { nanoid } from 'nanoid';
 import { getConfig } from '../config/index.js';
 import { ensureRunDirectories, listRuns, runExists, getRunPaths } from '../runtime/paths.js';
-import {
-  StateStore, ExecutionState, PipelineStatus,
-  getStateStore, NodeState
-} from '../persistence/stateStore.js';
+import type { ExecutionState, NodeState, PipelineStatus } from '../persistence/executionTypes.js';
+import { StateStore, getStateStore } from '../persistence/stateStore.js';
 import { getEventLog, closeEventLog } from '../events/EventLog.js';
 import { closePermissionManager, getPermissionManager } from '../tools/security/permissions.js';
-import { PIPELINE_NODES, normalizeStageId } from '../pipeline/definition.js';
+import { PIPELINE_NODES, normalizeStageId } from '../workflows/definitions/pipelineDefinition.js';
 import { getCustomStageOverrides } from '../models/registry.js';
 import { BUILTIN_MRD_TO_CODE_WORKFLOW_ID } from '../workflows/builtinDefinitions.js';
 import { captureWorkflowSnapshot } from '../workflows/storage.js';

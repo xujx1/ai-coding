@@ -21,7 +21,7 @@ Dependency edges: 32
 - ecom-finance: indexed (181 nodes, 420 edges, 20 flows)
 - ecom-fulfillment: indexed (181 nodes, 420 edges, 20 flows)
 - ecom-inventory: indexed (181 nodes, 424 edges, 20 flows)
-- ecom-logistics: indexed (181 nodes, 424 edges, 20 flows)
+- ecom-logistics: failed (0 nodes, 0 edges, 0 flows)
 - ecom-marketing: indexed (185 nodes, 438 edges, 20 flows)
 - ecom-merchant: indexed (180 nodes, 416 edges, 20 flows)
 - ecom-payment: indexed (180 nodes, 416 edges, 20 flows)

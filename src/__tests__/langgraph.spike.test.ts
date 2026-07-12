@@ -9,7 +9,7 @@ import {
   resumeLangGraphSpike,
   startLangGraphSpike,
   writeSpikeFileCheckpoint,
-} from '../langgraph/spike.js';
+} from '../workflows/runtime/langgraph/spike.js';
 
 test('LangGraph spike starts, interrupts, resumes, and completes with thread_id = runId', async () => {
   const runId = 'spike-run-1';

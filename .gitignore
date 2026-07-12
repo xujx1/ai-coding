@@ -32,9 +32,11 @@ fixtures/**/run/artifacts/**/e2e/test-results/
 
 # Ecom demo runtime/build outputs.
 demo/ecom/logs/
+
 demo/ecom/pids/
 demo/ecom/**/target/
 demo/ecom/.git-service/
 demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/
 /.codex/
+/openspec/
 /openspec/

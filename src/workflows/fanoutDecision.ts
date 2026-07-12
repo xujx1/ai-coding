@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { ProjectManifest } from '../pipeline/node-agents/upload-init.js';
+import { ProjectManifest } from '../agents/codegen/upload-init.js';
 import { RunPaths } from '../runtime/paths.js';
 import type { RequirementOwnershipArtifact } from './requirementOwnership.js';
 

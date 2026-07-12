@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { ProjectManifest } from '../pipeline/node-agents/upload-init.js';
+import type { ProjectManifest } from '../agents/codegen/upload-init.js';
 import type { RunPaths } from '../runtime/paths.js';
 import type { PlannedTrackKind } from './sessionPlan.js';
 

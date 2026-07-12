@@ -36,26 +36,28 @@ src/workflows/          Workflow 定义和动态计划
   sessionPlan.ts        应用分支和 track 计划
   planValidation.ts     动态计划校验
 
-src/pipeline/           兼容执行器和节点 runner
-  definition.ts         旧顶层节点定义和兼容 stage id
-  engine.ts             节点编排、分支状态同步、确认门、重试、回退、产物索引
-  node-runners/         upload、legacy stage、E2E 等 runner
-  node-agents/          节点 prompt、产物格式、OpenSpec、归档
+src/workflows/engine/   节点编排、分支状态同步、确认门、重试、回退、产物索引
+src/workflows/runtime/  pipeline runner 边界、生命周期 bridge、stage runner
+src/agents/codegen/     节点 prompt、产物格式、OpenSpec、归档
 
-src/langgraph/          LangGraph runtime 实验路径
-  runtime.ts            runtime 入口
-  branchRunner.ts       分支执行
-  readModelSync.ts      workflowInstance 读模型同步
+src/workflows/runtime/langgraph/ LangGraph runtime 实验路径
+  runtime.ts                    runtime 入口
+  branchRunner.ts               分支执行
+  readModelSync.ts              workflowInstance 读模型同步
 
-src/agent/              Agent 执行内核
+src/agents/core/        Agent 执行内核
   AgentEngine.ts        ReAct loop、工具调用、事件、token 预算
   contextCompression.ts 上下文压缩
   planMode.ts           Plan 模式
 
-src/e2e/                平台 E2E 验证
-  capabilities.ts       项目启动和验证能力检测
-  integrationHarness.ts 启动后端/前端、注入 API_BASE_URL
-  runner.ts             API smoke、Playwright、截图、失败分类
+src/integrations/playwright.ts Playwright 执行、截图、浏览器诊断
+
+src/tools/testing/            Testing 工具编排
+  capabilities.ts             项目启动和验证能力检测
+  integrationHarness.ts       启动后端/前端、注入 API_BASE_URL
+  e2eVerification.ts          API smoke、Playwright、截图、失败分类
+
+src/agents/testing/           Testing agent 入口
 
 src/tools/              工具系统
   builtin/              Read/Write/Edit/Glob/Grep/Bash/Java/Skill 等工具

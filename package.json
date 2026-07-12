@@ -11,9 +11,9 @@
     "playwright:install": "playwright install chromium",
     "start": "node dist/server/app.js",
     "dev": "tsx watch src/server/app.ts",
-    "ecom:git": "tsx src/cli/local-git-service.ts --root demo/ecom",
-    "ecom:git:init": "tsx src/cli/local-git-service.ts --root demo/ecom init",
-    "ecom:git:status": "tsx src/cli/local-git-service.ts --root demo/ecom status all"
+    "ecom:git": "tsx src/tools/git/local-git-service.ts --root demo/ecom",
+    "ecom:git:init": "tsx src/tools/git/local-git-service.ts --root demo/ecom init",
+    "ecom:git:status": "tsx src/tools/git/local-git-service.ts --root demo/ecom status all"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",

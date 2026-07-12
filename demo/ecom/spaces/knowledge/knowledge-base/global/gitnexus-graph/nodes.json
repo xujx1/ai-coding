@@ -14,7 +14,7 @@
         "processes": 0,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:47:18.417Z",
+      "indexedAt": "2026-07-12T07:13:55.017Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/console"
     }
   },
@@ -33,7 +33,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:47:24.884Z",
+      "indexedAt": "2026-07-12T07:14:01.343Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-aftersales"
     }
   },
@@ -52,7 +52,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:47:31.114Z",
+      "indexedAt": "2026-07-12T07:14:08.302Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-content"
     }
   },
@@ -71,7 +71,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:47:37.440Z",
+      "indexedAt": "2026-07-12T07:14:28.949Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-customer-service"
     }
   },
@@ -90,7 +90,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:47:43.937Z",
+      "indexedAt": "2026-07-12T07:14:35.211Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-finance"
     }
   },
@@ -109,7 +109,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:47:50.341Z",
+      "indexedAt": "2026-07-12T07:14:41.421Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-fulfillment"
     }
   },
@@ -128,7 +128,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:47:56.667Z",
+      "indexedAt": "2026-07-12T07:14:57.283Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-inventory"
     }
   },
@@ -138,17 +138,9 @@
     "kind": "app",
     "label": "Logistics Service",
     "gitNexus": {
-      "status": "indexed",
-      "stats": {
-        "files": 20,
-        "nodes": 181,
-        "edges": 424,
-        "communities": 11,
-        "processes": 20,
-        "embeddings": 0
-      },
-      "indexedAt": "2026-07-11T15:48:02.896Z",
-      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-logistics"
+      "status": "failed",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-logistics",
+      "error": "gitnexus analyze exited with 1: {\"level\":40,\"time\":1783840500219,\"name\":\"gitnexus\",\"msg\":\"GitNexus: FTS extension unavailable; continuing without FTS features. extension install policy is \\\"never\\\"\"}\n\n\n  GitNexus Analyzer\n\n  Warning: no .git directory found — commit-tracking and incremental updates disabled."
     }
   },
   {
@@ -166,7 +158,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:48:09.226Z",
+      "indexedAt": "2026-07-12T07:15:09.416Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-marketing"
     }
   },
@@ -185,7 +177,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:48:15.594Z",
+      "indexedAt": "2026-07-12T07:15:23.675Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-merchant"
     }
   },
@@ -204,7 +196,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:48:21.783Z",
+      "indexedAt": "2026-07-12T07:15:32.008Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-payment"
     }
   },
@@ -223,7 +215,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:48:28.128Z",
+      "indexedAt": "2026-07-12T07:15:38.415Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-product"
     }
   },
@@ -242,7 +234,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:48:34.622Z",
+      "indexedAt": "2026-07-12T07:15:48.710Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-supply-chain"
     }
   },
@@ -261,7 +253,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:48:41.138Z",
+      "indexedAt": "2026-07-12T07:15:54.937Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-trade"
     }
   },
@@ -280,7 +272,7 @@
         "processes": 20,
         "embeddings": 0
       },
-      "indexedAt": "2026-07-11T15:48:47.369Z",
+      "indexedAt": "2026-07-12T07:16:00.889Z",
       "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-user"
     }
   }

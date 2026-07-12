@@ -1,4 +1,4 @@
-import type { ExecutionState, NodeState, ProjectState } from '../persistence/stateStore.js';
+import type { ExecutionState, NodeState, ProjectState } from '../persistence/executionTypes.js';
 import type {
   AppDeliveryState,
   LifecyclePhase,
@@ -161,4 +161,3 @@ function inferLifecyclePhase(execution: ExecutionState): LifecyclePhase {
   if (current.includes('fanout') || current.includes('mrd')) return 'fanout';
   return 'created';
 }
-

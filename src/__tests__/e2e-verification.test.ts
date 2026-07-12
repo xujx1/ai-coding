@@ -7,19 +7,19 @@ import { ensureRunDirectories, getRunPaths } from '../runtime/paths.js';
 import {
   detectProjectStartupCapabilities,
   selectApiBaseUrlConvention,
-} from '../e2e/capabilities.js';
+} from '../tools/testing/capabilities.js';
 import {
   allocateServicePorts,
   startIntegrationHarness,
-} from '../e2e/integrationHarness.js';
+} from '../tools/testing/integrationHarness.js';
 import {
   collectApiContractInputs,
   runApiContractCheck,
-} from '../e2e/contract.js';
+} from '../tools/testing/contract.js';
 import {
   classifyE2EFailure,
   runE2EVerification,
-} from '../e2e/runner.js';
+} from '../tools/testing/e2eVerification.js';
 
 test('startup capability detection records trusted frontend/backend evidence and API URL convention', () => {
   const projectRoot = makeTempProject('capability-detection');

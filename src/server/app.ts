@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { readFileSync, existsSync, statSync } from 'fs';
 import { nanoid } from 'nanoid';
-import { getConfig, loadConfig, updateJavaConfig } from '../config/index.js';
+import { getConfig, loadConfig } from '../config/index.js';
 import {
   listModels,
   validateModel,
@@ -22,31 +22,32 @@ import {
   getProvider,
 } from '../models/registry.js';
 import { getSessionManager } from '../session/SessionManager.js';
-import { getPipeline } from '../pipeline/engine.js';
+import { getPipeline } from '../workflows/engine/pipelineEngine.js';
 import { getStateStore } from '../persistence/stateStore.js';
 import { getEventLog } from '../events/EventLog.js';
 import { ensureRunDirectories, getRunPaths, listFilesRecursive, type FileNode } from '../runtime/paths.js';
 import { processUploads } from '../runtime/uploads.js';
 import { getPermissionManager, PermissionMode } from '../tools/security/permissions.js';
 import { getWebSocketHub } from './ws.js';
-import { PIPELINE_NODES } from '../pipeline/definition.js';
+import { PIPELINE_NODES } from '../workflows/definitions/pipelineDefinition.js';
 import { BUILTIN_MRD_TO_CODE_WORKFLOW_ID } from '../workflows/builtinDefinitions.js';
-import {
-  getDefaultWorkflowDefinition,
-  listWorkflowDefinitions,
-  updateDefaultWorkflowConfig,
-  WorkflowConfigPatch,
-} from '../workflows/storage.js';
-import { validateWorkflowDefinition } from '../workflows/validation.js';
+import { WorkflowConfigPatch } from '../workflows/storage.js';
 import {
   getLangGraphRuntime,
   shouldUseLangGraphRuntime,
-} from '../langgraph/runtime.js';
+} from '../workflows/runtime/langgraph/runtime.js';
 import { buildLifecycleReadModel } from '../lifecycle/readModel.js';
 import { loadLifecycleState } from '../lifecycle/store.js';
-import { createEcomLocalGitService } from '../integrations/localGitService.js';
+import { createEcomLocalGitService } from '../integrations/git.js';
 import { initAllAppKnowledge } from '../knowledge/initAllAppKnowledge.js';
-import { analyzeOpsAlert, listOpsAlertHistory, listOpsApplications, listOpsCapabilities, listOpsWorkflowTemplates } from '../integrations/app-ops.js';
+import { analyzeOps, analyzeOpsStream, getOpsWorkbench, listOpsApps } from './controllers/appOpsController.js';
+import {
+  getDefaultWorkflow,
+  listWorkflows,
+  updateDefaultWorkflowConfig,
+  validateWorkflow,
+} from './controllers/requirementPiController.js';
+import { getSettings, patchSettings } from './controllers/settingsController.js';
 
 interface UploadedFilePayload {
   name: string;
@@ -171,6 +172,12 @@ app.get('/api/models', (c) => {
       'spec-generate': getModelForStage('spec-generate').id,
       'java-impl': getModelForStage('java-impl').id,
       'java-review': getModelForStage('java-review').id,
+      'similar-alert': getModelForStage('similar-alert').id,
+      'local-log-trace': getModelForStage('local-log-trace').id,
+      'code-context': getModelForStage('code-context').id,
+      'app-knowledge': getModelForStage('app-knowledge').id,
+      'global-impact': getModelForStage('global-impact').id,
+      'repair-plan': getModelForStage('repair-plan').id,
       'testcode-generate': getModelForStage('testcode-generate').id,
       'maven-test-runner': getModelForStage('maven-test-runner').id,
       'archive': getModelForStage('archive').id,
@@ -276,69 +283,18 @@ app.post('/api/models/custom/test', async (c) => {
 });
 
 // ── API: Settings ─────────────────────────────────────────────────────────
-app.get('/api/settings', (c) => {
-  const latestConfig = getConfig();
-  return c.json({
-    java: {
-      javaHome: latestConfig.java.javaHome,
-      mavenPath: latestConfig.java.mavenHome,
-    },
-  });
-});
+app.get('/api/settings', getSettings);
 
-app.patch('/api/settings', async (c) => {
-  const body = await c.req.json().catch(() => ({}));
-  const javaHome = typeof body.javaHome === 'string' ? body.javaHome.trim() : undefined;
-  const mavenPath = typeof body.mavenPath === 'string'
-    ? body.mavenPath.trim()
-    : typeof body.mavenHome === 'string'
-      ? body.mavenHome.trim()
-      : undefined;
-
-  const next = updateJavaConfig({
-    ...(javaHome !== undefined ? { javaHome } : {}),
-    ...(mavenPath !== undefined ? { mavenHome: mavenPath } : {}),
-  });
-
-  return c.json({
-    saved: true,
-    java: {
-      javaHome: next.java.javaHome,
-      mavenPath: next.java.mavenHome,
-    },
-  });
-});
+app.patch('/api/settings', patchSettings);
 
 // ── API: Workflows ────────────────────────────────────────────────────────
-app.get('/api/workflows', (c) => {
-  return c.json({ workflows: listWorkflowDefinitions() });
-});
+app.get('/api/workflows', listWorkflows);
 
-app.get('/api/workflows/default-mrd-to-code', (c) => {
-  return c.json({ workflow: getDefaultWorkflowDefinition() });
-});
+app.get('/api/workflows/default-mrd-to-code', getDefaultWorkflow);
 
-app.get('/api/workflows/:workflowId/validate', (c) => {
-  const workflowId = c.req.param('workflowId');
-  if (workflowId !== BUILTIN_MRD_TO_CODE_WORKFLOW_ID) {
-    return c.json({ error: `Workflow '${workflowId}' not found` }, 404);
-  }
-  const workflow = getDefaultWorkflowDefinition();
-  return c.json({ validation: validateWorkflowDefinition(workflow) });
-});
+app.get('/api/workflows/:workflowId/validate', validateWorkflow);
 
-app.put('/api/workflows/default-mrd-to-code/config', async (c) => {
-  const body = await c.req.json().catch(() => ({}));
-  try {
-    const workflow = updateDefaultWorkflowConfig({
-      globalConfig: isRecord(body.globalConfig) ? body.globalConfig : undefined,
-      nodes: isRecord(body.nodes) ? normalizeWorkflowNodePatch(body.nodes) : undefined,
-    });
-    return c.json({ workflow });
-  } catch (err) {
-    return c.json({ error: (err as Error).message }, 400);
-  }
-});
+app.put('/api/workflows/default-mrd-to-code/config', updateDefaultWorkflowConfig);
 
 // ── API: Sessions / Runs ──────────────────────────────────────────────────
 app.get('/api/sessions', (c) => {
@@ -358,43 +314,12 @@ app.post('/api/management/knowledge/init-all', async (c) => {
   }
 });
 
-app.get('/api/ops/apps', (c) => {
-  return c.json({ apps: listOpsApplications() });
-});
+app.get('/api/ops/apps', listOpsApps);
 
-app.get('/api/ops/workbench', (c) => {
-  return c.json({
-    apps: listOpsApplications(),
-    workflows: listOpsWorkflowTemplates(),
-    capabilities: listOpsCapabilities(),
-    alertHistory: listOpsAlertHistory(),
-  });
-});
+app.get('/api/ops/workbench', getOpsWorkbench);
 
-app.post('/api/ops/analyze', async (c) => {
-  try {
-    const body = await c.req.json();
-    const appId = typeof body.appId === 'string' ? body.appId : '';
-    const alert = typeof body.alert === 'string' ? body.alert : '';
-    if (!appId) return c.json({ error: 'appId is required' }, 400);
-    if (!alert.trim()) return c.json({ error: 'alert is required' }, 400);
-    const workflowConfig = isRecord(body.workflowConfig)
-      ? {
-        enabledNodeIds: Array.isArray(body.workflowConfig.enabledNodeIds)
-          ? (body.workflowConfig.enabledNodeIds as unknown[]).filter((item): item is string => typeof item === 'string')
-          : undefined,
-        nodeTools: isRecord(body.workflowConfig.nodeTools)
-          ? Object.fromEntries(Object.entries(body.workflowConfig.nodeTools)
-            .filter(([, value]) => Array.isArray(value))
-            .map(([key, value]) => [key, (value as unknown[]).filter((item): item is string => typeof item === 'string')]))
-          : undefined,
-      }
-      : undefined;
-    return c.json({ analysis: analyzeOpsAlert({ appId, alert, workflowConfig }) });
-  } catch (error) {
-    return c.json({ error: error instanceof Error ? error.message : String(error) }, 500);
-  }
-});
+app.post('/api/ops/analyze', analyzeOps);
+app.post('/api/ops/analyze/stream', analyzeOpsStream);
 
 app.get('/api/management/knowledge/:knowledgeId/files', (c) => {
   const knowledgeId = c.req.param('knowledgeId');

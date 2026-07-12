@@ -1,4 +1,4 @@
-import { PIPELINE_NODES } from '../pipeline/definition.js';
+import { PIPELINE_NODES } from './definitions/pipelineDefinition.js';
 import { BUILTIN_MRD_TO_CODE_WORKFLOW_ID, createBuiltInMrdToCodeWorkflow } from './builtinDefinitions.js';
 import {
   StageRunnerId,

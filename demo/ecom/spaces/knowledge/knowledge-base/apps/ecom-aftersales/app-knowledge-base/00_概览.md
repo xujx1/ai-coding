@@ -1,12 +1,12 @@
 # Aftersales Service 应用知识库
 
-> 模板来源：`src/knowledge/app-knowledge-agent/templates/app-kb-template.md`，按 dev-workflow app-knowledge lite 模式填充。
+> 模板来源：`prompts/template/app-knowledge-templates/app-kb-template.md`，按 dev-workflow app-knowledge lite 模式填充。
 
 - 应用：ecom-aftersales
 - App ID: ecom-aftersales
 - 领域：售后域
 - 仓库：ecom-aftersales
-- 代码版本：3002e6de736a08a4cfe0389c906e7abad1a369d6
+- 代码版本：3238c43ec3cb810c50cb8a913fdc7e94c4568183
 - GitNexus：indexed，181 nodes / 420 edges / 20 flows
 - GitNexus: indexed (181 nodes, 420 edges, 20 flows)
 

@@ -1,6 +1,6 @@
 {
-  "versionId": "kb-20260711T154713Z",
-  "generatedAt": "2026-07-11T15:47:13.747Z",
+  "versionId": "kb-20260712T071350Z",
+  "generatedAt": "2026-07-12T07:13:50.593Z",
   "apps": [
     {
       "appId": "console",
@@ -26,10 +26,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/console"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -58,10 +58,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-aftersales"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -90,10 +90,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-content"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -122,10 +122,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-customer-service"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -154,10 +154,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-finance"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -186,10 +186,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-fulfillment"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -218,10 +218,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-inventory"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -250,10 +250,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-logistics"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -282,10 +282,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-marketing"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -314,10 +314,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-merchant"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -346,10 +346,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-payment"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -378,10 +378,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-product"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -410,10 +410,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-supply-chain"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -442,10 +442,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-trade"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     },
     {
@@ -474,10 +474,10 @@
         "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-user"
       },
       "freshness": {
-        "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
-        "lastGeneratedAt": "2026-07-11T15:47:13.747Z",
+        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
+        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
         "status": "fresh",
-        "updateMethod": "template"
+        "updateMethod": "template-fallback"
       }
     }
   ]

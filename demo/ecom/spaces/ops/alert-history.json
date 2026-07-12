@@ -1,21 +1,372 @@
 {
   "alerts": [
     {
-      "id": "alert-1783824411049-j32rj1",
-      "appId": "ecom-trade",
-      "alert": "订单创建接口 timeout，服务 ecom-trade，traceId=case001，上游反馈下单链路响应慢",
+      "id": "alert-1783836547602-qezwhz",
+      "appId": "console",
+      "alert": "traceId=abc123 refund timeout error",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "traceid": 1,
+        "abc123": 1,
+        "refund": 1,
+        "timeout": 1,
+        "error": 1
+      },
+      "createdAt": "2026-07-12T06:09:07.602Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1783836431803-5gzhqd",
+      "appId": "console",
+      "alert": "traceId=abc123 refund timeout error",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "traceid": 1,
+        "abc123": 1,
+        "refund": 1,
+        "timeout": 1,
+        "error": 1
+      },
+      "createdAt": "2026-07-12T06:07:11.803Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1783835911761-qs6gos",
+      "appId": "console",
+      "alert": "traceId=abc123 refund timeout error",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "traceid": 1,
+        "abc123": 1,
+        "refund": 1,
+        "timeout": 1,
+        "error": 1
+      },
+      "createdAt": "2026-07-12T05:58:31.761Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1783835570440-q7dsko",
+      "appId": "console",
+      "alert": "traceId=abc123 refund timeout error",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "traceid": 1,
+        "abc123": 1,
+        "refund": 1,
+        "timeout": 1,
+        "error": 1
+      },
+      "createdAt": "2026-07-12T05:52:50.440Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1783835320699-83muh3",
+      "appId": "console",
+      "alert": "traceId=abc123 refund timeout error",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "traceid": 1,
+        "abc123": 1,
+        "refund": 1,
+        "timeout": 1,
+        "error": 1
+      },
+      "createdAt": "2026-07-12T05:48:40.699Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1783835228775-121wsq",
+      "appId": "console",
+      "alert": "traceId=abc123 refund timeout error",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "traceid": 1,
+        "abc123": 1,
+        "refund": 1,
+        "timeout": 1,
+        "error": 1
+      },
+      "createdAt": "2026-07-12T05:47:08.775Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1783834726848-f1vgcx",
+      "appId": "console",
+      "alert": "traceId=abc123 refund timeout error",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "traceid": 1,
+        "abc123": 1,
+        "refund": 1,
+        "timeout": 1,
+        "error": 1
+      },
+      "createdAt": "2026-07-12T05:38:46.848Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1783828175630-8xzatd",
+      "appId": "console",
+      "alert": "物流轨迹同步失败，服务 ecom-logistics，接口 POST /api/logistics/tracking/sync，traceId=logistics-track-timeout-20260712-005，carrier tracking API nullpointexception，履约轨迹更新延迟\n",
+      "category": "PERFORMANCE_DEGRADATION",
+      "categoryLabel": "性能下降",
+      "vector": {
+        "物流轨迹同步失败": 1,
+        "ecom": 1,
+        "logistics": 1,
+        "post": 1,
+        "api": 1,
+        "tracking": 1,
+        "sync": 1,
+        "traceid": 1,
+        "track": 1,
+        "timeout": 1
+      },
+      "createdAt": "2026-07-12T03:49:35.630Z",
+      "workflowId": "fault-analysis",
+      "status": "completed",
+      "problemCause": "最可能根因是 ecom-logistics 的 TrackingSyncJob 在处理 traceId=logistics-track-timeout-20260712-005、shipmentId=S202607120066 时，调用承运商 FAST-EXPRESS 的 tracking API 超过 2500ms 并抛出 DependencyTimeoutException。直接日志证据显示错误为 \"carrier tracking API timeout\"，且相同 traceId 的历史相似告警也连续指向 timeout；当前输入中没有本地日志或代码证据支撑 \"NullPointerException\" 是主因，因此应优先按外部依赖超时处置。",
+      "repairPlan": "优先排查并恢复 ecom-logistics 到承运商 FAST-EXPRESS tracking API 的调用链路，确认对端可用性、网络连通性、响应时延和 2500ms 超时阈值是否过紧。\n在 ecom-logistics 对承运商查询增加降级与隔离：超时后进入重试队列或异步补偿，避免同步阻塞持续放大履约轨迹延迟。\n针对本次失败记录 shipmentId=S202607120066 和同批积压任务执行补偿重放，确认轨迹最终一致性已恢复。\n补充代码防护和告警校正：对 carrier 返回空对象/异常响应做空值保护，区分 timeout 与 NullPointerException 告警，避免误判根因。",
+      "durationMs": 22358,
+      "modelId": "gpt-5.4",
+      "tokenUsage": {
+        "inputTokens": 3214,
+        "outputTokens": 362
+      }
+    },
+    {
+      "id": "alert-1783828140357-8l05wy",
+      "appId": "console",
+      "alert": "物流轨迹同步失败，服务 ecom-logistics，接口 POST /api/logistics/tracking/sync，traceId=logistics-track-timeout-20260712-005，carrier tracking API timeout，履约轨迹更新延迟\n",
+      "category": "PERFORMANCE_DEGRADATION",
+      "categoryLabel": "性能下降",
+      "vector": {
+        "物流轨迹同步失败": 1,
+        "ecom": 1,
+        "logistics": 1,
+        "post": 1,
+        "api": 1,
+        "tracking": 1,
+        "sync": 1,
+        "traceid": 1,
+        "track": 1,
+        "timeout": 1
+      },
+      "createdAt": "2026-07-12T03:49:00.357Z",
+      "workflowId": "fault-analysis",
+      "status": "completed",
+      "problemCause": "最可能根因是 ecom-logistics 的 TrackingSyncJob 调用外部承运商轨迹查询接口时超过 2500ms 超时阈值，抛出 DependencyTimeoutException 并导致 POST /api/logistics/tracking/sync 失败。证据来自本地日志 logs/ecom-logistics.log，明确记录 traceId=logistics-track-timeout-20260712-005、error=DependencyTimeoutException、message=\"carrier tracking API timeout\"，并标出 carrier=FAST-EXPRESS、timeout=2500ms；相似历史告警也将同一 traceId 的事件归类为 ecom-logistics 的依赖服务故障。",
+      "repairPlan": "优先排查并恢复 ecom-logistics 到 FAST-EXPRESS 轨迹接口的可用性与时延，确认是否为承运商接口慢响应、网络抖动或限流，必要时联系承运商侧处理。\n对失败的轨迹同步任务做补偿重试，至少覆盖 shipmentId=S202607120066 及同时间窗内失败批次，尽快消除履约轨迹更新延迟。\n在 ecom-logistics 的承运商调用链路上检查并优化超时、重试和熔断配置；当前日志显示超时阈值为 2500ms，应结合承运商 SLA 评估是否需要调整为更合理的异步重试或分级降级策略，避免同步阻塞持续放大。\n补充针对 carrier tracking API 的独立监控与告警，区分外部依赖超时和应用内部性能问题，避免后续继续以 console 单应用性能下降的形式被动暴露。",
+      "durationMs": 23726,
+      "modelId": "gpt-5.4",
+      "tokenUsage": {
+        "inputTokens": 3225,
+        "outputTokens": 418
+      }
+    },
+    {
+      "id": "alert-1783827587932-6v6gig",
+      "appId": "console",
+      "alert": "物流轨迹同步失败，服务 ecom-logistics，接口 POST /api/logistics/tracking/sync，traceId=logistics-track-timeout-20260712-005，carrier tracking API timeout，履约轨迹更新延迟\n\n",
+      "category": "PERFORMANCE_DEGRADATION",
+      "categoryLabel": "性能下降",
+      "vector": {
+        "物流轨迹同步失败": 1,
+        "ecom": 1,
+        "logistics": 1,
+        "post": 1,
+        "api": 1,
+        "tracking": 1,
+        "sync": 1,
+        "traceid": 1,
+        "track": 1,
+        "timeout": 1
+      },
+      "createdAt": "2026-07-12T03:39:47.932Z",
+      "workflowId": "fault-analysis",
+      "status": "completed",
+      "problemCause": "最可能根因是 ecom-logistics 的 TrackingSyncJob 在处理 shipmentId=S202607120066 时，请求外部承运商 FAST-EXPRESS 的 tracking API 超过 2500ms 超时阈值，直接抛出 DependencyTimeoutException。证据来自本地日志 `logs/ecom-logistics.log`：`event=tracking_sync_failed`、`error=DependencyTimeoutException`、`message=\"carrier tracking API timeout\"`，并明确标注 `carrier=FAST-EXPRESS`、`timeout=2500ms`；相似历史告警也将同类问题归因为“依赖服务故障”。",
+      "repairPlan": "优先核查并恢复 FAST-EXPRESS 轨迹查询接口可用性与时延，确认是否为承运商侧响应变慢、网络抖动或限流导致超过 2500ms。\n在 ecom-logistics 中对 `POST /api/logistics/tracking/sync` 的承运商调用开启降级处置：失败重试改为异步补偿，避免同步任务持续阻塞并放大轨迹更新延迟。\n结合承运商 SLA 评估是否适度上调 2500ms 超时阈值，并补充熔断/退避策略，防止短时抖动直接触发批量同步失败。\n排查同时间窗口内是否有更多 FAST-EXPRESS 运单同步失败，按 shipmentId 批量补跑轨迹同步任务，修复已延迟的履约轨迹数据。",
+      "durationMs": 21623,
+      "modelId": "gpt-5.4",
+      "tokenUsage": {
+        "inputTokens": 5298,
+        "outputTokens": 682
+      }
+    },
+    {
+      "id": "demo-logistics-track-timeout-20260712-005",
+      "appId": "ecom-logistics",
+      "alert": "物流轨迹同步失败，服务 ecom-logistics，接口 POST /api/logistics/tracking/sync，traceId=logistics-track-timeout-20260712-005，carrier tracking API timeout，履约轨迹更新延迟",
       "category": "DEPENDENCY_FAILURE",
       "categoryLabel": "依赖服务故障",
       "vector": {
-        "订单创建接口": 1,
-        "timeout": 1,
+        "物流轨迹同步失败": 1,
         "ecom": 1,
-        "trade": 1,
+        "logistics": 2,
+        "post": 1,
+        "api": 2,
+        "tracking": 1,
+        "sync": 1,
         "traceid": 1,
-        "case001": 1,
-        "上游反馈下单链路响应慢": 1
+        "logistics-track-timeout-20260712-005": 1,
+        "carrier": 1,
+        "timeout": 1,
+        "履约轨迹更新延迟": 1
       },
-      "createdAt": "2026-07-12T02:46:51.049Z"
+      "createdAt": "2026-07-12T03:04:00.000Z",
+      "workflowId": "fault-analysis",
+      "status": "completed",
+      "problemCause": "物流轨迹同步调用承运商 tracking API 超时，ecom-logistics 未及时拿到轨迹结果，导致履约轨迹更新延迟。",
+      "repairPlan": "按 traceId 检查承运商 API 调用日志和超时配置。\n为承运商接口增加重试、降级和异步补偿。\n对受影响运单触发轨迹补偿同步，并通知客服链路展示延迟状态。",
+      "durationMs": 18420,
+      "modelId": "gpt-5.4",
+      "tokenUsage": {
+        "inputTokens": 5120,
+        "outputTokens": 640
+      }
+    },
+    {
+      "id": "demo-inventory-stock-negative-20260712-004",
+      "appId": "ecom-inventory",
+      "alert": "库存扣减失败，服务 ecom-inventory，接口 POST /api/inventory/deduct，traceId=inventory-stock-negative-20260712-004，BusinessDataInconsistencyException，available stock would become negative，存在超卖风险",
+      "category": "BUSINESS_DATA_INCONSISTENCY",
+      "categoryLabel": "业务数据不一致",
+      "vector": {
+        "库存扣减失败": 1,
+        "ecom": 1,
+        "inventory": 2,
+        "post": 1,
+        "api": 1,
+        "deduct": 1,
+        "traceid": 1,
+        "inventory-stock-negative-20260712-004": 1,
+        "businessdatainconsistencyexception": 1,
+        "available": 1,
+        "stock": 1,
+        "negative": 1,
+        "超卖风险": 1
+      },
+      "createdAt": "2026-07-12T03:03:00.000Z",
+      "workflowId": "fault-analysis",
+      "status": "completed",
+      "problemCause": "库存扣减前置校验发现 available stock 将变为负数，说明库存占用、释放或并发扣减存在一致性风险。",
+      "repairPlan": "冻结相关 SKU 的高风险扣减请求。\n核对库存流水、占用记录和交易订单状态，定位重复扣减或释放缺失。\n补充幂等键和乐观锁校验，修正异常库存并回放失败订单。",
+      "durationMs": 17280,
+      "modelId": "gpt-5.4",
+      "tokenUsage": {
+        "inputTokens": 4980,
+        "outputTokens": 610
+      }
+    },
+    {
+      "id": "demo-payment-callback-dup-20260712-003",
+      "appId": "ecom-payment",
+      "alert": "支付回调处理失败，服务 ecom-payment，接口 POST /api/payment/callback，traceId=payment-callback-dup-20260712-003，DuplicatePaymentCallbackException，支付状态 PAID 与 PAYING 冲突",
+      "category": "BUSINESS_DATA_INCONSISTENCY",
+      "categoryLabel": "业务数据不一致",
+      "vector": {
+        "支付回调处理失败": 1,
+        "ecom": 1,
+        "payment": 2,
+        "post": 1,
+        "api": 1,
+        "callback": 1,
+        "traceid": 1,
+        "payment-callback-dup-20260712-003": 1,
+        "duplicatepaymentcallbackexception": 1,
+        "paid": 1,
+        "paying": 1,
+        "冲突": 1
+      },
+      "createdAt": "2026-07-12T03:02:00.000Z",
+      "workflowId": "fault-analysis",
+      "status": "completed",
+      "problemCause": "支付渠道重复回调命中非幂等状态流转，PAID 与 PAYING 状态更新发生冲突。",
+      "repairPlan": "按 paymentId 和 traceId 检查回调幂等记录。\n将支付状态更新改为幂等 compare-and-set，并忽略已完成状态的重复成功回调。\n补偿通知 ecom-trade 订单支付结果，避免交易状态长时间不一致。",
+      "durationMs": 16940,
+      "modelId": "gpt-5.4",
+      "tokenUsage": {
+        "inputTokens": 5018,
+        "outputTokens": 594
+      }
+    },
+    {
+      "id": "demo-aftersales-trade-timeout-20260712-002",
+      "appId": "ecom-aftersales",
+      "alert": "售后退货创建失败，服务 ecom-aftersales，接口 POST /api/aftersales/return，traceId=aftersales-trade-timeout-20260712-002，查询 ecom-trade 订单详情 timeout，退货链路响应慢",
+      "category": "DEPENDENCY_FAILURE",
+      "categoryLabel": "依赖服务故障",
+      "vector": {
+        "售后退货创建失败": 1,
+        "ecom": 2,
+        "aftersales": 1,
+        "post": 1,
+        "api": 1,
+        "return": 1,
+        "traceid": 1,
+        "aftersales-trade-timeout-20260712-002": 1,
+        "trade": 1,
+        "timeout": 1,
+        "退货链路响应慢": 1
+      },
+      "createdAt": "2026-07-12T03:01:00.000Z",
+      "workflowId": "fault-analysis",
+      "status": "completed",
+      "problemCause": "ecom-aftersales 创建退货单时同步查询 ecom-trade 订单详情超时，导致售后退货链路被下游依赖拖慢。",
+      "repairPlan": "按 traceId 检查 ecom-trade 订单详情接口耗时和错误率。\n为售后退货创建增加超时兜底、短缓存或异步补偿。\n确认 ecom-trade 是否有慢查询或线程池堆积，并对受影响售后单重试。",
+      "durationMs": 19360,
+      "modelId": "gpt-5.4",
+      "tokenUsage": {
+        "inputTokens": 5264,
+        "outputTokens": 622
+      }
+    },
+    {
+      "id": "demo-aftersales-null-20260712-001",
+      "appId": "ecom-aftersales",
+      "alert": "售后退款申请失败，服务 ecom-aftersales，接口 POST /api/aftersales/refund，traceId=aftersales-null-20260712-001，NullPointerException，refundContext 为空，影响用户退款",
+      "category": "UNKNOWN",
+      "categoryLabel": "未知故障",
+      "vector": {
+        "售后退款申请失败": 1,
+        "ecom": 1,
+        "aftersales": 1,
+        "post": 1,
+        "api": 1,
+        "refund": 1,
+        "traceid": 1,
+        "aftersales-null-20260712-001": 1,
+        "nullpointerexception": 1,
+        "refundcontext": 1,
+        "影响用户退款": 1
+      },
+      "createdAt": "2026-07-12T03:00:00.000Z",
+      "workflowId": "fault-analysis",
+      "status": "completed",
+      "problemCause": "退款申请链路在 RefundContext 为空时继续调用 getOrderStatus，触发 NullPointerException，故障点优先收敛在 ecom-aftersales 本地空值校验和上下文构建。",
+      "repairPlan": "按 traceId 定位 POST /api/aftersales/refund 的控制器和服务层。\n在 RefundContext 构建点和首次使用点增加非空校验和业务异常。\n核对订单、退款单和下游 trade 查询返回是否缺失，补充空上下文测试并对失败退款单补偿重试。",
+      "durationMs": 18750,
+      "modelId": "gpt-5.4",
+      "tokenUsage": {
+        "inputTokens": 5192,
+        "outputTokens": 604
+      }
     }
   ]
 }

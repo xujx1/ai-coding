@@ -1,14 +1,14 @@
 # Logistics Service 应用知识库
 
-> 模板来源：`src/knowledge/app-knowledge-agent/templates/app-kb-template.md`，按 dev-workflow app-knowledge lite 模式填充。
+> 模板来源：`prompts/template/app-knowledge-templates/app-kb-template.md`，按 dev-workflow app-knowledge lite 模式填充。
 
 - 应用：ecom-logistics
 - App ID: ecom-logistics
 - 领域：物流域
 - 仓库：ecom-logistics
-- 代码版本：3002e6de736a08a4cfe0389c906e7abad1a369d6
-- GitNexus：indexed，181 nodes / 424 edges / 20 flows
-- GitNexus: indexed (181 nodes, 424 edges, 20 flows)
+- 代码版本：3238c43ec3cb810c50cb8a913fdc7e94c4568183
+- GitNexus：failed
+- GitNexus: failed
 
 ## 一句话定位
 

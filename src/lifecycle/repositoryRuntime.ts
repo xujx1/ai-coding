@@ -97,8 +97,8 @@ export function createFeatureBranchName(requirementId: string, appId: string): s
 export function ensureReferenceImportLayout(rootDir: string): string[] {
   void rootDir;
   return [
-    'src/integrations/ai-testing.ts',
-    'src/integrations/ai-ops.ts',
+    'src/tools/testing/dataPlan.ts',
+    'src/tools/testing/opsFailureClassifier.ts',
     'src/integrations/harness.ts',
   ];
 }

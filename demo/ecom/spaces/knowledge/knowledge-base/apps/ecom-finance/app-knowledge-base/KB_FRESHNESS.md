@@ -1,10 +1,11 @@
 # KB Freshness
-- versionId: kb-20260711T154713Z
+- versionId: kb-20260712T071350Z
 - appId: ecom-finance
-- sourceCommitSha: 3002e6de736a08a4cfe0389c906e7abad1a369d6
-- lastGeneratedAt: 2026-07-11T15:47:13.747Z
+- sourceCommitSha: 3238c43ec3cb810c50cb8a913fdc7e94c4568183
+- lastGeneratedAt: 2026-07-12T07:13:50.593Z
 - status: fresh
-- updateMethod: template
+- updateMethod: template-fallback
 - modelId: none
 - gitNexusStatus: indexed
-- gitNexusIndexedAt: 2026-07-11T15:47:43.937Z
+- gitNexusIndexedAt: 2026-07-12T07:14:35.211Z
+- fallbackReason: LLM API error (502): {"error":{"message":"Upstream service temporarily unavailable","type":"upstream_error","param":"","code":null}}

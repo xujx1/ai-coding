@@ -3,13 +3,13 @@ import type { FailureCategory } from './failureFix.js';
 import type { LifecycleState } from './types.js';
 import type { DataPlan, IntegrationTestCase } from './integrationTesting.js';
 import type { RepositoryRef } from './repositoryRuntime.js';
-import { AI_OPS_SOURCE_FILES, classifyOperationalFailure } from '../integrations/ai-ops.js';
-import { AI_TESTING_SOURCE_FILES, enhanceCrossAppDataPlan } from '../integrations/ai-testing.js';
+import { AI_OPS_SOURCE_FILES, classifyOperationalFailure } from '../tools/testing/opsFailureClassifier.js';
+import { TESTING_SOURCE_FILES, enhanceCrossAppDataPlan } from '../tools/testing/dataPlan.js';
 import { createHarnessManagedRepositoryRefs, HARNESS_SOURCE_FILES } from '../integrations/harness.js';
 
 export const REFERENCE_IMPORTS = {
-  aiTesting: 'src/integrations/ai-testing.ts',
-  aiOps: 'src/integrations/ai-ops.ts',
+  testing: 'src/tools/testing/dataPlan.ts',
+  aiOps: 'src/tools/testing/opsFailureClassifier.ts',
   harness: 'src/integrations/harness.ts',
 } as const;
 
@@ -21,7 +21,7 @@ export interface ReferenceCapabilitySnapshot {
 }
 
 export interface ExternalCapabilitySnapshot {
-  aiTesting: ReferenceCapabilitySnapshot;
+  testing: ReferenceCapabilitySnapshot;
   aiOps: ReferenceCapabilitySnapshot;
   harness: ReferenceCapabilitySnapshot;
 }
@@ -29,13 +29,13 @@ export interface ExternalCapabilitySnapshot {
 export function inspectExternalCapabilityImports(repoRoot: string): ExternalCapabilitySnapshot {
   void repoRoot;
   return {
-    aiTesting: availableSnapshot(REFERENCE_IMPORTS.aiTesting, AI_TESTING_SOURCE_FILES),
+    testing: availableSnapshot(REFERENCE_IMPORTS.testing, TESTING_SOURCE_FILES),
     aiOps: availableSnapshot(REFERENCE_IMPORTS.aiOps, AI_OPS_SOURCE_FILES),
     harness: availableSnapshot(REFERENCE_IMPORTS.harness, HARNESS_SOURCE_FILES),
   };
 }
 
-export function enhanceDataPlanWithAiTestingReference(args: {
+export function enhanceDataPlanWithTestingReference(args: {
   dataPlan: DataPlan;
   testCases: IntegrationTestCase[];
   state: LifecycleState;

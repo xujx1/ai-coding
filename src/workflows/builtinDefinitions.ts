@@ -1,4 +1,4 @@
-import { PIPELINE_NODES, PipelineNode } from '../pipeline/definition.js';
+import { PIPELINE_NODES, PipelineNode } from './definitions/pipelineDefinition.js';
 import {
   BranchWorkflowDefinition,
   WorkflowDefinition,

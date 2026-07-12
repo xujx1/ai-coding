@@ -4290,23 +4290,76 @@ function renderOpsRecordsSection(selected) {
       <p class="ops-muted">每次告警分析后会保存告警文本向量，相似预警 Agent 基于历史向量计算相似度。</p>
       <div class="ops-record-list">
         ${state.opsAnalysis?.similarAlertEvidence?.length ? `
-          <div class="ops-block-title">本次相似预警</div>
-          ${state.opsAnalysis.similarAlertEvidence.map(item => `
-          <div class="ops-evidence">
-            <div><strong>${esc(item.path)}</strong><span>${esc(item.reason)}</span></div>
-            ${item.snippet ? `<pre>${esc(item.snippet)}</pre>` : ''}
-          </div>
-          `).join('')}
+          <div class="ops-record-group-title">本次相似预警</div>
+          ${state.opsAnalysis.similarAlertEvidence.map(renderOpsSimilarAlertCard).join('')}
         ` : ''}
-        ${state.opsAlertHistory.length ? state.opsAlertHistory.map(item => `
-          <div class="ops-evidence">
-            <div><strong>${esc(item.appId)} · ${esc(item.categoryLabel || item.category || '')}</strong><span>${esc(item.createdAt || '')}</span></div>
-            <pre>${esc(item.alert || '')}</pre>
-          </div>
-        `).join('') : '<div class="ops-empty">暂无告警历史，提交一次告警分析后会写入历史向量。</div>'}
+        ${state.opsAlertHistory.length ? state.opsAlertHistory.map(renderOpsHistoryRecord).join('') : '<div class="ops-empty">暂无告警历史，提交一次告警分析后会写入历史向量。</div>'}
       </div>
     </div>
   `;
+}
+
+function renderOpsSimilarAlertCard(item) {
+  const lines = String(item.snippet || '').split(/\r?\n/);
+  const appLine = lines.find(line => line.startsWith('应用：')) || '';
+  const categoryLine = lines.find(line => line.startsWith('分类：')) || '';
+  const alertLine = lines.find(line => line.startsWith('告警：')) || '';
+  return `
+    <article class="ops-history-card similar">
+      ${renderOpsHistoryCell('应用', appLine.replace('应用：', '') || item.path, categoryLine.replace('分类：', '') || '相似预警')}
+      ${renderOpsHistoryCell('预警原文', alertLine.replace('告警：', '') || item.snippet || '')}
+      ${renderOpsHistoryCell('匹配依据', `${item.reason || ''}${item.score !== undefined ? ` · similarity ${Math.round(item.score * 100)}%` : ''}`, '', 'match')}
+      ${renderOpsHistoryCell('问题原因', '相似历史预警命中，根因以原始历史记录和本次模型诊断为准。')}
+      ${renderOpsHistoryCell('修复计划', '查看对应历史记录或本次修复计划。', '', 'repair')}
+      ${renderOpsRunMeta('-', '-', '-')}
+    </article>
+  `;
+}
+
+function renderOpsHistoryRecord(item) {
+  const status = item.status || 'completed';
+  const repairPlan = item.repairPlan || '';
+  const problemCause = item.problemCause || '历史记录仅包含告警向量，暂无模型诊断摘要。';
+  const duration = typeof item.durationMs === 'number' ? `${Math.max(1, Math.round(item.durationMs / 1000))}s` : '-';
+  const tokens = item.tokenUsage ? `${(item.tokenUsage.inputTokens || 0) + (item.tokenUsage.outputTokens || 0)}` : '-';
+  const matchReason = [item.categoryLabel || item.category || '未分类', item.workflowId || 'fault-analysis', status].filter(Boolean).join(' · ');
+  return `
+    <article class="ops-history-card ${status}">
+      ${renderOpsHistoryCell('应用', item.appId || '-', formatOpsDate(item.createdAt))}
+      ${renderOpsHistoryCell('预警原文', item.alert || '')}
+      ${renderOpsHistoryCell('匹配依据', matchReason, '', 'match')}
+      ${renderOpsHistoryCell('问题原因', problemCause)}
+      ${renderOpsHistoryCell('修复计划', repairPlan || '暂无修复计划', '', 'repair')}
+      ${renderOpsRunMeta(duration, item.modelId || '-', tokens)}
+    </article>
+  `;
+}
+
+function renderOpsHistoryCell(label, value, sub = '', variant = '') {
+  return `
+    <div class="ops-history-cell ${variant}">
+      <label>${esc(label)}</label>
+      <p>${esc(value || '-')}</p>
+      ${sub ? `<span>${esc(sub)}</span>` : ''}
+    </div>
+  `;
+}
+
+function renderOpsRunMeta(duration, modelId, tokens) {
+  return `
+    <div class="ops-history-runmeta">
+      <div><label>耗时</label><strong>${esc(duration || '-')}</strong></div>
+      <div><label>模型</label><strong>${esc(modelId || '-')}</strong></div>
+      <div><label>Tokens</label><strong>${esc(tokens || '-')}</strong></div>
+    </div>
+  `;
+}
+
+function formatOpsDate(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 }
 
 function getOpsPanelContainer() {
@@ -4363,23 +4416,138 @@ async function analyzeOpsAlert() {
   }
   state.opsAnalyzing = true;
   state.opsError = '';
+  state.opsAnalysis = buildOpsPendingAnalysis();
   renderOpsPanel();
   try {
-    const res = await fetch('/api/ops/analyze', {
+    const res = await fetch('/api/ops/analyze/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ appId: state.selectedOpsAppId, alert: state.opsAlertDraft, workflowConfig: buildOpsWorkflowConfigPayload() }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || '告警分析失败');
-    state.opsAnalysis = data.analysis || null;
-    await refreshOpsAlertHistory();
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || '告警分析失败');
+    }
+    if (!res.body) throw new Error('当前浏览器不支持流式读取');
+    await readOpsAnalysisStream(res.body);
   } catch (error) {
     state.opsError = error.message || String(error);
   } finally {
     state.opsAnalyzing = false;
     renderOpsPanel();
   }
+}
+
+function buildOpsPendingAnalysis() {
+  const app = state.opsApps.find(item => item.appId === state.selectedOpsAppId) || { appId: state.selectedOpsAppId, name: state.selectedOpsAppId };
+  const workflow = state.opsWorkflows[0];
+  const nodes = workflow?.nodes || [];
+  return {
+    app,
+    alert: state.opsAlertDraft,
+    category: 'PENDING',
+    categoryLabel: '分析中',
+    confidence: 0,
+    matchedKeywords: [],
+    likelyCauses: [],
+    impact: { upstream: [], downstream: [], blastRadius: '正在分析上下游影响面...' },
+    logEvidence: [],
+    similarAlertEvidence: [],
+    codeEvidence: [],
+    knowledgeEvidence: [],
+    recommendedActions: [],
+    runbook: [],
+    toolResults: nodes.map((node, index) => ({
+      nodeId: node.id,
+      label: node.label,
+      tools: getOpsNodeTools(workflow.id, node),
+      status: index === 0 ? 'running' : 'skipped',
+      output: index === 0 ? '正在启动故障分析 Workflow...' : '等待上游 Agent 输出。',
+    })),
+  };
+}
+
+async function readOpsAnalysisStream(body) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const frames = buffer.split('\n\n');
+    buffer = frames.pop() || '';
+    for (const frame of frames) {
+      const line = frame.split('\n').find(item => item.startsWith('data: '));
+      if (!line) continue;
+      const payload = line.slice(6).trim();
+      if (!payload) continue;
+      applyOpsStreamEvent(JSON.parse(payload));
+    }
+  }
+  if (buffer.trim().startsWith('data: ')) {
+    applyOpsStreamEvent(JSON.parse(buffer.trim().slice(6)));
+  }
+}
+
+function applyOpsStreamEvent(event) {
+  if (!event || event.type === 'done') return;
+  if (event.type === 'analysis_base') {
+    state.opsAnalysis = event.analysis;
+    renderOpsPanel();
+    return;
+  }
+  if (event.type === 'node_update') {
+    state.opsAnalysis = event.analysis || state.opsAnalysis;
+    const result = getOpsAnalysisToolResult(event.nodeId);
+    if (result) {
+      result.status = event.status || result.status;
+      result.output = event.output || result.output;
+    }
+    renderOpsPanel();
+    return;
+  }
+  if (event.type === 'model_start') {
+    const result = getOpsAnalysisToolResult(event.nodeId);
+    if (result) {
+      result.status = 'running';
+      result.output = `llm.createMessageStream => ${event.modelId}\n\n`;
+    }
+    renderOpsPanel();
+    return;
+  }
+  if (event.type === 'model_delta') {
+    const result = getOpsAnalysisToolResult(event.nodeId);
+    if (result) {
+      result.status = 'running';
+      result.output = `${result.output || ''}${event.text || ''}`;
+    }
+    renderOpsPanel();
+    return;
+  }
+  if (event.type === 'model_end') {
+    if (state.opsAnalysis) state.opsAnalysis.modelDiagnosis = event.diagnosis;
+    const result = getOpsAnalysisToolResult(event.nodeId);
+    if (result) result.status = 'completed';
+    renderOpsPanel();
+    return;
+  }
+  if (event.type === 'analysis_complete') {
+    state.opsAnalysis = event.analysis;
+    refreshOpsAlertHistory();
+    renderOpsPanel();
+    return;
+  }
+  if (event.type === 'error') {
+    state.opsError = event.message || '告警分析失败';
+    if (event.analysis) state.opsAnalysis = event.analysis;
+    renderOpsPanel();
+  }
+}
+
+function getOpsAnalysisToolResult(nodeId) {
+  if (!state.opsAnalysis?.toolResults) return null;
+  return state.opsAnalysis.toolResults.find(item => item.nodeId === nodeId) || null;
 }
 
 async function refreshOpsAlertHistory() {
@@ -4457,19 +4625,77 @@ function renderOpsToolResults(analysis) {
   const results = analysis.toolResults || [];
   if (!results.length) return '<div class="ops-empty">暂无工具调用结果</div>';
   return `
-    <div class="ops-tool-result-list">
-      ${results.map(item => `
-        <div class="ops-tool-result ${item.status}">
-          <div class="ops-tool-result-head">
+    <div class="ops-run-console">
+      <div class="ops-run-task-title">任务</div>
+      <div class="ops-run-task-list">
+        ${results.map(item => `
+          <div class="ops-run-task ${item.status}">
+            <span>${opsRunStatusIcon(item.status)}</span>
             <strong>${esc(item.label)}</strong>
-            <span>${esc(item.status)}</span>
+            <em>${opsRunStatusText(item.status)}</em>
+            <small>${esc((item.output || '').split(/\r?\n/)[0] || '')}</small>
           </div>
-          <div class="ops-node-tools">${(item.tools || []).map(tool => `<b>${esc(tool)}</b>`).join('')}</div>
-          <pre>${esc(item.output || '')}</pre>
-        </div>
-      `).join('')}
+        `).join('')}
+      </div>
+      <div class="ops-run-output-title">输出</div>
+      ${analysis.llmError ? `<div class="ops-error">真实模型调用失败：${esc(analysis.llmError)}</div>` : ''}
+      ${analysis.modelDiagnosis ? renderOpsModelDiagnosis(analysis.modelDiagnosis) : ''}
+      <div class="ops-tool-result-list">
+        ${results.map(item => `
+          <details class="ops-tool-result ${item.status}" ${['running', 'failed'].includes(item.status) || item.nodeId === 'repair-plan' ? 'open' : ''}>
+            <summary>
+              <strong>${esc(item.label)}</strong>
+              <span>${esc(opsRunStatusText(item.status))}</span>
+            </summary>
+            <div class="ops-node-tools">${(item.tools || []).map(tool => `<b>${esc(tool)}</b>`).join('')}</div>
+            <pre>${esc(item.output || '')}</pre>
+          </details>
+        `).join('')}
+      </div>
     </div>
   `;
+}
+
+function renderOpsModelDiagnosis(diagnosis) {
+  return `
+    <div class="ops-model-diagnosis">
+      <div class="ops-model-head">
+        <strong>${esc(diagnosis.summary || '模型诊断结果')}</strong>
+        <span>${esc(diagnosis.modelId || '')} · ${Math.round((diagnosis.durationMs || 0) / 1000)}s</span>
+      </div>
+      <div class="ops-model-grid">
+        <section>
+          <label>问题原因</label>
+          <p>${esc(diagnosis.rootCause || '')}</p>
+        </section>
+        <section>
+          <label>关键证据</label>
+          ${(diagnosis.evidence || []).length ? `<ul>${diagnosis.evidence.map(item => `<li>${esc(item)}</li>`).join('')}</ul>` : '<p>模型未返回结构化证据。</p>'}
+        </section>
+        <section>
+          <label>修复计划</label>
+          ${(diagnosis.repairPlan || []).length ? `<ol>${diagnosis.repairPlan.map(item => `<li>${esc(item)}</li>`).join('')}</ol>` : '<p>模型未返回结构化修复计划。</p>'}
+        </section>
+      </div>
+    </div>
+  `;
+}
+
+function opsRunStatusIcon(status) {
+  if (status === 'completed') return '✓';
+  if (status === 'failed') return '!';
+  if (status === 'running') return '●';
+  if (status === 'pending') return '○';
+  return '○';
+}
+
+function opsRunStatusText(status) {
+  if (status === 'completed') return '已完成';
+  if (status === 'failed') return '失败';
+  if (status === 'running') return '运行中';
+  if (status === 'pending') return '待启动';
+  if (status === 'skipped') return '已跳过';
+  return status || '未知';
 }
 
 // ── Agents Panel ──────────────────────────────────────────────────────

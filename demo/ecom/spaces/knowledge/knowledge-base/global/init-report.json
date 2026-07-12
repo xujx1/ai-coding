@@ -1,9 +1,9 @@
 {
-  "versionId": "kb-20260711T154713Z",
+  "versionId": "kb-20260712T071350Z",
   "knowledgeRoot": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base",
   "appCount": 15,
-  "gitNexusIndexed": 15,
-  "gitNexusFailed": 0,
+  "gitNexusIndexed": 14,
+  "gitNexusFailed": 1,
   "apps": [
     {
       "appId": "console",
@@ -11,8 +11,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/console",
       "knowledgePath": "apps/console/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -23,7 +23,7 @@
           "processes": 0,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:47:18.417Z",
+        "indexedAt": "2026-07-12T07:13:55.017Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/console"
       },
       "generatedFiles": [
@@ -51,8 +51,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
       "knowledgePath": "apps/ecom-aftersales/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -63,7 +63,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:47:24.884Z",
+        "indexedAt": "2026-07-12T07:14:01.343Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-aftersales"
       },
       "generatedFiles": [
@@ -91,8 +91,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
       "knowledgePath": "apps/ecom-content/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -103,7 +103,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:47:31.114Z",
+        "indexedAt": "2026-07-12T07:14:08.302Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-content"
       },
       "generatedFiles": [
@@ -131,8 +131,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
       "knowledgePath": "apps/ecom-customer-service/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -143,7 +143,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:47:37.440Z",
+        "indexedAt": "2026-07-12T07:14:28.949Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-customer-service"
       },
       "generatedFiles": [
@@ -171,8 +171,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
       "knowledgePath": "apps/ecom-finance/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -183,7 +183,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:47:43.937Z",
+        "indexedAt": "2026-07-12T07:14:35.211Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-finance"
       },
       "generatedFiles": [
@@ -211,8 +211,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
       "knowledgePath": "apps/ecom-fulfillment/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -223,7 +223,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:47:50.341Z",
+        "indexedAt": "2026-07-12T07:14:41.421Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-fulfillment"
       },
       "generatedFiles": [
@@ -251,8 +251,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
       "knowledgePath": "apps/ecom-inventory/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -263,7 +263,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:47:56.667Z",
+        "indexedAt": "2026-07-12T07:14:57.283Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-inventory"
       },
       "generatedFiles": [
@@ -291,20 +291,12 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
       "knowledgePath": "apps/ecom-logistics/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
-        "status": "indexed",
-        "stats": {
-          "files": 20,
-          "nodes": 181,
-          "edges": 424,
-          "communities": 11,
-          "processes": 20,
-          "embeddings": 0
-        },
-        "indexedAt": "2026-07-11T15:48:02.896Z",
-        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-logistics"
+        "status": "failed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-logistics",
+        "error": "gitnexus analyze exited with 1: {\"level\":40,\"time\":1783840500219,\"name\":\"gitnexus\",\"msg\":\"GitNexus: FTS extension unavailable; continuing without FTS features. extension install policy is \\\"never\\\"\"}\n\n\n  GitNexus Analyzer\n\n  Warning: no .git directory found — commit-tracking and incremental updates disabled."
       },
       "generatedFiles": [
         "apps/ecom-logistics/app-knowledge-base/00_概览.md",
@@ -331,8 +323,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
       "knowledgePath": "apps/ecom-marketing/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -343,7 +335,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:48:09.226Z",
+        "indexedAt": "2026-07-12T07:15:09.416Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-marketing"
       },
       "generatedFiles": [
@@ -371,8 +363,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
       "knowledgePath": "apps/ecom-merchant/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -383,7 +375,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:48:15.594Z",
+        "indexedAt": "2026-07-12T07:15:23.675Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-merchant"
       },
       "generatedFiles": [
@@ -411,8 +403,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
       "knowledgePath": "apps/ecom-payment/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -423,7 +415,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:48:21.783Z",
+        "indexedAt": "2026-07-12T07:15:32.008Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-payment"
       },
       "generatedFiles": [
@@ -451,8 +443,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
       "knowledgePath": "apps/ecom-product/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -463,7 +455,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:48:28.128Z",
+        "indexedAt": "2026-07-12T07:15:38.415Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-product"
       },
       "generatedFiles": [
@@ -491,8 +483,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
       "knowledgePath": "apps/ecom-supply-chain/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -503,7 +495,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:48:34.622Z",
+        "indexedAt": "2026-07-12T07:15:48.710Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-supply-chain"
       },
       "generatedFiles": [
@@ -531,8 +523,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
       "knowledgePath": "apps/ecom-trade/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -543,7 +535,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:48:41.138Z",
+        "indexedAt": "2026-07-12T07:15:54.937Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-trade"
       },
       "generatedFiles": [
@@ -571,8 +563,8 @@
       "root": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
       "knowledgePath": "apps/ecom-user/app-knowledge-base",
       "status": "created",
-      "generationMode": "template",
-      "sourceCommitSha": "3002e6de736a08a4cfe0389c906e7abad1a369d6",
+      "generationMode": "template-fallback",
+      "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
       "gitNexus": {
         "status": "indexed",
         "stats": {
@@ -583,7 +575,7 @@
           "processes": 20,
           "embeddings": 0
         },
-        "indexedAt": "2026-07-11T15:48:47.369Z",
+        "indexedAt": "2026-07-12T07:16:00.889Z",
         "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes/ecom-user"
       },
       "generatedFiles": [
@@ -865,6 +857,6 @@
     "registry/dependency-map.json",
     "registry/business-glossary.md"
   ],
-  "startedAt": "2026-07-11T15:47:13.747Z",
-  "finishedAt": "2026-07-11T15:48:47.514Z"
+  "startedAt": "2026-07-12T07:13:50.593Z",
+  "finishedAt": "2026-07-12T07:16:19.580Z"
 }

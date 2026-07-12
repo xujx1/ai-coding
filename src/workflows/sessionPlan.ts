@@ -1,4 +1,4 @@
-import type { ProjectManifest } from '../pipeline/node-agents/upload-init.js';
+import type { ProjectManifest } from '../agents/codegen/upload-init.js';
 import type { FanoutDecision } from './fanoutDecision.js';
 import type { PlanMigrationMetadata, PlanRevision } from './planSchemas.js';
 import { getPlanNodeContract, isRegisteredPlanNodeType, listPlanNodeContracts } from './planNodeRegistry.js';
