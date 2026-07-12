@@ -1,0 +1,6 @@
+- 先按 {{appId}} 的告警文本提取接口、依赖、异常关键词和时间窗口
+- 当前分类结论由 workflow 节点自思考生成，初始状态：{{classificationLabel}}（{{classificationType}}），置信度 {{confidence}}
+- 使用本地日志 grep、本地源码 grep、应用知识库和全局 GitNexus 图谱交叉验证，而不是依赖外部日志/APM 平台
+- {{logAction}}
+- {{evidenceAction}}
+- {{knowledgeAction}}

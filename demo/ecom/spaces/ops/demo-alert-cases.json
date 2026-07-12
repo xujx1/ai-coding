@@ -1,0 +1,46 @@
+{
+  "version": "2026-07-12",
+  "description": "Demo alert cases for the application operations fault-analysis workflow. Each alert has a matching local log entry under demo/ecom/logs and a seeded vector in spaces/ops/alert-history.json.",
+  "cases": [
+    {
+      "id": "aftersales-null-20260712-001",
+      "appId": "ecom-aftersales",
+      "title": "售后退款空指针",
+      "alert": "售后退款申请失败，服务 ecom-aftersales，接口 POST /api/aftersales/refund，traceId=aftersales-null-20260712-001，NullPointerException，refundContext 为空，影响用户退款",
+      "expectedLog": "demo/ecom/logs/ecom-aftersales.log",
+      "expectedCategoryHint": "空指针 / 业务上下文缺失"
+    },
+    {
+      "id": "aftersales-trade-timeout-20260712-002",
+      "appId": "ecom-aftersales",
+      "title": "售后查询交易超时",
+      "alert": "售后退货创建失败，服务 ecom-aftersales，接口 POST /api/aftersales/return，traceId=aftersales-trade-timeout-20260712-002，查询 ecom-trade 订单详情 timeout，退货链路响应慢",
+      "expectedLog": "demo/ecom/logs/ecom-aftersales.log",
+      "expectedCategoryHint": "依赖服务故障 / timeout"
+    },
+    {
+      "id": "payment-callback-dup-20260712-003",
+      "appId": "ecom-payment",
+      "title": "支付回调重复导致状态冲突",
+      "alert": "支付回调处理失败，服务 ecom-payment，接口 POST /api/payment/callback，traceId=payment-callback-dup-20260712-003，DuplicatePaymentCallbackException，支付状态 PAID 与 PAYING 冲突",
+      "expectedLog": "demo/ecom/logs/ecom-payment.log",
+      "expectedCategoryHint": "业务数据不一致 / 幂等异常"
+    },
+    {
+      "id": "inventory-stock-negative-20260712-004",
+      "appId": "ecom-inventory",
+      "title": "库存扣减失败导致超卖风险",
+      "alert": "库存扣减失败，服务 ecom-inventory，接口 POST /api/inventory/deduct，traceId=inventory-stock-negative-20260712-004，BusinessDataInconsistencyException，available stock would become negative，存在超卖风险",
+      "expectedLog": "demo/ecom/logs/ecom-inventory.log",
+      "expectedCategoryHint": "业务数据不一致 / 库存超卖"
+    },
+    {
+      "id": "logistics-track-timeout-20260712-005",
+      "appId": "ecom-logistics",
+      "title": "物流轨迹同步超时",
+      "alert": "物流轨迹同步失败，服务 ecom-logistics，接口 POST /api/logistics/tracking/sync，traceId=logistics-track-timeout-20260712-005，carrier tracking API timeout，履约轨迹更新延迟",
+      "expectedLog": "demo/ecom/logs/ecom-logistics.log",
+      "expectedCategoryHint": "依赖服务故障 / timeout"
+    }
+  ]
+}
