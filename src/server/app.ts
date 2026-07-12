@@ -46,7 +46,7 @@ import { buildLifecycleReadModel } from '../lifecycle/readModel.js';
 import { loadLifecycleState } from '../lifecycle/store.js';
 import { createEcomLocalGitService } from '../integrations/localGitService.js';
 import { initAllAppKnowledge } from '../knowledge/initAllAppKnowledge.js';
-import { analyzeOpsAlert, listOpsApplications } from '../integrations/app-ops.js';
+import { analyzeOpsAlert, listOpsAlertHistory, listOpsApplications, listOpsCapabilities, listOpsWorkflowTemplates } from '../integrations/app-ops.js';
 
 interface UploadedFilePayload {
   name: string;
@@ -90,6 +90,24 @@ interface ManagedKnowledgeBaseOverview {
   versionId?: string;
   knowledgeRoot?: string;
   kbPath?: string;
+  fileRoot?: string;
+  paths: string[];
+}
+
+interface ManagedRequirementOverview {
+  id: string;
+  runId?: string;
+  requirementId: string;
+  name: string;
+  status: string;
+  phase: string;
+  appCount: number;
+  artifactCount: number;
+  waitingApprovals: number;
+  completedApprovals: number;
+  type: 'session' | 'mrd';
+  source: string;
+  updatedAt?: string;
   fileRoot?: string;
   paths: string[];
 }
@@ -344,6 +362,15 @@ app.get('/api/ops/apps', (c) => {
   return c.json({ apps: listOpsApplications() });
 });
 
+app.get('/api/ops/workbench', (c) => {
+  return c.json({
+    apps: listOpsApplications(),
+    workflows: listOpsWorkflowTemplates(),
+    capabilities: listOpsCapabilities(),
+    alertHistory: listOpsAlertHistory(),
+  });
+});
+
 app.post('/api/ops/analyze', async (c) => {
   try {
     const body = await c.req.json();
@@ -351,7 +378,19 @@ app.post('/api/ops/analyze', async (c) => {
     const alert = typeof body.alert === 'string' ? body.alert : '';
     if (!appId) return c.json({ error: 'appId is required' }, 400);
     if (!alert.trim()) return c.json({ error: 'alert is required' }, 400);
-    return c.json({ analysis: analyzeOpsAlert({ appId, alert }) });
+    const workflowConfig = isRecord(body.workflowConfig)
+      ? {
+        enabledNodeIds: Array.isArray(body.workflowConfig.enabledNodeIds)
+          ? (body.workflowConfig.enabledNodeIds as unknown[]).filter((item): item is string => typeof item === 'string')
+          : undefined,
+        nodeTools: isRecord(body.workflowConfig.nodeTools)
+          ? Object.fromEntries(Object.entries(body.workflowConfig.nodeTools)
+            .filter(([, value]) => Array.isArray(value))
+            .map(([key, value]) => [key, (value as unknown[]).filter((item): item is string => typeof item === 'string')]))
+          : undefined,
+      }
+      : undefined;
+    return c.json({ analysis: analyzeOpsAlert({ appId, alert, workflowConfig }) });
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
@@ -381,6 +420,40 @@ app.get('/api/management/knowledge/:knowledgeId/files/content', (c) => {
 
   const root = resolveKnowledgeFileRoot(knowledgeBase);
   if (!root) return c.json({ error: 'Knowledge files not found' }, 404);
+
+  const fullPath = path.resolve(root, filePath);
+  if (!isPathInside(root, fullPath) || !existsSync(fullPath) || !statSync(fullPath).isFile()) {
+    return c.json({ error: 'File not found', path: filePath }, 404);
+  }
+
+  const content = readFileSync(fullPath, 'utf-8');
+  return c.json({ path: filePath, content, size: statSync(fullPath).size });
+});
+
+app.get('/api/management/requirements/:requirementId/files', (c) => {
+  const requirementId = c.req.param('requirementId');
+  const requirement = findRequirementOverview(requirementId);
+  if (!requirement) return c.json({ error: 'Requirement not found' }, 404);
+
+  const root = resolveRequirementFileRoot(requirement);
+  if (!root || !existsSync(root)) return c.json({ error: 'Requirement files not found' }, 404);
+
+  return c.json({
+    requirementId,
+    tree: buildFileTreeFromRelativePaths(root, requirement.paths),
+  });
+});
+
+app.get('/api/management/requirements/:requirementId/files/content', (c) => {
+  const requirementId = c.req.param('requirementId');
+  const filePath = c.req.query('path');
+  if (!filePath) return c.json({ error: 'path query param required' }, 400);
+
+  const requirement = findRequirementOverview(requirementId);
+  if (!requirement) return c.json({ error: 'Requirement not found' }, 404);
+
+  const root = resolveRequirementFileRoot(requirement);
+  if (!root) return c.json({ error: 'Requirement files not found' }, 404);
 
   const fullPath = path.resolve(root, filePath);
   if (!isPathInside(root, fullPath) || !existsSync(fullPath) || !statSync(fullPath).isFile()) {
@@ -921,13 +994,13 @@ function isDemoTextFile(filePath: string): boolean {
 function buildManagementOverview(): {
   repositories: ManagedRepositoryOverview[];
   knowledgeBases: ManagedKnowledgeBaseOverview[];
-  requirements: unknown[];
+  requirements: ManagedRequirementOverview[];
   pipelines: unknown[];
   generatedAt: string;
 } {
   const repositoriesByApp = buildEcomRepositoryOverview();
   const knowledgeBases: ManagedKnowledgeBaseOverview[] = [];
-  const requirements: unknown[] = [];
+  const requirements: ManagedRequirementOverview[] = [];
   const pipelines: unknown[] = [];
 
   for (const session of sessionManager.listSessions()) {
@@ -950,14 +1023,16 @@ function buildManagementOverview(): {
         role: 'primary',
       }));
 
-    const knowledgeArtifacts = lifecycle?.artifacts?.filter(artifact =>
-      artifact.type.startsWith('app-knowledge')
-      || artifact.type === 'knowledge-vector-index'
-      || artifact.type === 'knowledge-delta'
-    ) ?? [];
+    const knowledgeArtifacts = lifecycle?.artifacts?.filter(artifact => {
+      const artifactType = String(artifact.type ?? '');
+      return artifactType.startsWith('app-knowledge')
+        || artifactType === 'knowledge-vector-index'
+        || artifactType === 'knowledge-delta';
+    }) ?? [];
     const knowledgeByKey = new Map<string, typeof knowledgeArtifacts>();
     for (const artifact of knowledgeArtifacts) {
-      const key = artifact.appId ?? (artifact.type === 'knowledge-vector-index' ? 'global' : 'global');
+      const artifactType = String(artifact.type ?? '');
+      const key = artifact.appId ?? (artifactType === 'knowledge-vector-index' ? 'global' : 'global');
       knowledgeByKey.set(key, [...(knowledgeByKey.get(key) ?? []), artifact]);
     }
     for (const [key, artifacts] of knowledgeByKey) {
@@ -983,9 +1058,15 @@ function buildManagementOverview(): {
       });
     }
 
-    requirements.push({
+    const sessionRequirementId = typeof lifecycle?.requirementId === 'string'
+      ? lifecycle.requirementId
+      : typeof execution?.metadata?.requirementId === 'string'
+        ? execution.metadata.requirementId
+        : session.runId;
+    const requirementOverview: ManagedRequirementOverview = {
+      id: `session:${session.runId}`,
       runId: session.runId,
-      requirementId: lifecycle?.requirementId ?? execution?.metadata?.requirementId ?? session.runId,
+      requirementId: sessionRequirementId,
       name: execution?.name ?? session.name,
       status: lifecycle?.status ?? execution?.status ?? session.status,
       phase: lifecycle?.phase ?? execution?.currentNodeId ?? 'created',
@@ -993,11 +1074,17 @@ function buildManagementOverview(): {
       artifactCount: lifecycle?.artifacts.length ?? Object.values(execution?.artifactIndex ?? {}).flat().length,
       waitingApprovals: lifecycle?.approvals.filter(approval => approval.status === 'waiting').length ?? 0,
       completedApprovals: lifecycle?.approvals.filter(approval => approval.status === 'resolved').length ?? 0,
-    });
+      type: 'session',
+      source: 'runtime-projects',
+      updatedAt: execution?.updatedAt ? new Date(execution.updatedAt).toISOString() : undefined,
+      fileRoot: paths.runDir,
+      paths: listRunMrdInputPaths(paths),
+    };
+    if (shouldExposeRequirement(requirementOverview)) requirements.push(requirementOverview);
 
     pipelines.push({
       runId: session.runId,
-      requirementId: lifecycle?.requirementId ?? execution?.metadata?.requirementId ?? session.runId,
+      requirementId: sessionRequirementId,
       name: execution?.name ?? session.name,
       status: execution?.status ?? session.status,
       currentNodeId: execution?.currentNodeId,
@@ -1011,6 +1098,7 @@ function buildManagementOverview(): {
       artifactDir: paths.artifactsDir,
     });
   }
+  appendMrdRepositoryRequirements(requirements);
   appendKnowledgeRepositoryOverview(knowledgeBases, repositoriesByApp);
 
   return {
@@ -1020,6 +1108,78 @@ function buildManagementOverview(): {
     pipelines,
     generatedAt: new Date().toISOString(),
   };
+}
+
+function shouldExposeRequirement(requirement: ManagedRequirementOverview): boolean {
+  return requirement.runId === FULL_FLOW_DEMO_SOURCE_RUN_ID
+    || requirement.name.includes('真实上传活动命中预览 04:33:51');
+}
+
+function appendMrdRepositoryRequirements(requirements: ManagedRequirementOverview[]): void {
+  const mrdRoot = path.join(process.cwd(), 'demo', 'mrd');
+  if (!existsSync(mrdRoot) || !statSync(mrdRoot).isDirectory()) return;
+
+  for (const entry of fs.readdirSync(mrdRoot, { withFileTypes: true })) {
+    if (!entry.isFile() || path.extname(entry.name).toLowerCase() !== '.md') continue;
+    const fullPath = path.join(mrdRoot, entry.name);
+    const content = readFileSync(fullPath, 'utf-8');
+    const title = extractMarkdownTitle(content) || entry.name.replace(/\.md$/i, '');
+    if (!isTargetDemoMrd(title, entry.name)) continue;
+    const stat = statSync(fullPath);
+    requirements.push({
+      id: `mrd:${entry.name}`,
+      requirementId: entry.name.replace(/\.md$/i, ''),
+      name: title,
+      status: 'available',
+      phase: 'mrd-ready',
+      appCount: countMrdImpactApps(content),
+      artifactCount: 1,
+      waitingApprovals: 0,
+      completedApprovals: 0,
+      type: 'mrd',
+      source: 'demo/mrd',
+      updatedAt: stat.mtime.toISOString(),
+      fileRoot: mrdRoot,
+      paths: [entry.name],
+    });
+  }
+}
+
+function isTargetDemoMrd(title: string, fileName: string): boolean {
+  return title.includes('定向营销活动创建时增加商品上架与库存保护校验')
+    || fileName === 'targeted-campaign-stock-guard-mrd.md';
+}
+
+function extractMarkdownTitle(content: string): string | undefined {
+  const line = content.split(/\r?\n/).find(item => item.trim().startsWith('# '));
+  return line?.replace(/^#\s+/, '').trim();
+}
+
+function countMrdImpactApps(content: string): number {
+  const impactSection = content.split('## 3. 影响应用范围')[1]?.split('不纳入本次变更')[0] ?? content;
+  const apps = new Set<string>();
+  for (const match of impactSection.matchAll(/`(console|ecom-[^`]+)`/g)) {
+    apps.add(match[1]);
+  }
+  return apps.size;
+}
+
+function listRunMrdInputPaths(paths: ReturnType<typeof getRunPaths>): string[] {
+  if (!existsSync(paths.inputDir) || !statSync(paths.inputDir).isDirectory()) return [];
+  const files: string[] = [];
+  const collect = (nodes: FileNode[]): void => {
+    for (const node of nodes) {
+      if (node.type === 'directory') collect(node.children ?? []);
+      if (node.type === 'file' && /\.(md|markdown|txt)$/i.test(node.name)) {
+        files.push(`input/${node.path.replace(/\\/g, '/')}`);
+      }
+    }
+  };
+  collect(listFilesRecursive(paths.inputDir, paths.inputDir));
+  return files.sort((a, b) => {
+    const score = (item: string) => (/mrd/i.test(item) ? 0 : 1);
+    return score(a) - score(b) || a.localeCompare(b);
+  });
 }
 
 function appendKnowledgeRepositoryOverview(
@@ -1213,6 +1373,18 @@ function resolveKnowledgeFileRoot(knowledgeBase: ManagedKnowledgeBaseOverview): 
   if (knowledgeBase.runId && knowledgeBase.runId !== 'init-all-app-knowledge') {
     return getRunPaths(knowledgeBase.runId).runDir;
   }
+  return undefined;
+}
+
+function findRequirementOverview(requirementId: string): ManagedRequirementOverview | undefined {
+  return buildManagementOverview().requirements.find(item =>
+    item.id === requirementId || item.requirementId === requirementId
+  );
+}
+
+function resolveRequirementFileRoot(requirement: ManagedRequirementOverview): string | undefined {
+  if (requirement.fileRoot) return path.resolve(requirement.fileRoot);
+  if (requirement.runId) return getRunPaths(requirement.runId).runDir;
   return undefined;
 }
 

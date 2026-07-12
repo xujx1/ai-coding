@@ -1,0 +1,21 @@
+{
+  "alerts": [
+    {
+      "id": "alert-1783824411049-j32rj1",
+      "appId": "ecom-trade",
+      "alert": "订单创建接口 timeout，服务 ecom-trade，traceId=case001，上游反馈下单链路响应慢",
+      "category": "DEPENDENCY_FAILURE",
+      "categoryLabel": "依赖服务故障",
+      "vector": {
+        "订单创建接口": 1,
+        "timeout": 1,
+        "ecom": 1,
+        "trade": 1,
+        "traceid": 1,
+        "case001": 1,
+        "上游反馈下单链路响应慢": 1
+      },
+      "createdAt": "2026-07-12T02:46:51.049Z"
+    }
+  ]
+}

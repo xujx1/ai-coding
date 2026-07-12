@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Coding Pipeline - MRD 到代码工作台</title>
-  <link rel="stylesheet" href="/app.css?v=20260711-knowledge-init-1">
+  <link rel="stylesheet" href="/app.css?v=20260712-ops-workbench-8">
 </head>
 <body>
   <div id="app">
@@ -33,6 +33,10 @@
           <button class="management-nav-item" data-module="pipeline" onclick="switchManagementModule('pipeline')" title="迭代 PI">
             <span class="management-nav-icon">↦</span>
             <span>迭代 PI</span>
+          </button>
+          <button class="management-nav-item" data-module="ops" onclick="switchManagementModule('ops')" title="应用运维">
+            <span class="management-nav-icon">▦</span>
+            <span>应用运维</span>
           </button>
         </div>
       </div>
@@ -84,7 +88,7 @@
         <div class="tab-bar">
           <button class="tab-btn active" data-tab="artifacts" onclick="switchTab('artifacts')">📁 产物</button>
           <button class="tab-btn" data-tab="preview" onclick="switchTab('preview')">📄 预览</button>
-          <button class="tab-btn" data-tab="ops" onclick="switchTab('ops')">▣ 运维</button>
+          <button class="tab-btn" data-tab="ops" onclick="switchTab('ops')">▣ 应用运维</button>
           <button class="tab-btn" data-tab="agents" onclick="switchTab('agents')">🤖 Agent</button>
         </div>
         <div class="tab-panel active" id="tab-artifacts">
@@ -249,6 +253,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=20260711-knowledge-init-1"></script>
+  <script src="/app.js?v=20260712-ops-workbench-8"></script>
 </body>
 </html>

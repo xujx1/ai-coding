@@ -40,12 +40,21 @@ const state = {
   refreshTimer: null,
   activeModule: 'requirements',
   managementOverview: { repositories: [], knowledgeBases: [], requirements: [], pipelines: [] },
+  selectedRequirementId: '',
   selectedKnowledgeBaseId: '',
   selectedKnowledgeBaseIds: new Set(),
   knowledgeInitRunning: false,
   knowledgeInitStatus: '',
   opsApps: [],
+  opsWorkflows: [],
+  opsCapabilities: [],
+  opsAlertHistory: [],
   selectedOpsAppId: '',
+  selectedOpsWorkflowNodeId: '',
+  opsNodeToolOverrides: {},
+  opsWorkflowDisabledNodes: new Set(),
+  opsWorkflowConfigLoaded: false,
+  activeOpsSection: 'alert',
   opsAlertDraft: '',
   opsAnalyzing: false,
   opsAnalysis: null,
@@ -465,6 +474,7 @@ const MANAGEMENT_MODULES = {
   requirements: { title: '需求管理', listTitle: '需求列表', empty: '暂无需求' },
   repositories: { title: '仓库管理', listTitle: '仓库列表', empty: '暂无仓库' },
   knowledge: { title: '知识库管理', listTitle: '知识库列表', empty: '暂无知识库' },
+  ops: { title: '应用运维', listTitle: '告警分析', empty: '暂无运维分析' },
   pipeline: { title: '迭代 PI', listTitle: '迭代详情', empty: '暂无迭代详情' },
 };
 
@@ -495,9 +505,13 @@ async function loadManagementOverview() {
 function switchManagementModule(module) {
   if (!MANAGEMENT_MODULES[module]) return;
   state.activeModule = module;
+  if ((module === 'knowledge' || module === 'requirements') && (state.activeTab === 'ops' || state.activeTab === 'agents')) {
+    activateTab('artifacts');
+  }
   renderManagementNav();
   renderPipelineBar();
   renderExecutionTrace();
+  if (module === 'ops') loadOpsPanel();
 }
 
 function renderManagementWorkspace() {
@@ -561,24 +575,38 @@ function renderManagementWorkspace() {
       ]),
     });
   }
+  if (module === 'ops') {
+    return `
+      <div class="management-page ops-management-page">
+        <div class="management-page-header">
+          <div>
+            <h2>${esc(title)}</h2>
+            <p>基于 ai-coding 应用路径、源码、知识库和 GitNexus 产物分析应用报警。</p>
+          </div>
+        </div>
+        <div id="ops-workspace-panel"><div style="color:var(--text-muted);font-size:11px;padding:8px">正在加载应用运维...</div></div>
+      </div>
+    `;
+  }
   if (module === 'requirements') {
     return renderManagementPage({
       title,
-      subtitle: '按 requirementId 管理需求状态、阶段、审批门和交付范围。',
+      subtitle: '按 requirementId 管理真实需求流程和 MRD 原文。',
       stats: [
         ['需求', state.managementOverview.requirements?.length || 0],
         ['待审批', (state.managementOverview.requirements || []).reduce((sum, req) => sum + (req.waitingApprovals || 0), 0)],
         ['应用数', (state.managementOverview.requirements || []).reduce((sum, req) => sum + (req.appCount || 0), 0)],
       ],
-      columns: ['需求', '阶段', '状态', '应用', '审批', '操作'],
+      columns: ['需求', '来源', '阶段', '状态', '应用', '审批', '操作'],
       rows: (state.managementOverview.requirements || []).map(req => [
         req.name || req.requirementId,
+        req.source || '',
         req.phase || '',
         req.status || '',
         String(req.appCount || 0),
         `${req.waitingApprovals || 0} 待 / ${req.completedApprovals || 0} 完成`,
-        req.runId
-          ? { html: `<button class="table-action-link" type="button" onclick="openRequirementDetail('${escAttr(req.runId)}')">详情</button>` }
+        req.id
+          ? { html: renderRequirementActions(req) }
           : '',
       ]),
     });
@@ -647,6 +675,15 @@ function renderManagementTableCell(cell) {
   return `<td>${esc(cell)}</td>`;
 }
 
+function renderRequirementActions(req) {
+  return `
+    <div class="table-actions">
+      <button class="table-action-link" type="button" onclick="viewRequirementMrd('${escAttr(req.id)}')">MRD 原文</button>
+      ${req.runId ? `<button class="table-action-link" type="button" onclick="openRequirementDetail('${escAttr(req.runId)}')">详情</button>` : ''}
+    </div>
+  `;
+}
+
 function uniqueCount(values) {
   return new Set(values.filter(Boolean)).size;
 }
@@ -671,6 +708,15 @@ function formatDateTime(value) {
   });
 }
 
+function groupBy(items, keyFn) {
+  return (items || []).reduce((groups, item) => {
+    const key = keyFn(item);
+    groups[key] = groups[key] || [];
+    groups[key].push(item);
+    return groups;
+  }, {});
+}
+
 // ── Sessions ────────────────────────────────────────────────────────────
 function loadSessions() {
   fetch('/api/sessions').then(r => r.json()).then(data => {
@@ -686,6 +732,13 @@ async function openRequirementDetail(runId) {
   state.activeModule = 'pipeline';
   renderManagementNav();
   await loadSession(runId);
+}
+
+async function viewRequirementMrd(requirementId) {
+  if (!requirementId) return;
+  state.selectedRequirementId = requirementId;
+  activateTab('artifacts');
+  await loadRequirementFileTree(requirementId);
 }
 
 async function viewKnowledgeBase(knowledgeId) {
@@ -3477,6 +3530,15 @@ function switchTab(tab) {
     return;
   }
   if (tab === 'preview') {
+    if (state.activeModule === 'requirements' && state.selectedRequirementId) {
+      const firstFile = findFirstRequirementFile(state.fileTreeCache.requirement || []);
+      if (firstFile) previewRequirementFile(firstFile.path, firstFile.requirementId);
+      else {
+        const container = document.getElementById('file-preview');
+        if (container) container.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">当前需求暂无可预览 MRD</div>';
+      }
+      return;
+    }
     if (state.activeModule === 'knowledge') {
       const firstFile = findFirstKnowledgeFile(state.fileTreeCache.knowledge || []);
       if (firstFile) previewKnowledgeFile(firstFile.path, firstFile.knowledgeId);
@@ -3568,11 +3630,41 @@ async function loadKnowledgeFileTrees(knowledgeBases) {
   }
 }
 
+async function loadRequirementFileTree(requirementId = state.selectedRequirementId) {
+  if (!requirementId) return;
+  const container = document.getElementById('artifact-tree');
+  const actions = document.getElementById('artifact-actions');
+  if (actions) actions.style.display = 'none';
+  if (container) container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:8px">正在加载 MRD 原文...</div>';
+  try {
+    const res = await fetch(`/api/management/requirements/${encodeURIComponent(requirementId)}/files`);
+    const data = await res.json();
+    if (state.selectedRequirementId !== requirementId) return;
+    if (!res.ok) throw new Error(data.error || 'MRD 原文加载失败');
+    state.fileTreeCache.requirement = annotateRequirementTree(data.tree || [], requirementId);
+    if (container) container.innerHTML = renderFileTree(state.fileTreeCache.requirement, 'requirement');
+    const preview = document.getElementById('file-preview');
+    if (preview) preview.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">选择 MRD 文件查看原文</div>';
+    const firstFile = findFirstRequirementFile(state.fileTreeCache.requirement || []);
+    if (firstFile) previewRequirementFile(firstFile.path, firstFile.requirementId);
+  } catch (error) {
+    if (container) container.innerHTML = `<div style="color:var(--accent-red);font-size:11px;padding:8px">${esc(error.message || String(error))}</div>`;
+  }
+}
+
 function annotateKnowledgeTree(nodes, knowledgeId) {
   return (nodes || []).map(node => ({
     ...node,
     knowledgeId,
     children: node.children ? annotateKnowledgeTree(node.children, knowledgeId) : node.children,
+  }));
+}
+
+function annotateRequirementTree(nodes, requirementId) {
+  return (nodes || []).map(node => ({
+    ...node,
+    requirementId,
+    children: node.children ? annotateRequirementTree(node.children, requirementId) : node.children,
   }));
 }
 
@@ -3635,6 +3727,17 @@ function findFirstKnowledgeFile(nodes) {
     if (node.type === 'file') return { path: node.path, knowledgeId: node.knowledgeId || state.selectedKnowledgeBaseId };
     if (node.type === 'directory') {
       const child = findFirstKnowledgeFile(node.children || []);
+      if (child) return child;
+    }
+  }
+  return null;
+}
+
+function findFirstRequirementFile(nodes) {
+  for (const node of nodes || []) {
+    if (node.type === 'file') return { path: node.path, requirementId: node.requirementId || state.selectedRequirementId };
+    if (node.type === 'directory') {
+      const child = findFirstRequirementFile(node.children || []);
       if (child) return child;
     }
   }
@@ -3733,6 +3836,9 @@ function sortStageArtifacts(nodeId, paths) {
 
 function renderFileTree(nodes, scope, depth = 0) {
   if (!nodes || !nodes.length) {
+    if (scope === 'requirement') {
+      return '<div style="color:var(--text-muted);font-size:11px;padding:8px">当前需求暂无 MRD 原文</div>';
+    }
     if (scope === 'knowledge') {
       return '<div style="color:var(--text-muted);font-size:11px;padding:8px">当前知识库暂无产物</div>';
     }
@@ -3753,7 +3859,9 @@ function renderFileTree(nodes, scope, depth = 0) {
     } else {
       const click = scope === 'knowledge'
         ? `previewKnowledgeFile(${escAttr(JSON.stringify(n.path))}, ${escAttr(JSON.stringify(n.knowledgeId || state.selectedKnowledgeBaseId))})`
-        : `previewFile('${scope}', '${esc(n.path.replace(/'/g,"\\'"))}')`;
+        : scope === 'requirement'
+          ? `previewRequirementFile(${escAttr(JSON.stringify(n.path))}, ${escAttr(JSON.stringify(n.requirementId || state.selectedRequirementId))})`
+          : `previewFile('${scope}', '${esc(n.path.replace(/'/g,"\\'"))}')`;
       return `<div class="tree-file" onclick="${click}">
         <span>📄 ${esc(n.name)}</span>
         <span style="margin-left:auto;font-size:10px;color:var(--text-muted)">${n.size ? (n.size/1024).toFixed(1)+'KB' : ''}</span>
@@ -3766,6 +3874,26 @@ async function previewKnowledgeFile(filePath, knowledgeId = state.selectedKnowle
   if (!knowledgeId) return;
   activateTab('preview');
   const res = await fetch(`/api/management/knowledge/${encodeURIComponent(knowledgeId)}/files/content?path=${encodeURIComponent(filePath)}`);
+  const data = await res.json();
+  const container = document.getElementById('file-preview');
+  if (!container) return;
+  if (data.error) {
+    container.innerHTML = `<div style="padding:20px;color:var(--accent-red)">${esc(data.error)}</div>`;
+    return;
+  }
+  container.innerHTML = `
+    <div class="file-preview-header">
+      <span>${esc(data.path)}</span>
+      <span>${(data.size/1024).toFixed(1)}KB</span>
+    </div>
+    <div class="file-preview-content">${esc(data.content || '')}</div>
+  `;
+}
+
+async function previewRequirementFile(filePath, requirementId = state.selectedRequirementId) {
+  if (!requirementId) return;
+  activateTab('preview');
+  const res = await fetch(`/api/management/requirements/${encodeURIComponent(requirementId)}/files/content?path=${encodeURIComponent(filePath)}`);
   const data = await res.json();
   const container = document.getElementById('file-preview');
   if (!container) return;
@@ -3818,16 +3946,23 @@ function clearPreviewForSelectedNode() {
 
 // ── Ops Panel ──────────────────────────────────────────────────────────
 async function loadOpsPanel() {
-  const container = document.getElementById('ops-panel');
+  const container = getOpsPanelContainer();
   if (!container) return;
+  loadOpsWorkflowConfig();
   if (!state.opsApps.length) {
     container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:8px">正在加载应用...</div>';
     try {
-      const res = await fetch('/api/ops/apps');
+      const res = await fetch('/api/ops/workbench');
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '应用加载失败');
+      if (!res.ok) throw new Error(data.error || '应用运维工作台加载失败');
       state.opsApps = data.apps || [];
+      state.opsWorkflows = data.workflows || [];
+      state.opsCapabilities = data.capabilities || [];
+      state.opsAlertHistory = data.alertHistory || [];
       if (!state.selectedOpsAppId && state.opsApps.length) state.selectedOpsAppId = state.opsApps[0].appId;
+      if (!state.selectedOpsWorkflowNodeId && state.opsWorkflows[0]?.nodes?.length) {
+        state.selectedOpsWorkflowNodeId = state.opsWorkflows[0].nodes[0].id;
+      }
     } catch (error) {
       state.opsError = error.message || String(error);
     }
@@ -3836,44 +3971,383 @@ async function loadOpsPanel() {
 }
 
 function renderOpsPanel() {
-  const container = document.getElementById('ops-panel');
+  const container = getOpsPanelContainer();
   if (!container) return;
+  if (state.activeOpsSection === 'tools' || state.activeOpsSection === 'settings') {
+    state.activeOpsSection = 'workflow';
+  }
   const selected = state.opsApps.find(app => app.appId === state.selectedOpsAppId);
+  const workspace = container.id === 'ops-workspace-panel';
+  if (!workspace) {
+    container.innerHTML = renderOpsAlertPanel(selected);
+    return;
+  }
   container.innerHTML = `
-    <div class="ops-panel">
-      <div class="ops-field">
-        <label>应用</label>
-        <select onchange="selectOpsApp(this.value)">
-          ${state.opsApps.map(app => `<option value="${escAttr(app.appId)}" ${app.appId === state.selectedOpsAppId ? 'selected' : ''}>${esc(app.name || app.appId)}</option>`).join('')}
-        </select>
+    <div class="ops-workbench">
+      <div class="ops-summary-grid">
+        <div><strong>${state.opsApps.length}</strong><span>应用</span></div>
+        <div><strong>${state.opsWorkflows.length}</strong><span>Workflow</span></div>
+        <div><strong>${getOpsWorkflowToolNames().length}</strong><span>节点工具</span></div>
       </div>
-      ${selected ? `
-        <div class="ops-app-card">
-          <div class="ops-app-title">${esc(selected.appId)}</div>
-          <div class="ops-app-desc">${esc(selected.description || '暂无描述')}</div>
-          <div class="ops-chip-row">
-            ${(selected.codeSignals || []).map(signal => `<span>${esc(signal)}</span>`).join('')}
-            <span>API ${selected.apiCount || 0}</span>
+      <div class="ops-workbench-grid">
+        <aside class="ops-app-list">
+          <div class="ops-block-title">应用</div>
+          ${state.opsApps.map(app => `
+            <button type="button" class="ops-app-item ${app.appId === state.selectedOpsAppId ? 'active' : ''}" onclick="selectOpsApp('${escAttr(app.appId)}')">
+              <strong>${esc(app.appId)}</strong>
+              <span>${esc(app.description || '')}</span>
+            </button>
+          `).join('')}
+        </aside>
+        <section class="ops-main">
+          ${selected ? renderOpsAppHeader(selected) : ''}
+          <div class="ops-section-tabs">
+            ${[
+              ['alert', '告警验证'],
+              ['workflow', 'Workflow'],
+              ['records', '告警历史'],
+            ].map(([id, label]) => `<button type="button" class="${state.activeOpsSection === id ? 'active' : ''}" onclick="switchOpsSection('${id}')">${label}</button>`).join('')}
           </div>
-        </div>
-      ` : ''}
-      <div class="ops-field">
-        <label>告警内容</label>
-        <textarea rows="7" placeholder="粘贴报警标题、错误日志、traceId、实例、时间窗口..." oninput="updateOpsAlert(this.value)">${esc(state.opsAlertDraft)}</textarea>
+          ${renderOpsSection(selected)}
+        </section>
       </div>
-      <button class="btn btn-primary ops-submit" onclick="analyzeOpsAlert()" ${state.opsAnalyzing || !state.selectedOpsAppId ? 'disabled' : ''}>
-        ${state.opsAnalyzing ? '分析中...' : '分析告警'}
-      </button>
+    </div>
+  `;
+}
+
+function renderOpsAlertPanel(selected) {
+  return `
+    <div class="ops-panel">
+      ${renderOpsAppSelect(selected)}
+      ${selected ? renderOpsAppHeader(selected) : ''}
+      ${renderOpsAlertForm()}
       ${state.opsError ? `<div class="ops-error">${esc(state.opsError)}</div>` : ''}
       ${state.opsAnalysis ? renderOpsAnalysis(state.opsAnalysis) : ''}
     </div>
   `;
 }
 
+function renderOpsAppSelect(selected) {
+  return `
+    <div class="ops-field">
+      <label>应用</label>
+      <select onchange="selectOpsApp(this.value)">
+        ${state.opsApps.map(app => `<option value="${escAttr(app.appId)}" ${app.appId === state.selectedOpsAppId ? 'selected' : ''}>${esc(app.name || app.appId)}</option>`).join('')}
+      </select>
+    </div>
+  `;
+}
+
+function renderOpsAppHeader(selected) {
+  return `
+    <div class="ops-app-card">
+      <div class="ops-app-title">${esc(selected.appId)}</div>
+      <div class="ops-app-desc">${esc(selected.description || '暂无描述')}</div>
+      <div class="ops-chip-row">
+        ${(selected.codeSignals || []).map(signal => `<span>${esc(signal)}</span>`).join('')}
+        <span>API ${selected.apiCount || 0}</span>
+        ${(selected.dependencies || []).map(dep => `<span>依赖 ${esc(dep)}</span>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderOpsSection(selected) {
+  if (state.activeOpsSection === 'workflow') return renderOpsWorkflowSection();
+  if (state.activeOpsSection === 'tools') return renderOpsToolsSection();
+  if (state.activeOpsSection === 'records') return renderOpsRecordsSection(selected);
+  return renderOpsAlertSection();
+}
+
+function renderOpsAlertSection() {
+  return `
+    <div class="ops-alert-layout">
+      <div class="ops-alert-left">
+        ${renderOpsAlertForm()}
+        ${state.opsError ? `<div class="ops-error">${esc(state.opsError)}</div>` : ''}
+      </div>
+      <div class="ops-card ops-tool-output-card">
+        <div class="ops-card-head">
+          <div>
+            <div class="ops-block-title">工具调用结果</div>
+            <p>按当前 Workflow 节点配置执行，只展示各节点工具输出。</p>
+          </div>
+        </div>
+        ${state.opsAnalysis ? renderOpsToolResults(state.opsAnalysis) : '<div class="ops-empty">提交告警后展示各 Agent 的工具调用结果。</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderOpsAlertForm() {
+  return `
+    <div class="ops-card">
+      <div class="ops-block-title">告警验证</div>
+      <div class="ops-field">
+        <label>告警内容</label>
+        <textarea rows="7" placeholder="粘贴报警标题、服务名、接口、错误关键词、traceId、实例、时间窗口..." oninput="updateOpsAlert(this.value)">${esc(state.opsAlertDraft)}</textarea>
+      </div>
+      <button class="btn btn-primary ops-submit" onclick="analyzeOpsAlert()" ${state.opsAnalyzing || !state.selectedOpsAppId ? 'disabled' : ''}>
+        ${state.opsAnalyzing ? '分析中...' : '分析告警'}
+      </button>
+    </div>
+  `;
+}
+
+function renderOpsWorkflowSection() {
+  const workflow = state.opsWorkflows[0];
+  if (!workflow) {
+    return '<div class="ops-card"><div class="ops-empty">暂无可用 Workflow</div></div>';
+  }
+  const nodes = workflow.nodes || [];
+  const selectedNode = nodes.find(node => node.id === state.selectedOpsWorkflowNodeId) || nodes[0];
+  if (selectedNode && !state.selectedOpsWorkflowNodeId) state.selectedOpsWorkflowNodeId = selectedNode.id;
+  return `
+    <div class="ops-card ops-workflow-editor">
+      <div class="ops-card-head">
+        <div>
+          <div class="ops-block-title">${esc(workflow.name)}</div>
+          <p>${esc(workflow.description)}</p>
+        </div>
+        <span class="ops-workflow-mode">${esc(workflow.mode)}</span>
+      </div>
+      <div class="ops-flow-layout">
+        <div class="ops-flow-canvas" aria-label="故障分析 Workflow">
+          ${nodes.map((node, index) => `
+            ${index > 0 ? '<div class="ops-flow-link">→</div>' : ''}
+            ${renderOpsFlowNode(workflow, node, selectedNode?.id === node.id)}
+          `).join('')}
+        </div>
+        ${renderOpsNodeInspector(workflow, selectedNode)}
+      </div>
+    </div>
+  `;
+}
+
+function renderOpsFlowNode(workflow, node, active) {
+  const tools = getOpsNodeTools(workflow.id, node);
+  const disabled = isOpsNodeDisabled(node.id);
+  return `
+    <button type="button" class="ops-flow-node ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}" onclick="selectOpsWorkflowNode('${escAttr(node.id)}')">
+      <span class="ops-node-dot"></span>
+      <strong>${esc(node.label)}</strong>
+      <em>${esc(node.scope || '当前上下文')}</em>
+      <small>${esc(node.description || '')}</small>
+      <span class="ops-node-tools">${tools.map(tool => `<b>${esc(tool)}</b>`).join('')}</span>
+    </button>
+  `;
+}
+
+function renderOpsNodeInspector(workflow, node) {
+  if (!node) return '<aside class="ops-node-inspector"><div class="ops-empty">选择一个节点查看配置</div></aside>';
+  const nodeTools = new Set(getOpsNodeTools(workflow.id, node));
+  const toolDetails = getOpsToolDetails(Array.from(new Set([...(node.tools || []), ...nodeTools])));
+  return `
+    <aside class="ops-node-inspector">
+      <div class="ops-inspector-title">节点配置</div>
+      <div class="ops-inspector-node">${esc(node.label)}</div>
+      <div class="ops-inspector-desc">${esc(node.description || '')}</div>
+      <label class="ops-node-enable">
+        <input type="checkbox" ${isOpsNodeDisabled(node.id) ? '' : 'checked'} onchange="toggleOpsNodeEnabled('${escAttr(node.id)}', this.checked)">
+        <span>启用该节点</span>
+      </label>
+      <div class="ops-config-row">
+        <span>上下文范围</span>
+        <strong>${esc(node.scope || '当前应用')}</strong>
+      </div>
+      <div class="ops-tool-checks">
+        <div class="ops-config-label">本节点工具</div>
+        ${toolDetails.map(tool => `
+          <label class="ops-tool-check">
+            <input type="checkbox" ${nodeTools.has(tool.name) ? 'checked' : ''} onchange="toggleOpsNodeTool('${escAttr(workflow.id)}', '${escAttr(node.id)}', '${escAttr(tool.name)}', this.checked)">
+            <span>
+              <strong>${esc(tool.name)}</strong>
+              <em>${esc(tool.description)}</em>
+            </span>
+          </label>
+        `).join('')}
+      </div>
+      <div class="ops-field">
+        <label>Prompt 草案</label>
+        <textarea rows="5" readonly>${esc(buildOpsNodePrompt(node))}</textarea>
+      </div>
+    </aside>
+  `;
+}
+
+function getOpsWorkflowToolNames() {
+  return Array.from(new Set((state.opsWorkflows || []).flatMap(workflow =>
+    (workflow.nodes || []).flatMap(node => getOpsNodeTools(workflow.id, node))
+  ))).sort();
+}
+
+function getOpsToolDetails(toolNames) {
+  const capabilityMap = new Map((state.opsCapabilities || []).map(tool => [tool.name, tool]));
+  return toolNames.map(name => capabilityMap.get(name) || {
+    name,
+    description: 'Workflow 节点绑定工具',
+    category: 'builtin',
+    status: 'registered',
+  });
+}
+
+function getOpsNodeTools(workflowId, node) {
+  const key = `${workflowId}:${node.id}`;
+  return state.opsNodeToolOverrides[key] || node.tools || [];
+}
+
+function isOpsNodeDisabled(nodeId) {
+  return state.opsWorkflowDisabledNodes?.has(nodeId);
+}
+
+function loadOpsWorkflowConfig() {
+  if (state.opsWorkflowConfigLoaded) return;
+  state.opsWorkflowConfigLoaded = true;
+  try {
+    const raw = localStorage.getItem('ai-coding.ops.workflowConfig');
+    if (!raw) return;
+    const config = JSON.parse(raw);
+    state.opsNodeToolOverrides = config.nodeTools && typeof config.nodeTools === 'object' ? config.nodeTools : {};
+    state.opsWorkflowDisabledNodes = new Set(Array.isArray(config.disabledNodeIds) ? config.disabledNodeIds : []);
+  } catch {
+    state.opsNodeToolOverrides = {};
+    state.opsWorkflowDisabledNodes = new Set();
+  }
+}
+
+function saveOpsWorkflowConfig() {
+  try {
+    localStorage.setItem('ai-coding.ops.workflowConfig', JSON.stringify({
+      nodeTools: state.opsNodeToolOverrides,
+      disabledNodeIds: Array.from(state.opsWorkflowDisabledNodes || []),
+    }));
+  } catch {
+    // Ignore localStorage errors; the current in-memory config still applies.
+  }
+}
+
+function buildOpsWorkflowConfigPayload() {
+  const workflow = state.opsWorkflows[0];
+  const nodes = workflow?.nodes || [];
+  return {
+    enabledNodeIds: nodes.filter(node => !isOpsNodeDisabled(node.id)).map(node => node.id),
+    nodeTools: Object.fromEntries(nodes.map(node => [node.id, getOpsNodeTools(workflow.id, node)])),
+  };
+}
+
+function buildOpsNodePrompt(node) {
+  return [
+    `你是 ${node.label}。`,
+    node.description || '',
+    `只使用当前可用来源：${node.scope || '当前应用'}。`,
+    '输出需要包含证据来源、判断依据和下一步动作。',
+  ].filter(Boolean).join('\n');
+}
+
+function renderOpsToolsSection() {
+  const workflow = state.opsWorkflows[0];
+  const nodes = workflow?.nodes || [];
+  return `
+    <div class="ops-card">
+      <div class="ops-card-head">
+        <div>
+          <div class="ops-block-title">节点工具</div>
+          <p>工具随 Workflow 节点绑定，节点执行时才触发对应工具；当前未接入外部日志/APM 平台。</p>
+        </div>
+        <span class="ops-workflow-mode">${esc(workflow?.name || 'Workflow')}</span>
+      </div>
+      <div class="ops-node-tool-list">
+        ${nodes.map(node => {
+          const tools = getOpsToolDetails(getOpsNodeTools(workflow.id, node));
+          return `
+            <div class="ops-node-tool-card">
+              <div class="ops-node-tool-head">
+                <strong>${esc(node.label)}</strong>
+                <span>${esc(node.scope || '')}</span>
+              </div>
+              <p>${esc(node.description || '')}</p>
+              <div class="ops-tool-grid">
+                ${tools.map(tool => `
+              <div class="ops-tool-card ${tool.status}">
+                <strong>${esc(tool.name)}</strong>
+                <span>${esc(tool.category || 'tool')}</span>
+                <p>${esc(tool.description)}</p>
+              </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderOpsRecordsSection(selected) {
+  return `
+    <div class="ops-card ops-equal-panel">
+      <div class="ops-block-title">告警历史</div>
+      <p class="ops-muted">每次告警分析后会保存告警文本向量，相似预警 Agent 基于历史向量计算相似度。</p>
+      <div class="ops-record-list">
+        ${state.opsAnalysis?.similarAlertEvidence?.length ? `
+          <div class="ops-block-title">本次相似预警</div>
+          ${state.opsAnalysis.similarAlertEvidence.map(item => `
+          <div class="ops-evidence">
+            <div><strong>${esc(item.path)}</strong><span>${esc(item.reason)}</span></div>
+            ${item.snippet ? `<pre>${esc(item.snippet)}</pre>` : ''}
+          </div>
+          `).join('')}
+        ` : ''}
+        ${state.opsAlertHistory.length ? state.opsAlertHistory.map(item => `
+          <div class="ops-evidence">
+            <div><strong>${esc(item.appId)} · ${esc(item.categoryLabel || item.category || '')}</strong><span>${esc(item.createdAt || '')}</span></div>
+            <pre>${esc(item.alert || '')}</pre>
+          </div>
+        `).join('') : '<div class="ops-empty">暂无告警历史，提交一次告警分析后会写入历史向量。</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function getOpsPanelContainer() {
+  return document.getElementById('ops-workspace-panel') || document.getElementById('ops-panel');
+}
+
 function selectOpsApp(appId) {
   state.selectedOpsAppId = appId;
   state.opsAnalysis = null;
   state.opsError = '';
+  renderOpsPanel();
+}
+
+function switchOpsSection(section) {
+  state.activeOpsSection = section;
+  renderOpsPanel();
+}
+
+function selectOpsWorkflowNode(nodeId) {
+  state.selectedOpsWorkflowNodeId = nodeId;
+  renderOpsPanel();
+}
+
+function toggleOpsNodeTool(workflowId, nodeId, toolName, checked) {
+  const workflow = state.opsWorkflows.find(item => item.id === workflowId);
+  const node = workflow?.nodes?.find(item => item.id === nodeId);
+  if (!node) return;
+  const key = `${workflowId}:${nodeId}`;
+  const current = new Set(getOpsNodeTools(workflowId, node));
+  if (checked) current.add(toolName);
+  else current.delete(toolName);
+  state.opsNodeToolOverrides[key] = Array.from(current);
+  saveOpsWorkflowConfig();
+  renderOpsPanel();
+}
+
+function toggleOpsNodeEnabled(nodeId, enabled) {
+  if (!state.opsWorkflowDisabledNodes) state.opsWorkflowDisabledNodes = new Set();
+  if (enabled) state.opsWorkflowDisabledNodes.delete(nodeId);
+  else state.opsWorkflowDisabledNodes.add(nodeId);
+  saveOpsWorkflowConfig();
   renderOpsPanel();
 }
 
@@ -3894,16 +4368,27 @@ async function analyzeOpsAlert() {
     const res = await fetch('/api/ops/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appId: state.selectedOpsAppId, alert: state.opsAlertDraft }),
+      body: JSON.stringify({ appId: state.selectedOpsAppId, alert: state.opsAlertDraft, workflowConfig: buildOpsWorkflowConfigPayload() }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '告警分析失败');
     state.opsAnalysis = data.analysis || null;
+    await refreshOpsAlertHistory();
   } catch (error) {
     state.opsError = error.message || String(error);
   } finally {
     state.opsAnalyzing = false;
     renderOpsPanel();
+  }
+}
+
+async function refreshOpsAlertHistory() {
+  try {
+    const res = await fetch('/api/ops/workbench');
+    const data = await res.json();
+    if (res.ok) state.opsAlertHistory = data.alertHistory || [];
+  } catch {
+    // Best effort refresh only.
   }
 }
 
@@ -3930,6 +4415,15 @@ function renderOpsAnalysis(analysis) {
         </div>
       </div>
       <div class="ops-section">
+        <h4>本地日志 / Trace 证据</h4>
+        ${(analysis.logEvidence || []).length ? (analysis.logEvidence || []).map(item => `
+          <div class="ops-evidence">
+            <div><strong>${esc(item.path)}</strong><span>${esc(item.reason)}</span></div>
+            ${item.snippet ? `<pre>${esc(item.snippet)}</pre>` : ''}
+          </div>
+        `).join('') : '<div class="ops-line muted">暂无本地日志或 trace 命中</div>'}
+      </div>
+      <div class="ops-section">
         <h4>代码证据</h4>
         ${(analysis.codeEvidence || []).length ? (analysis.codeEvidence || []).map(item => `
           <div class="ops-evidence">
@@ -3939,6 +4433,15 @@ function renderOpsAnalysis(analysis) {
         `).join('') : '<div class="ops-line muted">暂无明显命中文件</div>'}
       </div>
       <div class="ops-section">
+        <h4>知识库 / GitNexus 证据</h4>
+        ${(analysis.knowledgeEvidence || []).length ? (analysis.knowledgeEvidence || []).map(item => `
+          <div class="ops-evidence">
+            <div><strong>${esc(item.path)}</strong><span>${esc(item.reason)}</span></div>
+            ${item.snippet ? `<pre>${esc(item.snippet)}</pre>` : ''}
+          </div>
+        `).join('') : '<div class="ops-line muted">暂无知识库或 GitNexus 命中</div>'}
+      </div>
+      <div class="ops-section">
         <h4>建议动作</h4>
         ${(analysis.recommendedActions || []).map(item => `<div class="ops-line">${esc(item)}</div>`).join('')}
       </div>
@@ -3946,6 +4449,25 @@ function renderOpsAnalysis(analysis) {
         <h4>Runbook</h4>
         ${(analysis.runbook || []).map(item => `<div class="ops-line">${esc(item)}</div>`).join('')}
       </div>
+    </div>
+  `;
+}
+
+function renderOpsToolResults(analysis) {
+  const results = analysis.toolResults || [];
+  if (!results.length) return '<div class="ops-empty">暂无工具调用结果</div>';
+  return `
+    <div class="ops-tool-result-list">
+      ${results.map(item => `
+        <div class="ops-tool-result ${item.status}">
+          <div class="ops-tool-result-head">
+            <strong>${esc(item.label)}</strong>
+            <span>${esc(item.status)}</span>
+          </div>
+          <div class="ops-node-tools">${(item.tools || []).map(tool => `<b>${esc(tool)}</b>`).join('')}</div>
+          <pre>${esc(item.output || '')}</pre>
+        </div>
+      `).join('')}
     </div>
   `;
 }
