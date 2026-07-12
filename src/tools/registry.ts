@@ -33,6 +33,12 @@ export const TOOL_CAPABILITIES: ToolCapabilityMetadata[] = [
   { name: 'knowledge_base_search', category: 'knowledge', owner: 'knowledge', permissionScope: 'read', description: 'Search application and global knowledge-base artifacts.' },
   { name: 'gitnexus_search', category: 'git', owner: 'integrations', permissionScope: 'read', description: 'Search GitNexus graph and repository analysis artifacts.' },
   { name: 'testing_e2e_verification', category: 'testing', owner: 'tools', permissionScope: 'execute', description: 'Run E2E verification through startup, contract, smoke, and Playwright checks.' },
+  { name: 'testing_script_generation', category: 'testing', owner: 'testing', permissionScope: 'write', description: 'Generate deterministic pytest scripts from approved testing cases and data plans.' },
+  { name: 'testing_pytest_execution', category: 'testing', owner: 'testing', permissionScope: 'execute', description: 'Execute pytest scripts with stdout, stderr, timeout, and dependency error capture.' },
+  { name: 'testing_schema_validation', category: 'testing', owner: 'testing', permissionScope: 'read', description: 'Validate Testing Management artifacts against structured schemas.' },
+  { name: 'testing_data_plan_builder', category: 'testing', owner: 'testing', permissionScope: 'write', description: 'Build test data setup, validation, cleanup, rollback, and MQ data steps.' },
+  { name: 'testing_dependency_slice', category: 'testing', owner: 'testing', permissionScope: 'read', description: 'Slice dependency graph context for requirement-scoped testing.' },
+  { name: 'testing_metrics_calculation', category: 'testing', owner: 'testing', permissionScope: 'read', description: 'Calculate testing coverage, success rate, and quality gate inputs.' },
   { name: 'use_skill', category: 'skill', owner: 'agents', permissionScope: 'execute', description: 'Invoke a registered skill through the agent runtime.' },
 ];
 
