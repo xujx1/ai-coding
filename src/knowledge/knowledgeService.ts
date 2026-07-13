@@ -28,8 +28,11 @@ export function describeKnowledgeManagementService(): KnowledgeManagementService
   };
 }
 
-export async function initAllKnowledgeBases() {
-  return initAllAppKnowledge();
+export async function initAllKnowledgeBases(options: { appIds?: string[] } = {}) {
+  return initAllAppKnowledge({
+    appIds: options.appIds,
+    updateGlobalKnowledge: !options.appIds?.length,
+  });
 }
 
 export function listKnowledgeWorkflows() {

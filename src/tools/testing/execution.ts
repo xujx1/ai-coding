@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 import type {
   ExecutionReport,
   GeneratedScript,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 
 export interface PytestExecutionOptions {
   cwd: string;
@@ -23,6 +23,27 @@ export interface ParsedPytestOutput {
   errored: number;
   total: number;
   dependencyErrors: string[];
+}
+
+export interface TestingCommandResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  timedOut: boolean;
+}
+
+export function runTestingCommand(args: {
+  command: string;
+  args: string[];
+  cwd: string;
+  timeoutMs?: number;
+}): Promise<TestingCommandResult> {
+  return runCommand({
+    command: args.command,
+    args: args.args,
+    cwd: args.cwd,
+    timeoutMs: args.timeoutMs ?? 60_000,
+  });
 }
 
 export async function executePytestScript(

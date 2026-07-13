@@ -1,92 +1,199 @@
-# AI Coding Pipeline
+# AI Coding
 
-一个 Web 版 AI Coding 工作台：上传需求文档和一个或多个项目后，系统会在当前 session 内生成动态工作流，完成需求归属确认、项目分流、应用分支开发、测试验证、跨应用测试和归档交付。
+AI Coding 是一个面向研发交付的 AI 工作台。它把 MRD、应用管理、知识库、需求 PI、代码生成、测试验证、应用运维和跨应用 AI Testing 串成一条可追踪的工作流。
 
-当前默认演示 case 已固化为真实上传并跑通的“活动命中预览”双项目流程：
+当前产品形态不是“上传项目文件让模型猜”。需求从 MRD 和平台知识库出发，系统先基于应用管理列表、全局知识库和应用级知识库判断影响应用，再进入需求归属确认、应用分支并发实现、跨应用测试和归档交付。
 
-- MRD：`example/activity-hit-preview-mrd.md`
-- 项目：`marketing`、`marketing-admin`
-- 快照：`fixtures/activity-hit-preview-demo/run`
-- 结果：2 个应用分支完成，`marketing-admin` 额外完成前端和 E2E 验证，最终生成归档报告和项目下载包
+## 产品截图
 
-![动态多应用流程](docs/png/activity-hit-preview-dynamic-workflow.png)
+### AI Coding / 需求 PI
 
-## 文档导航
+![AI Coding 需求 PI 工作流](docs/png/readme-ai-coding.png)
 
-- [产品演示流程](docs/product-demo-flow.md)：按活动命中预览 case 串起演示讲解和截图。
-- [GitHub 分享稿](docs/activity-hit-preview-demo.md)：面向 README/社区分享的完整 case 说明。
-- [架构设计](docs/architecture.md)：说明 session workflow、动态分支、Agent、工具、事件和运行态存储。
-- [节点设计](docs/node-design.md)：说明顶层节点、应用分支节点、track 节点和产物契约。
-- [节点流转设计](docs/node-transition.md)：说明确认门、fanout、join、分支重跑、跨应用测试和归档状态。
-- [动态工作流读模型](docs/session-dynamic-workflow.md)：说明 `workflowInstance`、fanout decision、execution plan 和 UI 读模型。
-- [上下文压缩设计](docs/context-compression.md)：说明 Agent 长任务上下文压缩机制。
+### AI Testing / 跨应用测试
+
+![AI Testing 跨应用测试](docs/png/readme-ai-testing.png)
+
+### AI Ops / 应用运维
+
+![AI Ops 应用运维](docs/png/readme-ai-ops.png)
+
+### 应用管理
+
+![应用管理](docs/png/readme-app-management.png)
+
+### 知识库管理
+
+![知识库管理](docs/png/readme-knowledge.png)
+
+## 产品演示与技术方案
+
+每个模块都可以作为一个独立产品来介绍：先看产品演示和核心特色，再看技术链路和实现边界。
+
+- [AI Coding 产品演示与技术方案](docs/ai-coding-technical-design.md)
+- [AI Testing 产品演示与技术方案](docs/ai-testing-technical-design.md)
+- [AI Ops 产品演示与技术方案](docs/ai-ops-technical-design.md)
+- [应用管理产品演示与技术方案](docs/application-management-technical-design.md)
+- [知识库管理产品演示与技术方案](docs/knowledge-management-technical-design.md)
+- [GitNexus 与影响面分析产品演示与技术方案](docs/knowledge-gitnexus-impact-design.md)
 
 ## 核心能力
 
-- 多文件输入：支持上传 MRD、背景材料、参考资料和多个项目文件夹。
-- 需求归属确认：先把需求拆成业务范围、应用归属、实施边界和需要确认的问题。
-- 动态项目分流：根据 MRD 和项目 manifest 生成 `fanout-decision.json`，只纳入相关项目。
-- 应用分支执行：每个应用分支拥有独立节点、状态、Agent、产物索引和失败信息。
-- 能力驱动 track：根据项目能力生成 backend、frontend、E2E 或 documentation track。
-- 真实代码修改：实现节点通过工具读写项目文件，保留工具轨迹和变更预览。
-- 测试验证：后端执行 Maven 编译/测试，前端执行构建/静态检查，E2E 由平台 Playwright runner 验证。
-- 跨应用测试：分支全部结束后汇总跨应用交付状态、测试结果和兼容性风险。
-- 实时产物：工具写入文件后右侧产物树即时刷新，并按节点、应用、track 过滤。
-- 归档交付：生成项目级归档报告、跨应用交付元数据和最终项目包。
+- 需求管理：维护 MRD，MRD Ready 后从需求管理页面启动 PI 流程。
+- 应用管理：维护应用列表、仓库路径、应用类型、业务域、接口和依赖信息。
+- 知识库管理：生成应用级知识库、全局应用能力图谱、依赖图谱、API 路由图和业务术语索引。
+- 需求归属确认：根据 MRD + 全局知识库 + 应用级知识库确认影响应用，不依赖硬编码业务映射。
+- 应用分支流水线：每个应用独立子 agent、独立状态、独立产物和独立失败回退。
+- AI Coding：按应用生成实施方案与任务，完成 Java/前端实现、代码审查、后端测试、前端测试和分支摘要。
+- AI Testing：生成集成测试用例、造数计划、集成测试代码，部署关联应用并执行真实跨应用测试。
+- AI Ops：基于应用、源码、知识库、GitNexus 产物和本地告警内容做告警分析与修复建议。
+- 生命周期产物：部署、测试、覆盖率、质量门禁、失败归因、回归计划和归档报告统一登记为 lifecycle artifacts。
 
-## 当前流程
+## 已跑通的真实 Case
 
-新 session 保存一个 `workflowInstance`，顶层流程是：
+当前完整跑通的主用例是：
 
 ```text
-上传初始化
-  -> 需求归属确认
-  -> 需求拆解
-  -> 项目分流
-  -> 应用分支并行执行
+MRD: 定向营销活动创建时增加商品上架与库存保护校验
+```
+
+系统根据 MRD 和知识库命中的影响应用：
+
+- `console`
+- `ecom-marketing`
+- `ecom-product`
+- `ecom-inventory`
+
+已验证能力：
+
+- 从需求管理启动 PI 流程。
+- 需求分析与归属确认不再要求上传代码项目。
+- 应用分支按流水线并发推进，而不是阶段栅栏式推进。
+- 子 agent 之间隔离上下文，一个分支失败不会污染 sibling 分支。
+- `console` 前端实现和测试独立执行。
+- 后端应用完成 Java 实现和后端测试。
+- 跨应用测试执行真实造数和真实集成测试。
+- 最终归档完成。
+
+真实跨应用测试仓库：
+
+```text
+demo/ecom/ecom-integration-tests
+```
+
+真实执行命令：
+
+```bash
+npm run seed
+npm run test:live
+```
+
+已验证 run：
+
+```text
+g2jG99Lmk1
+```
+
+该 run 已完成全部 PI 节点，`npm run seed` 写入真实商品、库存、活动数据，`npm run test:live` 执行 `node:test` 集成测试并通过 2 个用例。
+
+## 示例
+
+### 需求输入示例
+
+```text
+定向营销活动创建时，需要校验商品是否已上架，并校验库存是否可用。
+如果商品未上架或库存不足，活动创建应失败并给出明确提示。
+```
+
+### 应用归属示例
+
+| 应用 | 归属原因 | 处理方式 |
+| --- | --- | --- |
+| `ecom-marketing` | 活动创建主流程 | 进入后端实现分支 |
+| `ecom-product` | 商品上架状态校验 | 进入后端实现分支 |
+| `ecom-inventory` | 库存保护校验 | 进入后端实现分支 |
+| `console` | 活动创建页面提示和交互 | 进入前端实现分支 |
+
+### AI Testing 示例
+
+```text
+造数：
+  -> 创建 SALEABLE SKU
+  -> 设置 AVAILABLE 库存
+  -> 创建 DRAFT 定向活动
+
+集成测试：
+  -> 商品和库存数据准备完成后允许创建活动
+  -> 未上架商品和低库存场景进入负向用例
+```
+
+### AI Ops 示例
+
+```text
+告警：营销活动创建失败率升高
+线索：marketing createCampaign 接口返回库存保护错误
+影响面：ecom-marketing -> ecom-product / ecom-inventory
+建议：先校验商品状态接口，再校验库存查询链路，最后回归活动创建链路
+```
+
+## 工作流
+
+### 需求 PI 主流程
+
+```text
+MRD / Knowledge Init
+  -> 需求分析与归属确认
+  -> 实施方案与任务
+  -> 应用分支流水线
   -> 分支汇合
-  -> 跨应用测试
+  -> 集成测试用例
+  -> 造数
+  -> 生成集成测试代码
+  -> 部署关联应用
+  -> 执行集成测试
   -> 归档
 ```
 
-活动命中预览 case 的真实分支：
+### 应用分支流水线
+
+后端应用：
 
 ```text
-marketing
-  -> 实施方案
-  -> SPEC 生成
-  -> backend: Java 实现 -> Backend Test
-
-marketing-admin
-  -> 实施方案
-  -> SPEC 生成
-  -> backend: Java 实现 -> Backend Test
-  -> frontend: Frontend Implementation -> Frontend Test
-  -> e2e: E2E Verify
+implementation-plan
+  -> java-impl
+  -> backend-test
 ```
 
-![工作流实例](docs/png/activity-hit-preview-workflow-instance.png)
+前端应用：
 
-![分支 tracks](docs/png/activity-hit-preview-branch-tracks.png)
-
-## 内置 Demo
-
-默认启动时会自动克隆真实快照：
-
-- 快照目录：`fixtures/activity-hit-preview-demo/run`
-- 页面名称：`活动命中预览 Demo`
-- 原始 run：`PDRbY_AI59`
-- 示例需求：营销活动命中预览
-- 示例项目：`marketing` + `marketing-admin`
-- 示例结果：需求拆解、分流决策、双应用分支实现、后端测试、前端测试、E2E 验证、跨应用测试和归档报告
-
-如果不希望启动时自动注入 Demo：
-
-```bash
-AI_CODING_AUTO_DEMO=0 npm start
+```text
+implementation-plan
+  -> frontend-impl
+  -> frontend-test
 ```
 
-Demo 会被克隆到运行态目录，不会直接修改 `fixtures/activity-hit-preview-demo/run`。
+### AI Testing 流程
+
+```text
+load_requirement
+  -> retrieve_context
+  -> generate_strategy
+  -> review_strategy
+  -> generate_cases
+  -> review_cases
+  -> generate_data_plans
+  -> review_data_plans
+  -> deploy_related_apps
+  -> generate_scripts
+  -> review_scripts
+  -> execute_scripts
+  -> collect_report
+  -> calculate_metrics
+  -> quality_gate
+  -> failure_triage
+  -> regression_update
+  -> persist_artifacts
+```
 
 ## 快速开始
 
@@ -94,14 +201,20 @@ Demo 会被克隆到运行态目录，不会直接修改 `fixtures/activity-hit-
 
 - Node.js 20+
 - npm
-- Java/JDK，执行 Java 实现和测试节点时使用
-- Maven，执行编译、单元测试和部分 Spring Boot 启动验证时使用
+- Java / JDK
+- Maven
+- 可用的大模型 API 配置
 
-### 安装和启动
+### 安装
 
 ```bash
 npm install
 npm run build
+```
+
+### 启动
+
+```bash
 npm start
 ```
 
@@ -117,146 +230,169 @@ http://localhost:3000
 npm run dev
 ```
 
+### 模型配置
+
 常用环境变量：
 
 ```bash
-PORT=4301
-HOST=127.0.0.1
-RUNTIME_DIR=/tmp/ai-coding-runtime
 LLM_PROVIDER=openai-compat
-LLM_MODEL=claude-sonnet-4-6
+LLM_MODEL=gpt-5.4
 LLM_BASE_URL=https://your-model-endpoint/v1
 LLM_API_KEY=your-api-key
 JAVA_HOME=/path/to/jdk
-MAVEN_HOME=/path/to/maven-or-mvn
-AI_CODING_WORKFLOW_RUNTIME=legacy
-AI_CODING_E2E_VERIFY=1
+MAVEN_HOME=/path/to/maven
+PORT=3000
 ```
 
-也可以在页面“设置”里配置模型、JDK 路径和 Maven 路径。
+完整 PI 流程应使用真实大模型调用验证，不应使用 mock LLM。
 
-## 使用方式
+## Demo Ecom
 
-1. 打开页面，查看自动加载的 `活动命中预览 Demo`。
-2. 点击 `项目分流`，查看 MRD 如何命中 `marketing` 和 `marketing-admin`。
-3. 展开应用分支，查看 backend、frontend、E2E track 的完成状态。
-4. 点击分支节点，查看当前应用/track 过滤后的产物和 Agent 轨迹。
-5. 点击 `跨应用测试`，查看分支汇总和交付元数据。
-6. 点击 `归档`，查看归档报告并下载最终项目包。
-7. 新建任务时上传自己的 MRD 和多个项目文件夹，按同样机制生成本次 session 的动态 workflow。
-
-![跨应用测试](docs/png/activity-hit-preview-cross-app-test.png)
-
-![归档下载](docs/png/activity-hit-preview-archive.png)
-
-## 运行态目录
-
-默认运行态目录是：
+Demo 多应用工程位于：
 
 ```text
-runtime-projects/
+demo/ecom/
 ```
 
-目录内包含每次运行的 workspace、artifacts、logs、agents 和 checkpoints。它属于运行时数据，已在 `.gitignore` 中忽略，不应提交到 Git。
+常用命令：
 
-本地模型配置和密钥保存在 `.ai-coding/`，同样不会进入 Git。
+```bash
+./demo/ecom/scripts/init-db.sh
+./demo/ecom/scripts/build-all.sh
+./demo/ecom/scripts/start-all.sh
+./demo/ecom/scripts/stop-all.sh
+```
 
-## 重要产物
+集成测试仓库：
 
-典型动态运行会生成：
+```text
+demo/ecom/ecom-integration-tests/
+```
 
-- `artifacts/input-summary.md`
-- `artifacts/project-manifest.json`
-- `artifacts/mrd-clarified.md`
-- `artifacts/mrd-clarify-questions.md`
-- `artifacts/requirement-ownership.json`
-- `artifacts/fanout-decision.json`
-- `artifacts/implementation-plan-manifest.json`
-- `artifacts/<project>/tech-design.md`
-- `artifacts/<project>/openspec/changes/run-<runId>-<project>/tasks.md`
-- `artifacts/<project>/changed-files.json`
-- `artifacts/<project>/code-preview-manifest.json`
-- `artifacts/<project>/code-review.md`
-- `artifacts/<project>/changed-test-files/*`
-- `artifacts/<project>/test-report.md`
-- `artifacts/<project>/frontend-implementation-report.md`
-- `artifacts/<project>/frontend-test-report.md`
-- `artifacts/<project>/e2e/verification-summary.md`
-- `artifacts/<project>/e2e/screenshots/*`
-- `artifacts/<project>/branch-summary.json`
-- `artifacts/cross-app/test-results.json`
-- `artifacts/cross-app/delivery-metadata.json`
-- `artifacts/<project>/archive-report.md`
-- `artifacts/archive-manifest.json`
-- `artifacts/downloads/<runId>-projects.zip`
+它包含：
 
-## 工具与安全
+- 测试 fixture
+- 各领域数据 builder
+- `seed` 造数脚本
+- `node:test` 集成测试
+- live 服务健康检查
 
-Agent 可使用内置工具读取、搜索、编辑和写入当前 run 的项目文件，也可以调用 Java/Maven 工具执行编译与测试。工具执行范围限制在当前 run 的 workspace/project 和 artifacts 内。
+手动验证：
 
-关键工具包括：
+```bash
+cd demo/ecom/ecom-integration-tests
+npm run seed
+npm run test:live
+```
 
-- `read_file`
-- `write_file`
-- `edit_file`
-- `glob`
-- `grep`
-- `bash`
-- `maven_compile`
-- `maven_test`
-- `review_artifact`
-- `skill`
-- `discover_skills`
+`test:live` 要求相关服务可用；服务不可用时会失败，不会静默 skip。
 
-系统会记录工具开始、结束、失败、耗时和输出摘要，方便复盘。
+## 关键产物
 
-## 上下文压缩
+运行态目录：
 
-长任务执行过程中，Agent 会持续读取文件、编辑代码、运行 Maven 测试并把工具结果回灌给模型。系统在接近模型上下文窗口时会自动压缩历史消息：保留任务目标、关键文件、代码变更、测试结果、待办状态和阻塞信息，同时保留最近几轮原始上下文继续执行。
+```text
+runtime-projects/runs/<runId>/artifacts/
+```
 
-更多设计细节见 [上下文压缩设计](docs/context-compression.md)。
+常见 PI 产物：
+
+- `project-manifest.json`
+- `mrd-clarified.md`
+- `mrd-clarify-questions.md`
+- `requirement-ownership.json`
+- `fanout-decision.json`
+- `<app>/tech-design.md`
+- `<app>/openspec/.../tasks.md`
+- `<app>/changed-files.json`
+- `<app>/code-preview-manifest.json`
+- `<app>/code-review.md`
+- `<app>/changed-test-files/*`
+- `<app>/test-report.md`
+- `<app>/frontend-implementation-report.md`
+- `<app>/frontend-test-report.md`
+- `<app>/branch-summary.json`
+- `cross-app/test-results.json`
+- `cross-app/delivery-metadata.json`
+- `archive-manifest.json`
+
+AI Testing 产物：
+
+- `testing/<workflowInstanceId>/generate_strategy/testing-strategy-*.json`
+- `testing/<workflowInstanceId>/generate_cases/testing-test-cases-*.json`
+- `testing/<workflowInstanceId>/generate_data_plans/testing-data-plan-*.json`
+- `testing/<workflowInstanceId>/generate_scripts/testing-generated-script-*.json`
+- `testing/<workflowInstanceId>/execute_scripts/testing-execution-report-*.json`
+- `testing/<workflowInstanceId>/calculate_metrics/testing-coverage-report-*.json`
+- `testing/<workflowInstanceId>/quality_gate/testing-quality-gate-*.json`
+- `testing/<workflowInstanceId>/regression_update/testing-regression-plan-*.json`
+
+## 架构分层
+
+```text
+src/
+  agents/
+    codegen/          # 需求 PI 与代码生成 Agent
+    testing/          # AI Testing Agent
+    ops/              # AI Ops Agent
+    knowledge/        # 知识库 Agent
+    core/             # 共享 Agent Runtime
+  application/        # 应用管理产品服务
+  knowledge/          # 知识库初始化与检索
+  lifecycle/          # 部署、测试、归档、质量门禁等生命周期事实模型
+  requirement-pi/     # 需求 PI 产品入口
+  requirements/       # 需求管理服务
+  testing/            # AI Testing 产品服务
+  app-ops/            # 应用运维服务
+  tools/
+    builtin/          # read / grep / glob / edit / bash / Java / Maven 工具
+    knowledge/        # 知识库检索工具
+    testing/          # 造数、脚本、执行、指标、schema 工具
+    ops/              # 运维分析工具
+  workflows/
+    definitions/      # Workflow 模板与节点契约
+    engine/           # PI Pipeline Engine
+    runtime/          # 分支执行、testing runtime、ops runtime
+  server/             # Hono API、Controller、WebSocket
+  session/            # Session 与 execution-state 读模型
+web/                  # 单页前端
+prompts/              # 节点 Prompt
+demo/ecom/            # 本地多应用 Demo 工作区
+```
+
+分层原则：
+
+- Controller 只做 HTTP 入口，不承载业务逻辑。
+- 产品服务层负责需求、应用、知识库、测试、运维等领域能力。
+- Workflow definition 描述流程模板，runtime/engine 负责执行。
+- Agent 负责推理和工具调用，正式结果必须落结构化 artifact。
+- Tool 负责读写文件、检索知识库、执行构建测试和运行真实命令。
+- lifecycle 记录部署、测试、覆盖率、质量门禁、失败归因、归档等事实。
 
 ## 测试
+
+运行全部测试：
 
 ```bash
 npm test
 ```
 
-当前测试覆盖固定兼容链路、动态 session workflow 读模型、fanout 决策、分支状态同步、真实示例流程、E2E 验证降级和上下文压缩。
+常用聚焦测试：
 
-## 项目结构
-
-```text
-src/
-  agent/              # Agent loop、上下文压缩、token 预算
-  e2e/                # 平台 E2E 能力检测、启动、契约和 Playwright runner
-  events/             # 事件类型和事件日志
-  langgraph/          # LangGraph runtime、分支 runner、join、rollback 读模型同步
-  models/             # 模型注册和 provider
-  persistence/        # execution-state、agent state 存储
-  pipeline/           # 兼容流水线、节点编排和动态分支执行器
-  runtime/            # run 目录、上传处理
-  server/             # Hono HTTP API 和 WebSocket
-  session/            # session 创建、恢复、分支控制和 demo 注入
-  tools/              # 内置工具和安全校验
-  workflows/          # workflow 定义、session instance、fanout、planner、validation
-web/                  # 单页前端
-prompts/              # 节点 prompt
-fixtures/activity-hit-preview-demo/run/ # 真实双项目动态流程 Demo 快照
-docs/png/             # README 和演示文档截图
+```bash
+npm run build
+node --test dist/__tests__/workflow-foundation.test.js
+node --test dist/__tests__/testing-workflow-runtime.test.js dist/__tests__/testing-controller.test.js dist/__tests__/testing-tools.test.js
 ```
 
-## 设计原则
+## 运行说明
 
-- 可复用 workflow 模板保持不可变，真实拓扑保存在每个 session 的 `workflowInstance`。
-- 动态分支只改变本次 run 的执行计划，不修改全局模板。
-- 下游节点优先读取正式产物和 context manifest，不把 Agent transcript 当作业务输入。
-- 应用分支状态、track 状态和产物索引彼此隔离，失败不会覆盖其他分支的完成结果。
-- Java、前端和 E2E 验证必须通过工具真实读写项目或运行验证，不能只生成说明性文本。
-- 回退、重试和上下文压缩保留历史轨迹，便于用户复盘。
+- 运行态保存在 `runtime-projects/`。
+- 本地模型配置和密钥不应提交到 Git。
+- 每个应用分支拥有独立 agent id、artifact index、失败状态和重试状态。
+- 顶层 fanout/join 只汇总分支状态，不共享子 agent 上下文。
+- 跨应用测试不能只看节点状态，必须查看真实 execution report。
 
-## 交流方式
+## License
 
-邮箱：153268908@qq.com
-
-![wechat.jpg](wechat.jpg)
+内部原型项目。公开发布前请补充正式 License。

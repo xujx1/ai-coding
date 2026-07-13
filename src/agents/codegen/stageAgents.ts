@@ -3,7 +3,7 @@ import type { PipelineAgentDefinition, PipelineAgentId } from './types.js';
 
 const TOOL_HINTS: Record<PipelineAgentId, string[]> = {
   'upload-init': ['glob', 'read_file', 'write_file'],
-  'mrd-render': ['read_file', 'write_file'],
+  'mrd-render': ['glob', 'grep', 'read_file', 'write_file'],
   'implementation-plan': ['read_file', 'write_file', 'knowledge_base_search'],
   'spec-generate': ['read_file', 'write_file'],
   'java-impl': ['glob', 'grep', 'read_file', 'edit_file', 'write_file', 'maven_compile'],

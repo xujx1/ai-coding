@@ -143,6 +143,20 @@ export function summarizeProjectSurfaceDecision(
   };
 }
 
+export function normalizeClarifiedMrdProjectNames(
+  clarified: string,
+  manifest?: ProjectManifest
+): string {
+  const projects = manifest?.projects ?? [];
+  if (!projects.length || !clarified.includes('未上传代码项目')) return clarified;
+  return clarified.replace(/未上传代码项目（([^）]+)）/g, (raw, label: string) => {
+    const matched = resolveManifestProjects(label, projects);
+    if (matched.length === 1) return matched[0].name;
+    if (matched.length > 1) return matched.map(project => project.name).join('、');
+    return `未解析应用（${label}）`;
+  });
+}
+
 function normalizeRequirementOwnershipArtifact(value: unknown): RequirementOwnershipArtifact | null {
   if (!value || typeof value !== 'object') return null;
   const parsed = value as RequirementOwnershipArtifact;
@@ -169,8 +183,29 @@ function parseProjectOwnership(
 ): RequirementProjectOwnership[] {
   const section = extractSection(clarified, 'Project Ownership');
   const items = parseSectionItems(clarified, 'Project Ownership');
+  const tableRows = parseMarkdownTable(section);
   const projects = manifest?.projects ?? [];
   const ownership: RequirementProjectOwnership[] = [];
+  for (const row of tableRows) {
+    const featureText = tableValue(row, ['功能项', '需求项', 'feature', 'requirement']);
+    const responsibility = tableValue(row, ['归属判断', '实现职责', '职责', 'responsibility']) || JSON.stringify(row);
+    const projectCells = [
+      tableValue(row, ['主责项目', '负责应用', '负责项目', '项目', '应用', 'project', 'app']),
+      tableValue(row, ['协作/消费项目', '协作应用', '协作项目', '消费项目']),
+    ].filter(Boolean);
+    for (const cell of projectCells) {
+      for (const project of resolveManifestProjects(cell, projects)) {
+        ownership.push({
+          featureId: matchFeatureId(featureText, features),
+          projectName: project.name,
+          projectRoot: project.root,
+          responsibility: stripMarkdown(`${featureText} ${responsibility}`).slice(0, 500),
+          confidence: project.aliasMatched ? 'medium' : 'high',
+          evidence: JSON.stringify(row),
+        });
+      }
+    }
+  }
   for (const project of projects) {
     const matchedItems = items.filter(item => referencesName(item, project.name) || referencesName(item, path.basename(project.root)));
     for (const item of matchedItems) {
@@ -205,9 +240,7 @@ function parseImplementationSurfaces(
   const surfaces: RequirementImplementationSurface[] = [];
   for (const row of tableRows) {
     const projectCell = tableValue(row, ['项目', '应用', 'project', 'app']);
-    const matchedProjects = projects.filter(project =>
-      referencesProjectCell(projectCell, project.name) || referencesProjectCell(projectCell, path.basename(project.root))
-    );
+    const matchedProjects = resolveManifestProjects(projectCell, projects);
     const targets = matchedProjects.length
       ? matchedProjects
       : projectCell
@@ -247,6 +280,87 @@ function parseImplementationSurfaces(
       evidence: context || 'No structured implementation surface table was available; project capability evidence was used.',
     };
   });
+}
+
+function resolveManifestProjects(
+  content: string,
+  projects: ProjectManifest['projects']
+): Array<ProjectManifest['projects'][number] & { aliasMatched?: boolean }> {
+  if (!content.trim() || !projects.length) return [];
+  const matches = new Map<string, ProjectManifest['projects'][number] & { aliasMatched?: boolean }>();
+  for (const project of projects) {
+    if (referencesProjectCell(content, project.name) || referencesProjectCell(content, path.basename(project.root))) {
+      matches.set(project.name, project);
+    }
+  }
+  for (const project of projects) {
+    if (matches.has(project.name)) continue;
+    if (matchesKnowledgeTerms(content, project)) {
+      matches.set(project.name, { ...project, aliasMatched: true });
+    }
+  }
+  return [...matches.values()];
+}
+
+function matchesKnowledgeTerms(
+  content: string,
+  project: ProjectManifest['projects'][number]
+): boolean {
+  const normalizedContent = normalizeName(stripMarkdown(content));
+  return buildProjectKnowledgeTerms(project).some(term => {
+    const normalizedTerm = normalizeName(term);
+    return Boolean(normalizedTerm && normalizedTerm.length >= 2 && normalizedContent.includes(normalizedTerm));
+  });
+}
+
+function buildProjectKnowledgeTerms(project: ProjectManifest['projects'][number]): string[] {
+  const appId = project.appId || project.name;
+  const terms = [
+    project.name,
+    project.appId,
+    project.description,
+  ];
+  const knowledgeRoot = resolveKnowledgeRoot();
+  if (knowledgeRoot) {
+    const domainMap = readJson<Record<string, { domain?: string; domainName?: string; serviceName?: string; summary?: string }>>(
+      path.join(knowledgeRoot, 'global', 'app-domain-map.json')
+    ) ?? {};
+    const capabilityMap = readJson<Record<string, string[]>>(path.join(knowledgeRoot, 'global', 'capability-map.json')) ?? {};
+    const registry = readJson<{ apps?: Array<{ appId?: string; name?: string; domain?: string; domains?: string[]; tags?: string[]; aliases?: string[] }> }>(
+      path.join(knowledgeRoot, 'registry', 'apps.json')
+    ) ?? {};
+    const domain = domainMap[appId] ?? {};
+    const registryApp = registry.apps?.find(app => app.appId === appId || app.name === project.name);
+    terms.push(
+      domain.domain,
+      domain.domainName,
+      domain.serviceName,
+      domain.summary,
+      registryApp?.domain,
+      ...(registryApp?.domains ?? []),
+      ...(registryApp?.tags ?? []),
+      ...(registryApp?.aliases ?? []),
+      ...(capabilityMap[appId] ?? []),
+    );
+  }
+  return Array.from(new Set(terms.filter((term): term is string => Boolean(term))));
+}
+
+function resolveKnowledgeRoot(): string | null {
+  const candidates = [
+    path.join(process.cwd(), 'demo', 'ecom', 'spaces', 'knowledge', 'knowledge-base'),
+    path.join(process.cwd(), 'spaces', 'knowledge', 'knowledge-base'),
+  ];
+  return candidates.find(candidate => fs.existsSync(candidate)) ?? null;
+}
+
+function readJson<T>(filePath: string): T | null {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as T;
+  } catch {
+    return null;
+  }
 }
 
 function parseSectionItems(content: string, title: string): string[] {

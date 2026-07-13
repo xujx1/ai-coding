@@ -302,7 +302,7 @@ body {
   transition: grid-template-columns 0.18s ease;
 }
 
-.main-layout:not(.module-pipeline):not(.module-knowledge) {
+.main-layout:not(.module-pipeline):not(.module-knowledge):not(.module-requirements) {
   grid-template-columns: var(--left-column-width) minmax(0, 1fr);
 }
 
@@ -895,6 +895,10 @@ textarea { min-height: 80px; }
   gap: 12px;
 }
 
+.task-upload-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .file-upload-area.compact {
   padding: 14px;
   min-height: 86px;
@@ -1074,9 +1078,9 @@ textarea { min-height: 80px; }
   min-width: 100%;
   overflow: visible;
   display: grid;
-  grid-template-columns: 380px 150px minmax(860px, 1fr);
+  grid-template-columns: max-content 150px max-content;
   grid-template-rows: auto auto;
-  gap: 18px 22px;
+  gap: 18px 18px;
   align-items: start;
   padding: 8px 4px 14px;
 }
@@ -1088,11 +1092,10 @@ textarea { min-height: 80px; }
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 370px;
 }
 
 .fanout-prelude-node {
-  width: 110px;
+  width: 220px;
   min-height: 78px;
   display: grid;
   align-content: center;
@@ -1108,7 +1111,7 @@ textarea { min-height: 80px; }
 }
 
 .fanout-prelude-node strong {
-  max-width: 94px;
+  max-width: 190px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1117,7 +1120,7 @@ textarea { min-height: 80px; }
 }
 
 .fanout-prelude-node small {
-  max-width: 94px;
+  max-width: 190px;
   color: var(--text-secondary);
   font-size: 9px;
   line-height: 1.25;
@@ -1141,7 +1144,7 @@ textarea { min-height: 80px; }
   grid-row: 1;
   position: relative;
   align-self: center;
-  justify-self: center;
+  justify-self: start;
   width: 150px;
   min-height: 96px;
   display: grid;
@@ -1206,15 +1209,19 @@ textarea { min-height: 80px; }
   grid-row: 1;
   display: grid;
   gap: 10px;
-  min-width: 860px;
+  min-width: 0;
+  width: max-content;
+  max-width: calc(100vw - 360px);
 }
 
 .fanout-app-lane {
   position: relative;
   display: grid;
-  grid-template-columns: 136px minmax(680px, 1fr);
+  grid-template-columns: 136px max-content;
   align-items: center;
   gap: 14px;
+  width: max-content;
+  max-width: 100%;
   min-height: 82px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1532,16 +1539,17 @@ textarea { min-height: 80px; }
 .fanout-review-flow {
   grid-column: 3;
   grid-row: 2;
-  display: grid;
-  grid-template-columns: minmax(132px, 150px) 20px minmax(160px, 180px) 20px minmax(160px, 180px) 22px minmax(118px, 136px);
+  display: flex;
   align-items: center;
   gap: 8px;
   justify-content: start;
   padding-top: 2px;
-  min-width: 760px;
+  min-width: max-content;
 }
 
 .fanout-terminal-node {
+  flex: 0 0 176px;
+  width: 176px;
   min-height: 68px;
   display: grid;
   align-content: center;
@@ -1558,8 +1566,15 @@ textarea { min-height: 80px; }
 
 .fanout-terminal-node.join,
 .fanout-terminal-node.archive {
+  flex-basis: 150px;
+  width: 150px;
   border-color: rgba(63,185,80,0.55);
   background: rgba(17,38,27,0.72);
+}
+
+.fanout-terminal-node.archive {
+  flex-basis: 136px;
+  width: 136px;
 }
 
 .fanout-terminal-node.review {
@@ -1578,6 +1593,7 @@ textarea { min-height: 80px; }
 
 .fanout-down-arrow,
 .fanout-side-arrow {
+  flex: 0 0 24px;
   width: 24px;
   height: 2px;
   background: var(--accent-blue);
@@ -2820,7 +2836,8 @@ textarea { min-height: 80px; }
   margin-top: 10px;
 }
 
-.node-status-rerun {
+.node-status-rerun,
+.node-status-confirm {
   padding: 5px 9px;
   font-size: 11px;
 }
@@ -3398,7 +3415,7 @@ textarea { min-height: 80px; }
   flex-direction: column;
 }
 
-.main-layout:not(.module-pipeline):not(.module-knowledge) .panel-right {
+.main-layout:not(.module-pipeline):not(.module-knowledge):not(.module-requirements) .panel-right {
   display: none;
 }
 
@@ -3427,7 +3444,9 @@ textarea { min-height: 80px; }
 .tab-btn.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
 
 .main-layout.module-knowledge .tab-btn[data-tab="ops"],
-.main-layout.module-knowledge .tab-btn[data-tab="agents"] {
+.main-layout.module-knowledge .tab-btn[data-tab="agents"],
+.main-layout.module-requirements .tab-btn[data-tab="ops"],
+.main-layout.module-requirements .tab-btn[data-tab="agents"] {
   display: none;
 }
 

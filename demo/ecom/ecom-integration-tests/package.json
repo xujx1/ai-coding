@@ -1,0 +1,15 @@
+{
+  "name": "ecom-integration-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-application integration test suite for the demo ecom system.",
+  "scripts": {
+    "seed": "node scripts/seed.js",
+    "test": "node --test tests/integration/*.test.js",
+    "test:live": "ECOM_REQUIRE_LIVE=1 node --test tests/integration/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

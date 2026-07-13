@@ -1,6 +1,8 @@
 export interface ManagedRepositoryOverview {
   appId: string;
   name: string;
+  repositoryType?: string;
+  implementationApp?: boolean;
   description?: string;
   root: string;
   provider: string;

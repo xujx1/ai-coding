@@ -7,7 +7,7 @@ export function getPipelineDeliveryWorkflowTemplate() {
     id: PIPELINE_DELIVERY_WORKFLOW_ID,
     name: '需求 PI 交付 Workflow',
     mode: 'workflow' as const,
-    description: '上传初始化 -> 需求拆解 -> 实施方案 -> SPEC -> 代码实现 -> 测试 -> 跨应用测试 -> 归档',
+    description: 'MRD初始化 -> 需求分析与归属确认 -> 实施方案与任务 -> 代码实现 -> 测试 -> 集成测试用例/造数/脚本/部署/执行 -> 归档',
     nodes: PIPELINE_AGENT_DEFINITIONS.map((agent, index) => ({
       id: agent.id,
       label: agent.label,

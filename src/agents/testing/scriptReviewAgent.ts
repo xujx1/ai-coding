@@ -1,7 +1,7 @@
 import {
   QualityGateResultSchema,
   type QualityGateResult,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 import type { ScriptReviewAgentInput } from './types.js';
 
 export async function reviewTestingScripts(input: ScriptReviewAgentInput): Promise<QualityGateResult> {

@@ -3,8 +3,8 @@
  * Not a generic workflow editor - this is a fixed business pipeline.
  *
  * Pipeline stages:
- *   Upload / Init -> 需求拆解 -> Implementation Plan
- *   -> Spec Generate -> Java Impl(+Review)
+ *   MRD / Knowledge Init -> 需求拆解 -> Implementation Plan + OpenSpec Tasks
+ *   -> Java Impl(+Review)
  *   -> Test Code Generate(+Unit Test Runner) -> Cross App Test -> Archive
  */
 
@@ -25,10 +25,11 @@ export const LEGACY_STAGE_ID_MAP: Record<string, string> = {
   'tech-design-generate': 'implementation-plan',
   'tech-design': 'implementation-plan',
   'implementation': 'implementation-plan',
-  'openspec': 'spec-generate',
-  'openspec-optional': 'spec-generate',
-  'test-spec': 'spec-generate',
-  'testspec-generate': 'spec-generate',
+  'openspec': 'implementation-plan',
+  'openspec-optional': 'implementation-plan',
+  'spec-generate': 'implementation-plan',
+  'test-spec': 'implementation-plan',
+  'testspec-generate': 'implementation-plan',
   'test-code': 'testcode-generate',
   'java-review': 'java-impl',
   'maven-test': 'testcode-generate',
@@ -36,6 +37,7 @@ export const LEGACY_STAGE_ID_MAP: Record<string, string> = {
   'mrd-clarification': 'mrd-render',
   'mrd-clarify': 'mrd-render',
   'requirement-decompose': 'mrd-render',
+  'cross-app-test': 'execute-integration-tests',
 };
 
 export function normalizeStageId(id: string): string {
@@ -45,8 +47,8 @@ export function normalizeStageId(id: string): string {
 export const PIPELINE_NODES: PipelineNode[] = [
   {
     id: 'upload-init',
-    name: 'Upload / Init',
-    description: 'Initialize run directory, process uploaded files, extract project',
+    name: 'MRD / Knowledge Init',
+    description: 'Initialize run directory and prepare requirement, knowledge-base, and repository-index context',
     hasConfirmationGate: false,
     usesReActLoop: false,
     maxTurns: 1,
@@ -54,8 +56,8 @@ export const PIPELINE_NODES: PipelineNode[] = [
   },
   {
     id: 'mrd-render',
-    name: '需求拆解',
-    description: 'Render uploaded requirements and decompose them into feature ownership, project boundaries, and clarification questions',
+    name: '需求分析与归属确认',
+    description: 'Render uploaded requirements and decompose them into feature ownership, project boundaries, implementation surfaces, and clarification questions',
     hasConfirmationGate: true,
     usesReActLoop: false,
     maxTurns: 5,
@@ -65,25 +67,24 @@ export const PIPELINE_NODES: PipelineNode[] = [
   },
   {
     id: 'implementation-plan',
-    name: '实施方案',
-    description: 'Generate SDD technical design artifacts from the confirmed MRD/proposal',
+    name: '实施方案与任务',
+    description: 'Generate SDD technical design artifacts and OpenSpec development/test task artifacts from the confirmed MRD/proposal',
     hasConfirmationGate: true,
     usesReActLoop: false,
     maxTurns: 15,
     planModeRequired: false,
     artifactOutput: '{project}/tech-design.md',
-    artifactOutputs: ['implementation-plan-manifest.json', '{project}/tech-design.md'],
-  },
-  {
-    id: 'spec-generate',
-    name: 'SPEC生成',
-    description: 'Generate development OpenSpec task list and OpenSpec test-code checklist',
-    hasConfirmationGate: false,
-    usesReActLoop: false,
-    maxTurns: 12,
-    planModeRequired: false,
-    artifactOutput: 'openspec-task.md',
-    artifactOutputs: ['{project}/openspec-task.md', '{project}/openspec-test-task.md'],
+    artifactOutputs: [
+      'implementation-plan-manifest.json',
+      '{project}/tech-design.md',
+      '{project}/openspec-task.md',
+      '{project}/openspec-test-task.md',
+      '{project}/openspec/changes/*/proposal.md',
+      '{project}/openspec/changes/*/design.md',
+      '{project}/openspec/changes/*/tasks.md',
+      '{project}/openspec/changes/*/specs/*/spec.md',
+      'spec-manifest.json',
+    ],
   },
   {
     id: 'java-impl',
@@ -121,9 +122,63 @@ export const PIPELINE_NODES: PipelineNode[] = [
     ],
   },
   {
-    id: 'cross-app-test',
-    name: '跨应用测试',
-    description: 'Run cross-application integration checks after all application branches complete',
+    id: 'integration-test-cases',
+    name: '集成测试用例',
+    description: 'Generate and review integration testing strategy and test cases after application branches complete',
+    hasConfirmationGate: false,
+    usesReActLoop: false,
+    maxTurns: 5,
+    planModeRequired: false,
+    artifactOutputs: [
+      'testing/*/workflow-state.json',
+      'testing/*/testing-strategy-*.json',
+      'testing/*/testing-test-cases-*.json',
+    ],
+  },
+  {
+    id: 'test-data-plan',
+    name: '造数',
+    description: 'Generate and review testing data plans for cross-application integration tests',
+    hasConfirmationGate: false,
+    usesReActLoop: false,
+    maxTurns: 5,
+    planModeRequired: false,
+    artifactOutputs: [
+      'testing/*/workflow-state.json',
+      'testing/*/testing-data-plan-*.json',
+    ],
+  },
+  {
+    id: 'integration-test-code',
+    name: '生成集成测试代码',
+    description: 'Generate and review executable integration test scripts',
+    hasConfirmationGate: false,
+    usesReActLoop: false,
+    maxTurns: 5,
+    planModeRequired: false,
+    artifactOutputs: [
+      'testing/*/workflow-state.json',
+      'testing/*/testing-generated-script-*.json',
+      'testing/*/testing-quality-gate-*.json',
+    ],
+  },
+  {
+    id: 'deploy-related-apps',
+    name: '部署关联应用',
+    description: 'Resolve and validate related application deployment context for integration testing',
+    hasConfirmationGate: false,
+    usesReActLoop: false,
+    maxTurns: 5,
+    planModeRequired: false,
+    artifactOutputs: [
+      'testing/*/workflow-state.json',
+      'cross-app/delivery-metadata.json',
+    ],
+  },
+  {
+    id: 'execute-integration-tests',
+    name: '执行集成测试',
+    description: 'Run AI Testing and E2E verification, collect reports, calculate metrics, triage failures, and update regression scope',
     hasConfirmationGate: false,
     usesReActLoop: false,
     maxTurns: 5,
@@ -131,6 +186,8 @@ export const PIPELINE_NODES: PipelineNode[] = [
     artifactOutputs: [
       'cross-app/test-results.json',
       'cross-app/delivery-metadata.json',
+      '{project}/e2e/e2e-summary.json',
+      'testing/*/workflow-state.json',
     ],
   },
   {

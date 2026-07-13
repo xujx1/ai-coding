@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { listManagedApplications, type ManagedApplication } from '../../application/applicationService.js';
 import { getRunPaths } from '../../runtime/paths.js';
 import {
   ProjectStartupCapabilitySnapshot,
@@ -17,6 +18,10 @@ export interface ProjectManifest {
     sourceRoots?: string[];
     testRoots?: string[];
     capabilities?: ProjectStartupCapabilitySnapshot;
+    appId?: string;
+    description?: string;
+    dependencies?: string[];
+    source?: 'upload' | 'application-management';
   }>;
 }
 
@@ -71,6 +76,7 @@ export function detectProjectRoots(projectDir: string): Array<{ name: string; ro
 }
 
 export function generateProjectManifest(paths: ReturnType<typeof getRunPaths>): ProjectManifest {
+  ensureApplicationManagedProjects(paths);
   const requirements: ProjectManifest['requirements'] = [];
   if (fs.existsSync(paths.inputDir)) {
     for (const f of fs.readdirSync(paths.inputDir)) {
@@ -125,6 +131,7 @@ export function generateProjectManifest(paths: ReturnType<typeof getRunPaths>): 
         ...detectProjectStartupCapabilities(p.root),
         projectRoot: path.relative(path.join(paths.runDir, 'workspace'), p.root),
       },
+      ...readManagedProjectMetadata(p.root),
     };
   });
 
@@ -147,7 +154,8 @@ export function ensureProjectManifest(paths: ReturnType<typeof getRunPaths>): Pr
 }
 
 function isProjectRoot(dir: string): boolean {
-  return fs.existsSync(path.join(dir, 'pom.xml')) ||
+  return fs.existsSync(path.join(dir, '.ai-coding-app.json')) ||
+    fs.existsSync(path.join(dir, 'pom.xml')) ||
     fs.existsSync(path.join(dir, 'build.gradle')) ||
     fs.existsSync(path.join(dir, 'build.gradle.kts')) ||
     fs.existsSync(path.join(dir, 'package.json'));
@@ -173,4 +181,86 @@ function hasFrontendTestFile(root: string): boolean {
   } catch {
     return false;
   }
+}
+
+function ensureApplicationManagedProjects(paths: ReturnType<typeof getRunPaths>): void {
+  if (detectProjectRoots(paths.projectDir).length > 0) return;
+  const applications = listManagedApplications()
+    .filter(app => fs.existsSync(app.root) && fs.statSync(app.root).isDirectory());
+  if (!applications.length) return;
+
+  fs.mkdirSync(paths.projectDir, { recursive: true });
+  for (const app of applications) {
+    const targetRoot = path.join(paths.projectDir, safeProjectArtifactName(app.appId));
+    if (!fs.existsSync(targetRoot)) {
+      copyDirectory(app.root, targetRoot);
+    }
+    writeManagedProjectMetadata(targetRoot, app);
+  }
+}
+
+function writeManagedProjectMetadata(targetRoot: string, app: ManagedApplication): void {
+  const metadataPath = path.join(targetRoot, '.ai-coding-app.json');
+  const metadata = {
+    appId: app.appId,
+    repoId: app.repoId,
+    name: app.name,
+    description: app.description,
+    dependencies: app.dependencies,
+    source: 'application-management',
+    originalRoot: app.root,
+    provider: app.provider,
+    remoteUrl: app.remoteUrl,
+    defaultBranch: app.defaultBranch,
+  };
+  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
+}
+
+function readManagedProjectMetadata(projectRoot: string): Pick<NonNullable<ProjectManifest['projects'][number]>, 'appId' | 'description' | 'dependencies' | 'source'> {
+  const metadataPath = path.join(projectRoot, '.ai-coding-app.json');
+  if (!fs.existsSync(metadataPath)) return { source: 'upload' };
+  try {
+    const parsed = JSON.parse(fs.readFileSync(metadataPath, 'utf-8')) as {
+      appId?: string;
+      description?: string;
+      dependencies?: string[];
+      source?: 'application-management';
+    };
+    return {
+      appId: parsed.appId,
+      description: parsed.description,
+      dependencies: Array.isArray(parsed.dependencies) ? parsed.dependencies : undefined,
+      source: parsed.source ?? 'application-management',
+    };
+  } catch {
+    return { source: 'application-management' };
+  }
+}
+
+function copyDirectory(source: string, target: string): void {
+  fs.mkdirSync(target, { recursive: true });
+  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+    if (shouldSkipCopiedEntry(entry.name)) continue;
+    const sourcePath = path.join(source, entry.name);
+    const targetPath = path.join(target, entry.name);
+    if (entry.isDirectory()) {
+      copyDirectory(sourcePath, targetPath);
+    } else if (entry.isFile()) {
+      fs.copyFileSync(sourcePath, targetPath);
+    }
+  }
+}
+
+function shouldSkipCopiedEntry(name: string): boolean {
+  return [
+    '.git',
+    '.git-service',
+    'target',
+    'node_modules',
+    'dist',
+    'build',
+    '.idea',
+    '.vscode',
+    'pids',
+  ].includes(name);
 }

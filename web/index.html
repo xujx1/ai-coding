@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Coding Pipeline - MRD 到代码工作台</title>
-  <link rel="stylesheet" href="/app.css?v=20260712-ops-workbench-9">
+  <link rel="stylesheet" href="/app.css?v=20260712-knowledge-mrd-2">
 </head>
 <body>
   <div id="app">
@@ -51,7 +51,7 @@
               <span class="pipeline-status-badge idle" id="pipeline-status-badge">空闲</span>
             </div>
             <div class="session-header-subtitle" id="session-workflow-summary">
-              上传项目和 MRD 后，将按本次 session 生成动态 workflow。
+              上传 MRD 后，将按知识库和仓库索引检索应用并生成动态 workflow。
             </div>
           </div>
           <div class="session-header-actions">
@@ -78,7 +78,7 @@
         <div class="execution-trace" id="execution-trace">
           <div class="welcome-screen" id="welcome-screen">
             <h2>⚡ MRD 到代码流水线</h2>
-            <p>上传 MRD、项目与参考资料，配置任务后启动流水线。系统会编排需求归属确认、技术方案、SPEC、代码实现、测试运行与归档。</p>
+            <p>上传 MRD 与参考资料，配置任务后启动流水线。系统会基于知识库和仓库索引检索应用，并编排需求归属确认、技术方案、SPEC、代码实现、跨应用测试与归档。</p>
           </div>
         </div>
       </div>
@@ -88,7 +88,6 @@
         <div class="tab-bar">
           <button class="tab-btn active" data-tab="artifacts" onclick="switchTab('artifacts')">📁 产物</button>
           <button class="tab-btn" data-tab="preview" onclick="switchTab('preview')">📄 预览</button>
-          <button class="tab-btn" data-tab="ops" onclick="switchTab('ops')">▣ 应用运维</button>
           <button class="tab-btn" data-tab="agents" onclick="switchTab('agents')">🤖 Agent</button>
         </div>
         <div class="tab-panel active" id="tab-artifacts">
@@ -99,9 +98,6 @@
         </div>
         <div class="tab-panel" id="tab-preview">
           <div class="file-preview" id="file-preview"><div style="padding:20px;color:var(--text-muted);text-align:center">选择文件查看预览</div></div>
-        </div>
-        <div class="tab-panel" id="tab-ops">
-          <div id="ops-panel"><div style="color:var(--text-muted);font-size:11px;padding:8px">正在加载应用运维...</div></div>
         </div>
         <div class="tab-panel" id="tab-agents">
           <div id="agents-list"><div style="color:var(--text-muted);font-size:11px;padding:8px">暂无 Agent</div></div>
@@ -138,11 +134,11 @@
       <div class="new-task-header">
         <div>
           <h2>新建运行任务</h2>
-          <p>上传需求文件和项目文件夹后启动 MRD 到代码流水线。</p>
+          <p>上传需求文件后启动 MRD 到代码流水线；应用范围由 MRD、知识库和仓库索引推导，并在需求归属确认中确认。</p>
         </div>
         <button class="new-task-close" onclick="closeNewTaskPage()">×</button>
       </div>
-      <div class="task-upload-grid">
+      <div class="task-upload-grid single">
         <div>
           <div class="mini-label">需求文件上传</div>
           <div class="file-upload-area compact" id="input-upload-area" onclick="document.getElementById('task-file-input').click()">
@@ -152,17 +148,6 @@
           </div>
           <div class="upload-actions single">
             <button class="btn" onclick="openUploadPicker(event, 'task-file-input')">📄 上传需求文件</button>
-          </div>
-        </div>
-        <div>
-          <div class="mini-label">上传项目文件夹</div>
-          <div class="file-upload-area compact" id="project-upload-area" onclick="document.getElementById('project-folder-input').click()">
-            <div>🗂 点击或拖拽上传项目文件夹</div>
-            <div style="font-size:10px;margin-top:4px">支持多个项目文件夹，落盘到 workspace/project</div>
-          </div>
-          <div class="upload-actions single">
-            <button class="btn" onclick="openUploadPicker(event, 'project-folder-input')">🗂 上传项目文件夹</button>
-            <input type="file" id="project-folder-input" multiple webkitdirectory directory style="display:none" onchange="handleFolderSelect(event, 'project')">
           </div>
         </div>
       </div>
@@ -193,10 +178,6 @@
       <div class="form-group">
         <label>上传需求文件</label>
         <input type="file" id="new-run-files" multiple>
-      </div>
-      <div class="form-group">
-        <label>上传项目文件夹</label>
-        <input type="file" id="new-run-project-folders" multiple webkitdirectory directory>
       </div>
       <div class="modal-footer">
         <button class="btn" onclick="closeNewRunModal()">取消</button>
@@ -253,6 +234,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=20260712-ops-workbench-11"></script>
+  <script src="/app.js?v=20260712-requirement-status-1"></script>
 </body>
 </html>

@@ -1,9 +1,9 @@
 {
   "console": {
     "domain": "console",
-    "domainName": "console",
+    "domainName": "运营后台",
     "serviceName": "console",
-    "summary": ""
+    "summary": "Provides the operator/admin console, management pages, buttons, forms, and result display for cross-domain business workflows."
   },
   "ecom-aftersales": {
     "domain": "aftersales",

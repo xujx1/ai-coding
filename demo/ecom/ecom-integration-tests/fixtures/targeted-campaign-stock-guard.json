@@ -1,0 +1,45 @@
+{
+  "scenarioId": "targeted-campaign-stock-guard",
+  "description": "Targeted campaign creation validates SKU sale status and available inventory before campaign enablement.",
+  "product": {
+    "skuId": "SKU-STOCK-GUARD-1001",
+    "spuId": "SPU-STOCK-GUARD-1001",
+    "title": "Stock Guard Demo SKU",
+    "categoryId": "CAT-MARKETING",
+    "brandId": "BR-DEMO",
+    "priceCent": 12900,
+    "saleable": true
+  },
+  "inventory": {
+    "stockId": "STOCK-STOCK-GUARD-1001",
+    "skuId": "SKU-STOCK-GUARD-1001",
+    "warehouseId": "WH-SH-01",
+    "quantity": 100,
+    "availableQuantity": 80
+  },
+  "marketing": {
+    "campaignId": "CAMP-STOCK-GUARD-1001",
+    "name": "Stock Guard Campaign",
+    "skuId": "SKU-STOCK-GUARD-1001",
+    "discountCent": 1500,
+    "quota": 20
+  },
+  "negativeCases": {
+    "offShelfSku": {
+      "skuId": "SKU-STOCK-GUARD-OFFSHELF",
+      "spuId": "SPU-STOCK-GUARD-OFFSHELF",
+      "title": "Off Shelf Demo SKU",
+      "categoryId": "CAT-MARKETING",
+      "brandId": "BR-DEMO",
+      "priceCent": 12900,
+      "saleable": false
+    },
+    "lowStock": {
+      "stockId": "STOCK-STOCK-GUARD-LOW",
+      "skuId": "SKU-STOCK-GUARD-LOW",
+      "warehouseId": "WH-SH-01",
+      "quantity": 3,
+      "availableQuantity": 1
+    }
+  }
+}

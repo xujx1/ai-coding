@@ -2,6 +2,13 @@ import type { ArtifactRef, LifecycleState, TestRunRef } from '../lifecycle/types
 import { recordTestingRun, type TestingArtifactType } from '../lifecycle/testingArtifacts.js';
 import { loadLifecycleState, saveLifecycleState } from '../lifecycle/store.js';
 import { ensureRunDirectories, type RunPaths } from '../runtime/paths.js';
+import {
+  createTestingWorkflowRuntime,
+  type ResumeTestingWorkflowInput,
+  type StartTestingWorkflowInput,
+  type TestingWorkflowRuntime,
+  type TestingWorkflowRuntimeState,
+} from '../workflows/runtime/testing/index.js';
 import type { TestingArtifact } from './artifacts.js';
 import {
   TestingArtifactRepository,
@@ -10,6 +17,7 @@ import {
 
 export interface TestingServiceContext {
   repository?: TestingArtifactRepository;
+  runtime?: TestingWorkflowRuntime;
   pathsForRun?: (runId: string) => RunPaths;
   loadState?: (runId: string) => LifecycleState | null;
   saveState?: (state: LifecycleState) => LifecycleState;
@@ -24,15 +32,68 @@ export interface TestingArtifactQuery {
 
 export class TestingService {
   private readonly repository: TestingArtifactRepository;
+  private readonly runtime: TestingWorkflowRuntime;
   private readonly pathsForRun: (runId: string) => RunPaths;
   private readonly loadState: (runId: string) => LifecycleState | null;
   private readonly saveState: (state: LifecycleState) => LifecycleState;
 
   constructor(context: TestingServiceContext = {}) {
     this.repository = context.repository ?? new TestingArtifactRepository();
+    this.runtime = context.runtime ?? createTestingWorkflowRuntime();
     this.pathsForRun = context.pathsForRun ?? ensureRunDirectories;
     this.loadState = context.loadState ?? loadLifecycleState;
     this.saveState = context.saveState ?? saveLifecycleState;
+  }
+
+  async startWorkflow(input: StartTestingWorkflowInput) {
+    return this.runtime.start(input);
+  }
+
+  async resumeWorkflow(input: ResumeTestingWorkflowInput) {
+    return this.runtime.resume(input);
+  }
+
+  getWorkflowStatus(runId: string, workflowInstanceId: string): TestingWorkflowRuntimeState {
+    return this.runtime.status(runId, workflowInstanceId);
+  }
+
+  getDashboard(runId: string, workflowInstanceId?: string): {
+    lifecycle: Pick<LifecycleState, 'requirementId' | 'runId' | 'phase' | 'status' | 'deploymentSets' | 'environments' | 'testRuns'>;
+    workflow?: TestingWorkflowRuntimeState;
+    artifacts: ArtifactRef[];
+    executionReports: ArtifactRef[];
+    coverageReports: ArtifactRef[];
+    triage: ArtifactRef[];
+    regressionPlans: ArtifactRef[];
+  } {
+    const state = this.requireState(runId);
+    const artifacts = this.repository.list(state);
+    const workflow = workflowInstanceId ? this.runtime.status(runId, workflowInstanceId) : undefined;
+    return {
+      lifecycle: {
+        requirementId: state.requirementId,
+        runId: state.runId,
+        phase: state.phase,
+        status: state.status,
+        deploymentSets: state.deploymentSets,
+        environments: state.environments,
+        testRuns: state.testRuns,
+      },
+      workflow,
+      artifacts,
+      executionReports: artifacts.filter(ref => ref.type === 'testing-execution-report'),
+      coverageReports: artifacts.filter(ref => ref.type === 'testing-coverage-report'),
+      triage: artifacts.filter(ref => ref.type === 'testing-failure-triage'),
+      regressionPlans: artifacts.filter(ref => ref.type === 'testing-regression-plan'),
+    };
+  }
+
+  getExecutionReport(runId: string, artifactId: string): SavedTestingArtifact {
+    const saved = this.getArtifact(runId, artifactId);
+    if (saved.ref.type !== 'testing-execution-report') {
+      throw new Error(`Testing artifact ${artifactId} is not an execution report`);
+    }
+    return saved;
   }
 
   createArtifact<T extends TestingArtifact>(args: {

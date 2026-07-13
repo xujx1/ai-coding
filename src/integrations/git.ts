@@ -8,6 +8,8 @@ export interface LocalGitServiceRepository {
   root: string;
   appId?: string;
   defaultBranch?: string;
+  repositoryType?: 'application' | 'testing' | string;
+  implementationApp?: boolean;
 }
 
 export interface LocalGitServiceOptions {
@@ -319,18 +321,35 @@ export function createEcomLocalGitService(ecomRoot: string): LocalGitService {
   const root = path.resolve(ecomRoot);
   const repositories = fs.readdirSync(root, { withFileTypes: true })
     .filter(entry => entry.isDirectory() && (entry.name === 'console' || entry.name.startsWith('ecom-')))
-    .map(entry => ({
-      repoId: entry.name,
-      name: entry.name,
-      appId: entry.name,
-      root: path.join(root, entry.name),
-      defaultBranch: 'main',
-    }))
+    .map(entry => {
+      const repoRoot = path.join(root, entry.name);
+      const metadata = readRepositoryMetadata(repoRoot);
+      return {
+        repoId: metadata.repoId ?? entry.name,
+        name: metadata.name ?? entry.name,
+        appId: metadata.implementationApp === false ? undefined : (metadata.appId ?? entry.name),
+        root: repoRoot,
+        defaultBranch: metadata.defaultBranch ?? 'main',
+        repositoryType: metadata.repositoryType,
+        implementationApp: metadata.implementationApp,
+      };
+    })
     .sort((a, b) => a.repoId.localeCompare(b.repoId));
   return new LocalGitService({
     serviceRoot: path.join(root, '.git-service'),
     repositories,
   });
+}
+
+function readRepositoryMetadata(repoRoot: string): Partial<LocalGitServiceRepository> {
+  const metadataPath = path.join(repoRoot, 'repository.json');
+  if (!fs.existsSync(metadataPath)) return {};
+  try {
+    const parsed = JSON.parse(fs.readFileSync(metadataPath, 'utf-8')) as Partial<LocalGitServiceRepository>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 export function createFeatureBranchName(requirementId: string, appId: string): string {

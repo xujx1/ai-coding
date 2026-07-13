@@ -28,6 +28,11 @@ export type PlannedNodeType =
   | 'e2e-verify'
   | 'documentation-impl'
   | 'documentation-test'
+  | 'integration-test-cases'
+  | 'test-data-plan'
+  | 'integration-test-code'
+  | 'deploy-related-apps'
+  | 'execute-integration-tests'
   | 'cross-app-test'
   | 'archive';
 
@@ -135,7 +140,6 @@ const ALLOWED_TRACK_KINDS: ReadonlySet<PlannedTrackKind> = new Set([
   'backend',
   'frontend',
   'contract',
-  'e2e',
   'documentation',
 ]);
 
@@ -222,8 +226,7 @@ export function createApplicationBranchPlan(args: {
   fanoutReason?: string;
 }): ApplicationBranchPlan {
   const baseNodes: PlannedNode[] = [
-    plannedNode('implementation-plan', 'implementation-plan', '实施方案'),
-    plannedNode('spec-generate', 'spec-generate', 'SPEC 生成', ['implementation-plan']),
+    plannedNode('implementation-plan', 'implementation-plan', '实施方案与任务'),
   ];
   const tracks = createTracks(args.projectName, args.capability);
   return {
@@ -250,7 +253,6 @@ function orderBranchTrackNodes(nodes: PlannedNode[]): PlannedNode[] {
     'frontend-impl',
     'backend-test',
     'frontend-test',
-    'e2e-verify',
     'documentation-impl',
     'documentation-test',
   ];
@@ -480,10 +482,10 @@ function createTracks(projectName: string, capability: ProjectCapabilityShape): 
       kind: 'documentation',
       label: '文档兜底',
       required: true,
-      dependsOn: ['spec-generate'],
+      dependsOn: ['implementation-plan'],
       fallbackReason: capability.fallbackReasons.join('\n') || 'No executable capability was detected.',
       nodes: [
-        plannedNode('documentation-impl', 'documentation-impl', '文档实现', ['spec-generate'], 'documentation', projectName),
+        plannedNode('documentation-impl', 'documentation-impl', '文档实现', ['implementation-plan'], 'documentation', projectName),
         plannedNode('documentation-test', 'documentation-test', '文档验证', ['documentation-impl'], 'documentation', projectName),
       ],
     }];
@@ -496,9 +498,9 @@ function createTracks(projectName: string, capability: ProjectCapabilityShape): 
       kind: 'backend',
       label: '后端',
       required: true,
-      dependsOn: ['spec-generate'],
+      dependsOn: ['implementation-plan'],
       nodes: [
-        plannedNode('java-impl', 'java-impl', '后端实现', ['spec-generate'], 'backend', projectName),
+        plannedNode('java-impl', 'java-impl', '后端实现', ['implementation-plan'], 'backend', projectName),
         plannedNode('backend-test', 'backend-test', '后端测试', ['java-impl'], 'backend', projectName),
       ],
     });
@@ -509,20 +511,10 @@ function createTracks(projectName: string, capability: ProjectCapabilityShape): 
       kind: 'frontend',
       label: '前端',
       required: true,
-      dependsOn: ['spec-generate'],
+      dependsOn: ['implementation-plan'],
       nodes: [
-        plannedNode('frontend-impl', 'frontend-impl', '前端实现', ['spec-generate'], 'frontend', projectName),
+        plannedNode('frontend-impl', 'frontend-impl', '前端实现', ['implementation-plan'], 'frontend', projectName),
         plannedNode('frontend-test', 'frontend-test', '前端测试', ['frontend-impl'], 'frontend', projectName),
-      ],
-    });
-    tracks.push({
-      trackId: 'e2e',
-      kind: 'e2e',
-      label: '端到端验证',
-      required: false,
-      dependsOn: ['frontend-test'],
-      nodes: [
-        plannedNode('e2e-verify', 'e2e-verify', '端到端验证', ['frontend-test'], 'e2e', projectName),
       ],
     });
   }
@@ -533,7 +525,6 @@ function omittedTracks(capability: ProjectCapabilityShape): OmittedTrackReason[]
   const omitted: OmittedTrackReason[] = [];
   if (!capability.backend) omitted.push({ trackKind: 'backend', reason: 'Backend capability was not detected.' });
   if (!capability.frontend) omitted.push({ trackKind: 'frontend', reason: 'Frontend capability was not detected.' });
-  if (!capability.frontend) omitted.push({ trackKind: 'e2e', reason: 'E2E requires a frontend-capable app.' });
   return omitted;
 }
 

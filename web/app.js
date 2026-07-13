@@ -62,21 +62,26 @@ const state = {
 };
 
 const PIPELINE_STAGES = [
-  { id: 'upload-init', name: '上传/初始化', icon: '📁' },
-  { id: 'mrd-render', name: '需求拆解', icon: '📋' },
-  { id: 'implementation-plan', name: '实施方案', icon: '🧭' },
-  { id: 'spec-generate', name: 'SPEC生成', icon: '📐' },
+  { id: 'upload-init', name: 'MRD初始化', icon: '📁' },
+  { id: 'mrd-render', name: '需求分析与归属确认', icon: '📋' },
+  { id: 'implementation-plan', name: '实施方案与任务', icon: '🧭' },
   { id: 'java-impl', name: 'Java 实现', icon: '☕' },
   { id: 'testcode-generate', name: '测试代码', icon: '✓' },
   { id: 'archive', name: '归档', icon: '📦' },
 ];
 
 const STAGE_NAMES = Object.fromEntries(PIPELINE_STAGES.map(s => [s.id, s.name]));
-STAGE_NAMES['mrd-clarify'] = '需求归属确认';
+STAGE_NAMES['mrd-clarify'] = '需求分析与归属确认';
+STAGE_NAMES['spec-generate'] = '实施方案与任务';
 Object.assign(STAGE_NAMES, {
   'project-fanout': '项目分流',
   'app-join': '分支汇合',
-  'cross-app-test': '跨应用测试',
+  'integration-test-cases': '集成测试用例',
+  'test-data-plan': '造数',
+  'integration-test-code': '生成集成测试代码',
+  'deploy-related-apps': '部署关联应用',
+  'execute-integration-tests': '执行集成测试',
+  'cross-app-test': '执行集成测试',
   'backend-impl': '后端实现',
   'backend-test': '后端测试',
   'frontend-impl': '前端实现',
@@ -108,6 +113,14 @@ const STATUS_LABELS = {
   waiting_tool: '等待工具',
   compacting: '压缩上下文',
 };
+
+const TESTING_PI_STAGE_IDS = [
+  'integration-test-cases',
+  'test-data-plan',
+  'integration-test-code',
+  'deploy-related-apps',
+  'execute-integration-tests',
+];
 
 const ACTIVE_PIPELINE_STATUSES = new Set(['running', 'waiting_confirmation']);
 
@@ -233,7 +246,7 @@ function renderPipelineBar() {
   if (summary) {
     summary.innerHTML = state.pipeline
       ? renderSessionWorkflowSummary(nodes)
-      : '上传项目和 MRD 后，将按本次 session 生成动态 workflow。';
+      : '上传 MRD 后，将按知识库和仓库索引检索应用并生成动态 workflow。';
   }
   if (workflowToggle) {
     workflowToggle.classList.toggle('active', state.showWorkflowView);
@@ -248,12 +261,12 @@ function getPipelineBarNodes() {
   if (!state.pipeline) return [];
   const instanceNodes = state.pipeline?.workflowInstance?.nodes;
   if (Array.isArray(instanceNodes) && instanceNodes.length) {
-    return withClarifyNode(instanceNodes).map(node => ({
+    return instanceNodes.filter(node => node.id !== 'mrd-clarify').map(node => ({
       id: node.id,
       name: stageName(node.id, node.label || node.id),
       sourceNodeId: node.sourceNodeId,
       kind: node.kind,
-      status: node.id === 'mrd-clarify' ? getClarifyNodeStatus() : getSessionWorkflowNodeStatus(node),
+      status: getSessionWorkflowNodeStatus(node),
       error: node.error,
     }));
   }
@@ -261,21 +274,7 @@ function getPipelineBarNodes() {
 }
 
 function withClarifyNode(nodes) {
-  if (!Array.isArray(nodes) || nodes.some(node => node.id === 'mrd-clarify')) return nodes;
-  const result = [];
-  for (const node of nodes) {
-    if (node.id === 'mrd-render') {
-      result.push({
-        id: 'mrd-clarify',
-        label: '需求归属确认',
-        kind: 'stage',
-        sourceNodeId: 'mrd-render',
-        artifactHints: ['artifacts/mrd-clarify-questions.md', 'artifacts/implementation-boundaries.md'],
-      });
-    }
-    result.push(node);
-  }
-  return result;
+  return nodes;
 }
 
 function renderSessionWorkflowSummary(nodes) {
@@ -328,7 +327,6 @@ function getCurrentBranchStageSummary() {
 function isBranchStageNode(nodeId) {
   return [
     'implementation-plan',
-    'spec-generate',
     'java-impl',
     'testcode-generate',
   ].includes(nodeId);
@@ -338,10 +336,6 @@ function getCurrentSessionWorkflowNode(nodes) {
   if (!Array.isArray(nodes) || !nodes.length) return null;
   const currentId = state.pipeline?.currentNodeId;
   if (currentId) {
-    if (currentId === 'mrd-render' && getClarifyNodeStatus() === 'waiting_confirmation') {
-      const clarify = nodes.find(node => node.id === 'mrd-clarify');
-      if (clarify) return clarify;
-    }
     const exact = nodes.find(node => node.id === currentId);
     if (exact) return exact;
     const sourceMatch = nodes.find(node => node.sourceNodeId === currentId);
@@ -404,6 +398,7 @@ function statusIcon(status) {
     completed: '✓',
     failed: '✕',
     waiting_fix: '!',
+    suspended: 'Ⅱ',
     cancelled: '⊘',
     skipped: '⊘',
   }[status] || '○';
@@ -411,16 +406,18 @@ function statusIcon(status) {
 
 function getNodeStatus(nodeId) {
   if (!state.pipeline) return 'pending';
+  if (isCurrentSuspendedNode(nodeId)) return 'suspended';
   if (nodeId === 'mrd-clarify') return getClarifyNodeStatus();
   const instanceNode = state.pipeline.workflowInstance?.nodes?.find(node => node.id === nodeId);
   if (instanceNode) return getSessionWorkflowNodeStatus(instanceNode);
   const node = state.pipeline.nodes?.find(n => n.id === nodeId);
-  return node?.status || 'pending';
+  return effectiveNodeStatus(nodeId, node?.status || 'pending');
 }
 
 function getClarifyNodeStatus() {
   const mrd = getRunNodeById('mrd-render');
   if (!mrd) return 'pending';
+  if (isCurrentSuspendedNode('mrd-render')) return 'suspended';
   if (mrd.status === 'waiting_confirmation') return 'waiting_confirmation';
   if (mrd.status === 'completed') return 'completed';
   if (mrd.status === 'failed') return 'failed';
@@ -429,19 +426,29 @@ function getClarifyNodeStatus() {
   return mrd.status === 'running' ? 'running' : 'pending';
 }
 
+function isCurrentSuspendedNode(nodeId) {
+  if (!state.pipeline || state.pipeline.status !== 'suspended') return false;
+  const currentNodeId = state.pipeline.currentNodeId || state.pipeline.nodes?.[state.pipeline.currentNodeIndex]?.id;
+  return nodeId === currentNodeId;
+}
+
+function effectiveNodeStatus(nodeId, status) {
+  return isCurrentSuspendedNode(nodeId) ? 'suspended' : status;
+}
+
 function getSessionWorkflowNodeStatus(instanceNode) {
   if (!state.pipeline || !instanceNode) return 'pending';
+  if (instanceNode.id === 'mrd-render') return getClarifyNodeStatus();
   const directSource = state.pipeline.nodes?.find(node => node.id === instanceNode.id);
   if (directSource?.status) return directSource.status;
   if (instanceNode.sourceNodeId) {
     const source = state.pipeline.nodes?.find(node => node.id === instanceNode.sourceNodeId);
-    if (instanceNode.id === 'mrd-render' && source?.status === 'waiting_confirmation') return 'pending';
     if (source?.status) return source.status;
   }
   if (instanceNode.kind === 'fanout') {
     const branches = state.pipeline.workflowInstance?.branches || [];
     const currentId = state.pipeline.currentNodeId;
-    if (branches.length && (isBranchStageNode(currentId) || ['app-join', 'cross-app-test', 'archive'].includes(currentId))) {
+    if (branches.length && (isBranchStageNode(currentId) || ['app-join', ...TESTING_PI_STAGE_IDS, 'archive'].includes(currentId))) {
       return 'completed';
     }
     if (instanceNode.status && instanceNode.status !== 'waiting_confirmation') return instanceNode.status;
@@ -490,6 +497,7 @@ function renderManagementLayoutMode() {
   if (!layout) return;
   layout.classList.toggle('module-pipeline', state.activeModule === 'pipeline');
   layout.classList.toggle('module-knowledge', state.activeModule === 'knowledge');
+  layout.classList.toggle('module-requirements', state.activeModule === 'requirements');
 }
 
 async function loadManagementOverview() {
@@ -542,8 +550,8 @@ function renderManagementWorkspace() {
       title,
       subtitle: '管理应用知识库、全局图谱、vector-index 和归档知识增量。',
       actions: `
-        <button class="btn btn-secondary" onclick="viewSelectedKnowledgeBases()" ${state.selectedKnowledgeBaseIds.size ? '' : 'disabled'}>
-          查看已选
+        <button class="btn btn-secondary" onclick="triggerBatchKnowledgeGeneration()" ${state.knowledgeInitRunning || !getSelectedKnowledgeAppIds().length ? 'disabled' : ''}>
+          批量生产知识库
         </button>
         <button class="btn btn-primary" onclick="triggerInitAllAppKnowledge()" ${state.knowledgeInitRunning ? 'disabled' : ''}>
           ${state.knowledgeInitRunning ? '生成中...' : '全量生成知识库'}
@@ -595,15 +603,13 @@ function renderManagementWorkspace() {
       stats: [
         ['需求', state.managementOverview.requirements?.length || 0],
         ['待审批', (state.managementOverview.requirements || []).reduce((sum, req) => sum + (req.waitingApprovals || 0), 0)],
-        ['应用数', (state.managementOverview.requirements || []).reduce((sum, req) => sum + (req.appCount || 0), 0)],
       ],
-      columns: ['需求', '来源', '阶段', '状态', '应用', '审批', '操作'],
+      columns: ['需求', '来源', '阶段', '状态', '审批', '操作'],
       rows: (state.managementOverview.requirements || []).map(req => [
         req.name || req.requirementId,
         req.source || '',
-        req.phase || '',
-        req.status || '',
-        String(req.appCount || 0),
+        formatRequirementPhase(req),
+        formatRequirementStatus(req),
         `${req.waitingApprovals || 0} 待 / ${req.completedApprovals || 0} 完成`,
         req.id
           ? { html: renderRequirementActions(req) }
@@ -665,6 +671,35 @@ async function triggerInitAllAppKnowledge() {
   }
 }
 
+async function triggerBatchKnowledgeGeneration() {
+  if (state.knowledgeInitRunning) return;
+  const appIds = getSelectedKnowledgeAppIds();
+  if (!appIds.length) {
+    state.knowledgeInitStatus = '请先选择应用级知识库。';
+    renderExecutionTrace();
+    return;
+  }
+  state.knowledgeInitRunning = true;
+  state.knowledgeInitStatus = `正在批量生产 ${appIds.length} 个应用知识库...`;
+  renderExecutionTrace();
+  try {
+    const res = await fetch('/api/management/knowledge/init-all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appIds }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '批量生产知识库失败');
+    state.knowledgeInitStatus = `已生产 ${data.appCount || appIds.length} 个应用知识库：${appIds.join('、')}`;
+    await loadManagementOverview();
+  } catch (error) {
+    state.knowledgeInitStatus = error.message || String(error);
+  } finally {
+    state.knowledgeInitRunning = false;
+    renderExecutionTrace();
+  }
+}
+
 function renderManagementTableCell(cell) {
   if (cell && typeof cell === 'object' && typeof cell.html === 'string') {
     return `<td${cell.className ? ` class="${escAttr(cell.className)}"` : ''}>${cell.html}</td>`;
@@ -675,10 +710,25 @@ function renderManagementTableCell(cell) {
   return `<td>${esc(cell)}</td>`;
 }
 
+function formatRequirementPhase(req) {
+  if (!req) return '';
+  if (req.phase === 'mrd-ready') return '待启动';
+  return stageName(req.phase, req.phase || '');
+}
+
+function formatRequirementStatus(req) {
+  if (!req) return '';
+  if ((req.waitingApprovals || 0) > 0 || req.status === 'waiting_confirmation') return '待审批';
+  return statusLabel(req.status || '');
+}
+
 function renderRequirementActions(req) {
   return `
     <div class="table-actions">
       <button class="table-action-link" type="button" onclick="viewRequirementMrd('${escAttr(req.id)}')">MRD 原文</button>
+      ${req.phase === 'mrd-ready' && !req.runId
+        ? `<button class="table-action-link" type="button" onclick="startPiFromRequirement('${escAttr(req.id)}', '${escAttr(req.name || req.requirementId || 'MRD 到代码运行')}')">启动 PI 流程</button>`
+        : ''}
       ${req.runId ? `<button class="table-action-link" type="button" onclick="openRequirementDetail('${escAttr(req.runId)}')">详情</button>` : ''}
     </div>
   `;
@@ -737,8 +787,53 @@ async function openRequirementDetail(runId) {
 async function viewRequirementMrd(requirementId) {
   if (!requirementId) return;
   state.selectedRequirementId = requirementId;
+  renderManagementLayoutMode();
   activateTab('artifacts');
   await loadRequirementFileTree(requirementId);
+}
+
+async function startPiFromRequirement(requirementId, requirementName = 'MRD 到代码运行') {
+  if (!requirementId) return;
+  try {
+    const filesRes = await fetch(`/api/management/requirements/${encodeURIComponent(requirementId)}/files`);
+    const filesData = await filesRes.json();
+    if (!filesRes.ok) throw new Error(filesData.error || '读取 MRD 文件列表失败');
+    const firstPath = findFirstFilePath(filesData.tree || []);
+    if (!firstPath) throw new Error('当前需求没有可启动的 MRD 原文');
+
+    const contentRes = await fetch(`/api/management/requirements/${encodeURIComponent(requirementId)}/files/content?path=${encodeURIComponent(firstPath)}`);
+    const contentData = await contentRes.json();
+    if (!contentRes.ok) throw new Error(contentData.error || '读取 MRD 原文失败');
+
+    const formData = new FormData();
+    formData.append('name', requirementName || 'MRD 到代码运行');
+    formData.append('description', `从需求管理启动 PI 流程：${requirementId}`);
+    const fileName = firstPath.split('/').filter(Boolean).pop() || 'mrd.md';
+    formData.append(
+      `filesPath:${encodeURIComponent(fileName)}`,
+      new Blob([contentData.content || ''], { type: 'text/markdown' }),
+      fileName
+    );
+
+    const createRes = await fetch('/api/sessions', { method: 'POST', body: formData });
+    const created = await createRes.json();
+    if (!createRes.ok) throw new Error(created.error || '创建 PI 运行失败');
+
+    state.activeModule = 'pipeline';
+    renderManagementNav();
+    await loadSession(created.runId);
+    await applyModelOverridesToCurrentRun();
+    await fetch(`/api/sessions/${created.runId}/pipeline/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    await refreshCurrentRunView();
+    await loadManagementOverview();
+    loadSessions();
+  } catch (error) {
+    window.alert(error.message || String(error));
+  }
 }
 
 async function viewKnowledgeBase(knowledgeId) {
@@ -754,6 +849,15 @@ function toggleKnowledgeSelection(knowledgeId, checked) {
   if (checked) state.selectedKnowledgeBaseIds.add(knowledgeId);
   else state.selectedKnowledgeBaseIds.delete(knowledgeId);
   renderExecutionTrace();
+}
+
+function getSelectedKnowledgeAppIds() {
+  const bases = state.managementOverview.knowledgeBases || [];
+  return Array.from(new Set(
+    bases
+      .filter(kb => state.selectedKnowledgeBaseIds.has(kb.id) && kb.type === 'application' && kb.scope)
+      .map(kb => String(kb.scope))
+  ));
 }
 
 async function viewSelectedKnowledgeBases() {
@@ -789,7 +893,7 @@ function renderExecutionTraceEmpty() {
   container.innerHTML = `
     <div class="welcome-screen" id="welcome-screen">
       <h2>⚡ MRD 到代码流水线</h2>
-      <p>上传 MRD、项目与参考资料，配置任务后启动流水线。系统会编排需求归属确认、技术方案、SPEC、代码实现、测试运行与归档。</p>
+      <p>上传 MRD 与参考资料，配置任务后启动流水线。系统会基于知识库和仓库索引检索应用，并编排需求分析与归属确认、实施方案与任务、代码实现、跨应用测试与归档。</p>
     </div>
   `;
 }
@@ -908,8 +1012,10 @@ async function createNewRun() {
     appendUploadFile(formData, file, 'input');
   }
   const projectFolderInput = document.getElementById('new-run-project-folders');
-  for (const file of projectFolderInput.files || []) {
-    appendUploadFile(formData, file, 'project');
+  if (projectFolderInput) {
+    for (const file of projectFolderInput.files || []) {
+      appendUploadFile(formData, file, 'project');
+    }
   }
   // If custom prompt is provided, write it as an input file for the run.
   if (desc) {
@@ -925,7 +1031,7 @@ async function createNewRun() {
   document.getElementById('new-run-name').value = '';
   document.getElementById('new-run-desc').value = '';
   fileInput.value = '';
-  projectFolderInput.value = '';
+  if (projectFolderInput) projectFolderInput.value = '';
 
   await loadSession(data.runId);
   await applyModelOverridesToCurrentRun();
@@ -1203,7 +1309,7 @@ function ensureSelectedNode() {
   if (!nodes.length) return;
   if (state.selectedNodeId && nodes.some(node => node.id === state.selectedNodeId)) return;
   if (state.pipeline?.currentNodeId === 'mrd-render' && getClarifyNodeStatus() === 'waiting_confirmation') {
-    state.selectedNodeId = 'mrd-clarify';
+    state.selectedNodeId = 'mrd-render';
     return;
   }
   if (isBranchStageNode(state.pipeline?.currentNodeId) && canDisplaySessionWorkflow()) {
@@ -1238,9 +1344,9 @@ function isInterruptibleStatus(status) {
 
 function canInterruptCurrentRun() {
   if (!state.runId || !state.pipeline) return false;
-  if (['completed', 'failed', 'cancelled'].includes(state.pipeline.status)) return false;
-  if (isInterruptibleStatus(state.pipeline.status) || state.pipeline.status === 'suspended') return true;
-  return (state.pipeline.nodes || []).some(node => ['running', 'waiting_confirmation', 'suspended'].includes(node.status));
+  if (['completed', 'failed', 'cancelled', 'suspended'].includes(state.pipeline.status)) return false;
+  if (isInterruptibleStatus(state.pipeline.status)) return true;
+  return (state.pipeline.nodes || []).some(node => ['running', 'waiting_confirmation'].includes(node.status));
 }
 
 function renderInterruptButton() {
@@ -1256,7 +1362,7 @@ function renderInterruptButton() {
   btn.style.display = visible ? 'inline-flex' : 'none';
   if (topBtn) topBtn.style.display = visible ? 'inline-flex' : 'none';
   if (label && currentNode) {
-    label.textContent = `${stageName(currentNode.id, currentNode.name)} · ${statusLabel(currentNode.status || state.pipeline?.status)}`;
+    label.textContent = `${stageName(currentNode.id, currentNode.name)} · ${statusLabel(getNodeStatus(currentNode.id))}`;
   }
 }
 
@@ -1719,8 +1825,7 @@ function getBranchWorkflowNodes(branch) {
     }));
   }
   const sequence = [
-    ['implementation-plan', '实施方案'],
-    ['spec-generate', 'SPEC生成'],
+    ['implementation-plan', '实施方案与任务'],
     ['java-impl', 'Java实现'],
     ['testcode-generate', '测试代码'],
   ];
@@ -1994,18 +2099,17 @@ function isFanoutWorkflowNode(nodeId) {
     'mrd-render',
     'project-fanout',
     'implementation-plan',
-    'spec-generate',
     'java-impl',
     'testcode-generate',
     'app-join',
-    'cross-app-test',
+    ...TESTING_PI_STAGE_IDS,
     'archive',
   ].includes(nodeId);
 }
 
 function shouldRenderFanoutWorkflowForNode(nodeId) {
   if (!isFanoutWorkflowNode(nodeId)) return false;
-  if (['upload-init', 'mrd-clarify', 'mrd-render', 'project-fanout', 'app-join', 'cross-app-test', 'archive'].includes(nodeId)) {
+  if (['upload-init', 'mrd-clarify', 'mrd-render', 'project-fanout', 'app-join', ...TESTING_PI_STAGE_IDS, 'archive'].includes(nodeId)) {
     return true;
   }
   return canDisplaySessionWorkflow();
@@ -2019,7 +2123,6 @@ function renderFanoutWorkflowMap(activeNodeId = '') {
   const hasPlannedBranches = branches.length > 0;
   const fanoutStatus = getNodeStatus('project-fanout');
   const joinStatus = getNodeStatus('app-join');
-  const crossAppTestStatus = getNodeStatus('cross-app-test');
   const archiveStatus = getNodeStatus('archive');
   return `
     <div class="fanout-workflow-map">
@@ -2050,12 +2153,7 @@ function renderFanoutWorkflowMap(activeNodeId = '') {
             <small>${renderJoinSummary()}</small>
             <span class="status-badge ${joinStatus}">${statusLabel(joinStatus)}</span>
           </button>
-          <span class="fanout-down-arrow"></span>
-          <button type="button" class="fanout-terminal-node review ${crossAppTestStatus} ${activeNodeId === 'cross-app-test' ? 'active' : ''}" onclick="openPipelineNode('cross-app-test')">
-            <strong>跨应用测试</strong>
-            <small>分支产物、链路和兼容性</small>
-            <span class="status-badge ${crossAppTestStatus}">${statusLabel(crossAppTestStatus)}</span>
-          </button>
+          ${renderFanoutTestingStages(activeNodeId)}
           <span class="fanout-side-arrow"></span>
           <button type="button" class="fanout-terminal-node archive ${archiveStatus} ${activeNodeId === 'archive' ? 'active' : ''}" onclick="openPipelineNode('archive')">
             <strong>归档</strong>
@@ -2068,11 +2166,31 @@ function renderFanoutWorkflowMap(activeNodeId = '') {
   `;
 }
 
+function renderFanoutTestingStages(activeNodeId = '') {
+  const stages = [
+    ['integration-test-cases', '集成测试用例', '策略、用例和评审'],
+    ['test-data-plan', '造数', '测试数据计划'],
+    ['integration-test-code', '生成集成测试代码', '脚本生成和评审'],
+    ['deploy-related-apps', '部署关联应用', '环境和部署上下文'],
+    ['execute-integration-tests', '执行集成测试', '执行、覆盖率和归因'],
+  ];
+  return stages.map(([id, title, subtitle]) => {
+    const status = getNodeStatus(id);
+    return `
+      <span class="fanout-down-arrow"></span>
+      <button type="button" class="fanout-terminal-node review ${status} ${activeNodeId === id ? 'active' : ''}" onclick="openPipelineNode('${id}')">
+        <strong>${esc(title)}</strong>
+        <small>${esc(subtitle)}</small>
+        <span class="status-badge ${status}">${statusLabel(status)}</span>
+      </button>
+    `;
+  }).join('');
+}
+
 function renderFanoutPrelude(activeNodeId = '') {
   const steps = [
-    { id: 'upload-init', label: '上传初始化', desc: 'MRD 与项目文件' },
-    { id: 'mrd-clarify', label: '需求归属确认', desc: '确认功能清单、应用归属和实施面向' },
-    { id: 'mrd-render', label: '需求拆解', desc: '生成拆解清单和分流依据' },
+    { id: 'upload-init', label: 'MRD初始化', desc: 'MRD、知识库与仓库索引' },
+    { id: 'mrd-render', label: '需求分析与归属确认', desc: '拆解需求、确认归属和实施面向' },
   ];
   return `
     <div class="fanout-prelude-flow">
@@ -2093,12 +2211,15 @@ function renderFanoutPrelude(activeNodeId = '') {
 
 function renderFanoutPlanningPlaceholder(activeNodeId = '') {
   const waitingOwnership = getClarifyNodeStatus() === 'waiting_confirmation';
-  const running = waitingOwnership || ['mrd-render', 'project-fanout'].includes(activeNodeId);
+  const suspended = state.pipeline?.status === 'suspended'
+    && ['mrd-render', 'project-fanout'].includes(state.pipeline?.currentNodeId || activeNodeId);
+  const running = !suspended && (waitingOwnership || ['mrd-render', 'project-fanout'].includes(activeNodeId));
+  const status = suspended ? 'suspended' : waitingOwnership ? 'waiting_confirmation' : running ? 'running' : 'pending';
   return `
-    <div class="fanout-planning-placeholder ${running ? 'running' : 'pending'}">
-      <strong>${waitingOwnership ? '等待需求归属确认' : running ? '等待需求拆解与归属确认' : '等待动态计划生成'}</strong>
+    <div class="fanout-planning-placeholder ${status}">
+      <strong>${suspended ? '需求分析与归属确认已暂停' : waitingOwnership ? '等待需求分析与归属确认' : running ? '等待需求分析与归属确认' : '等待动态计划生成'}</strong>
       <small>确认需求清单、应用归属和实施面向后，才会显示真实应用泳道</small>
-      <span class="status-badge ${waitingOwnership ? 'waiting_confirmation' : running ? 'running' : 'pending'}">${waitingOwnership ? '等待确认' : running ? '运行中' : '待处理'}</span>
+      <span class="status-badge ${status}">${statusLabel(status)}</span>
     </div>
   `;
 }
@@ -2109,8 +2230,7 @@ function renderFanoutWorkflowLane(branch) {
   const nodes = getBranchWorkflowNodes(branch);
   const orderedStages = getOrderedFanoutStages(nodes);
   const fallbackStages = [
-    { id: 'implementation-plan', label: '实施方案' },
-    { id: 'spec-generate', label: 'SPEC 生成' },
+    { id: 'implementation-plan', label: '实施方案与任务' },
     { id: 'java-impl', label: 'Java 实现' },
     { id: 'testcode-generate', label: '测试代码' },
   ];
@@ -2132,7 +2252,6 @@ function renderFanoutWorkflowLane(branch) {
 function getOrderedFanoutStages(nodes) {
   const order = [
     'implementation-plan',
-    'spec-generate',
     'java-impl',
     'frontend-impl',
     'backend-test',
@@ -2177,7 +2296,7 @@ function renderFanoutTrackLane(branch, track) {
 }
 
 function getBranchStageFallbackStatus(branch, stageId) {
-  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'testcode-generate'];
+  const sequence = ['implementation-plan', 'java-impl', 'testcode-generate'];
   const stageIndex = sequence.indexOf(stageId);
   const currentIndex = sequence.indexOf(branch.currentNodeId || '');
   if (branch.status === 'completed') return 'completed';
@@ -2403,6 +2522,9 @@ function renderNodeStatusCard(node, clickable = true) {
   const summary = summarizeNode(node);
   const artifacts = getStageArtifacts(node.id);
   const onclick = clickable ? `onclick="openPipelineNode('${node.id}')"` : '';
+  const reopenConfirmationAction = hasPendingConfirmationForNode(node.id)
+    ? `<button class="btn btn-secondary node-status-confirm" type="button" onclick="reopenPendingConfirmation('${escAttr(node.id)}', event)">重新打开确认</button>`
+    : '';
   const rerunAction = canRerunFromNode(node)
     ? `<button class="btn btn-secondary node-status-rerun" type="button" onclick="retryPipelineFromNode('${escAttr(node.id)}', event)">↻ 从此重跑</button>`
     : '';
@@ -2410,7 +2532,7 @@ function renderNodeStatusCard(node, clickable = true) {
   const interruptAction = canInterruptCurrentRun() && (node.id === currentNodeId || ['running', 'waiting_confirmation', 'suspended'].includes(node.status))
     ? `<button class="btn btn-danger node-status-interrupt" type="button" onclick="interruptCurrentTaskFromNode(event)">中断流程</button>`
     : '';
-  const actions = [interruptAction, rerunAction].filter(Boolean).join('');
+  const actions = [reopenConfirmationAction, interruptAction, rerunAction].filter(Boolean).join('');
   return `
     <div class="node-status-card ${node.status || 'pending'}" ${onclick}>
       <div class="node-status-icon">${statusIcon(node.status || 'pending')}</div>
@@ -2436,6 +2558,37 @@ function renderNodeStatusCard(node, clickable = true) {
       </div>
     </div>
   `;
+}
+
+function hasPendingConfirmationForNode(nodeId) {
+  const effectiveNodeId = nodeId === 'mrd-clarify' ? 'mrd-render' : nodeId;
+  const node = getPipelineNodeById(effectiveNodeId);
+  if (!node || node.status !== 'waiting_confirmation') return false;
+  if (state.pendingConfirmation?.nodeId === effectiveNodeId) return true;
+  const event = [...(state.events || [])]
+    .reverse()
+    .find(item => item.type === 'confirmation_waiting' && isConfirmationWaitingEventActive(item));
+  if (event) {
+    const eventNodeId = event.data?.nodeId || event.nodeId;
+    if (eventNodeId === effectiveNodeId) return true;
+  }
+  const pending = state.lifecycle?.pendingConfirmation;
+  return Boolean(isLifecyclePendingConfirmationActive(pending) && pending.nodeId === effectiveNodeId);
+}
+
+async function reopenPendingConfirmation(nodeId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const effectiveNodeId = nodeId === 'mrd-clarify' ? 'mrd-render' : nodeId;
+  if (state.pendingConfirmation?.nodeId === effectiveNodeId) {
+    currentConfirmNode = effectiveNodeId;
+    showConfirmation(state.pendingConfirmation);
+    return;
+  }
+  currentConfirmNode = null;
+  await restorePendingConfirmationIfNeeded();
 }
 
 function interruptCurrentTaskFromNode(event) {
@@ -2702,9 +2855,10 @@ function buildNodeSteps(node, summary) {
   if (summary.model) steps.push({ status: 'done', text: `选择模型 ${summary.model}` });
   if (summary.agents.length) {
     for (const agent of summary.agents.slice(0, 2)) {
+      const agentPaused = node.status === 'suspended' && agent.status === 'running';
       steps.push({
-        status: agent.status === 'completed' ? 'done' : agent.status === 'failed' ? 'failed' : 'running',
-        text: `Agent ${String(agent.agentRunId || '').slice(0, 8)}：${statusLabel(agent.status)}，${agent.turnCount || 0} 轮，工具 ${agent.toolCallCount || 0} 次`,
+        status: agent.status === 'completed' ? 'done' : agent.status === 'failed' ? 'failed' : agentPaused ? 'todo' : 'running',
+        text: `Agent ${String(agent.agentRunId || '').slice(0, 8)}：${agentPaused ? '已暂停' : statusLabel(agent.status)}，${agent.turnCount || 0} 轮，工具 ${agent.toolCallCount || 0} 次`,
       });
       if (agent.plan?.title) {
         steps.push({ status: agent.plan.confirmed ? 'done' : 'running', text: `计划模式：${agent.plan.title}` });
@@ -2725,6 +2879,7 @@ function buildNodeSteps(node, summary) {
   const artifacts = getStageArtifacts(node.id);
   if (artifacts.length) steps.push({ status: node.status === 'completed' ? 'done' : 'running', text: `生成产物 ${artifacts.length} 份` });
   if (node.status === 'completed') steps.push({ status: 'done', text: '节点执行完成' });
+  if (node.status === 'suspended') steps.push({ status: 'todo', text: '节点已暂停，等待继续或重跑' });
   if (node.status === 'running') steps.push({ status: 'running', text: '节点正在执行' });
   if (node.status === 'failed') steps.push({ status: 'failed', text: node.error || '节点执行失败' });
   return steps;
@@ -3815,7 +3970,7 @@ function normalizeArtifactPaths(paths) {
 
 function sortStageArtifacts(nodeId, paths) {
   const priority = {
-    'implementation-plan': ['proposal.md', 'tech-design.md', 'implementation-plan-manifest.json'],
+    'implementation-plan': ['proposal.md', 'tech-design.md', 'implementation-plan-manifest.json', 'openspec-task.md', 'openspec-test-task.md', 'spec-manifest.json'],
     'spec-generate': ['openspec-task.md', 'openspec-test-task.md', 'spec-manifest.json'],
     'java-impl': ['changed-files/', 'changed-files.json', 'code-preview-manifest.json', 'code-review.md', 'review-findings.json'],
     'backend-impl': ['changed-files/', 'changed-files.json', 'code-preview-manifest.json', 'code-review.md', 'review-findings.json'],
@@ -3824,6 +3979,11 @@ function sortStageArtifacts(nodeId, paths) {
     'backend-test': ['test-report.md', 'surefire-summary.json', 'coverage-summary.json', 'failure-classification.json'],
     'frontend-test': ['frontend-test-report.md', 'test-report.md', 'coverage-summary.json'],
     'e2e-verify': ['e2e-summary.json', 'screenshots/', 'trace', 'startup-manifest.json'],
+    'integration-test-cases': ['testing-strategy', 'testing-test-cases', 'workflow-state.json'],
+    'test-data-plan': ['testing-data-plan', 'workflow-state.json'],
+    'integration-test-code': ['testing-generated-script', 'testing-quality-gate', 'workflow-state.json'],
+    'deploy-related-apps': ['delivery-metadata.json', 'workflow-state.json'],
+    'execute-integration-tests': ['test-results.json', 'e2e-summary.json', 'testing-execution-report', 'testing-coverage-report', 'testing-regression-plan', 'workflow-state.json'],
     'documentation-impl': ['documentation-implementation.md'],
     'documentation-test': ['documentation-test-report.md'],
   }[nodeId] || [];
@@ -4850,13 +5010,18 @@ function nodeSubtaskLabel(nodeId, summary = null) {
     return '后端代码实现中，编译通过后进入代码审查';
   }
   return {
-    'upload-init': '上传文件、初始化运行目录和项目空间',
+    'upload-init': '初始化运行目录，并基于 MRD、知识库与仓库索引准备候选应用',
     'mrd-clarify': '确认需求清单、应用归属和实现边界',
     'mrd-render': '拆解需求、确认功能归属和实施面向',
-    'implementation-plan': '生成项目技术方案和验收口径',
+    'implementation-plan': '生成项目技术方案、开发任务清单和测试任务清单',
     'spec-generate': '并发生成开发 OpenSpec 任务清单和测试任务清单',
     'java-impl': '后端实现、编译验证和代码审查',
     'testcode-generate': '生成单元测试代码并真实执行 Maven 单测',
+    'integration-test-cases': '生成集成测试策略和用例',
+    'test-data-plan': '生成集成测试造数计划',
+    'integration-test-code': '生成并评审集成测试脚本',
+    'deploy-related-apps': '确认并部署关联应用测试环境',
+    'execute-integration-tests': '执行集成测试、计算覆盖率并归因失败',
     'archive': '汇总产物并生成归档报告',
   }[nodeId] || '阶段子任务';
 }

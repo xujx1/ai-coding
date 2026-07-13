@@ -1,7 +1,7 @@
 import {
   FailureTriageSchema,
   type FailureTriage,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 import { classifyWithAiOpsReference } from '../../lifecycle/externalAdapters.js';
 import type { FailureTriageAgentInput } from './types.js';
 
@@ -35,7 +35,7 @@ function classifyTestingFailure(
 ): FailureTriage['category'] {
   const text = message.toLowerCase();
   if (opsCategory === 'ENVIRONMENT' || opsCategory === 'CI_INFRA' || opsCategory === 'CONFIGURATION') return 'operational';
-  if (/module not found|importerror|command not found|enoent/.test(text)) return 'dependency';
+  if (/module not found|modulenotfounderror|importerror|command not found|enoent/.test(text)) return 'dependency';
   if (/seed|fixture|cleanup|data|isolation/.test(text)) return 'data';
   if (/syntax|pytest|script/.test(text)) return 'script';
   if (/assert|expected|actual|regression|bug/.test(text)) return 'application_regression';

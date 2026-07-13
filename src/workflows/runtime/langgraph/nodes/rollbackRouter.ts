@@ -10,6 +10,8 @@ export type FailureCategory =
   | 'review_block'
   | 'implementation_failure'
   | 'test_code_failure'
+  | 'backend_test_failure'
+  | 'frontend_test_failure'
   | 'coverage_failure'
   | 'runner_asset_failure'
   | 'success'
@@ -40,7 +42,8 @@ export function routeAfterJavaImpl(
 export function routeAfterTestCode(
   state: PipelineGraphState,
   failureCategory: FailureCategory,
-  fallbackTargetNodeId: string
+  fallbackTargetNodeId: string,
+  sourceNodeId = 'testcode-generate'
 ): RouterDecision {
   if (failureCategory === 'success') {
     return { targetNodeId: fallbackTargetNodeId };
@@ -52,10 +55,10 @@ export function routeAfterTestCode(
     retry: retryPatchForFailure(state.retry, failureCategory),
     rollback: {
       active: true,
-      sourceNodeId: 'testcode-generate',
+      sourceNodeId,
       targetNodeId,
       affectedProjects: state.projects.map((project) => project.name),
-      reason: `Test failure category '${failureCategory}' routed to '${targetNodeId}'.`,
+      reason: `Test failure category '${failureCategory}' from '${sourceNodeId}' routed to '${targetNodeId}'.`,
       category: failureCategory,
       startedAt: Date.now(),
       attempt: retryAttemptForFailure(state.retry, failureCategory) + 1,
@@ -92,6 +95,12 @@ export function resetDownstreamNodeState(
 }
 
 export function targetNodeForFailure(category: FailureCategory): string {
+  if (category === 'frontend_test_failure') {
+    return 'frontend-impl';
+  }
+  if (category === 'backend_test_failure') {
+    return 'java-impl';
+  }
   if (category === 'implementation_failure' || category === 'review_block') {
     return 'java-impl';
   }

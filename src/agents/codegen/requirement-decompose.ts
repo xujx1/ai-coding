@@ -43,22 +43,274 @@ export function buildMrdRenderPrompt(
   }
 
   const projectList = manifest.projects.length === 0
-    ? '- 未检测到上传项目'
+    ? '- 未检测到应用管理候选应用'
     : manifest.projects.map(proj => {
       const buildTool = proj.buildTool ? ` (构建工具: ${proj.buildTool})` : '';
-      return `- ${proj.name}${buildTool}`;
+      const source = proj.source === 'application-management' ? '来源: 应用管理' : '来源: 上传项目';
+      const root = `root: ${proj.root}`;
+      const description = proj.description ? `说明: ${proj.description}` : '';
+      const dependencies = proj.dependencies?.length ? `依赖: ${proj.dependencies.join(', ')}` : '';
+      const surfaces = [
+        proj.capabilities?.frontend ? 'frontend' : '',
+        proj.capabilities?.backend ? 'backend' : '',
+        proj.capabilities?.playwrightConfig ? 'playwright' : '',
+      ].filter(Boolean).join(', ');
+      return `- ${proj.name}${buildTool} [${source}; ${root}${surfaces ? `; 能力: ${surfaces}` : ''}${description ? `; ${description}` : ''}${dependencies ? `; ${dependencies}` : ''}]`;
     }).join('\n');
 
   return renderPromptTemplate(loadPromptFile('mrd-render-user.md'), {
     previous_feedback_section: previousFeedbackSection,
     requirement_file_list: requirementFileList,
     requirement_excerpts: buildRequirementExcerpts(paths, manifest),
+    knowledge_context: buildRequirementOwnershipKnowledgeContext(paths, manifest),
     custom_prompt_section: customPromptSection,
     project_list: projectList,
     run_dir: paths.runDir,
     input_dir: paths.inputDir,
     artifacts_dir: paths.artifactsDir,
   });
+}
+
+interface KnowledgeCandidate {
+  appId: string;
+  score: number;
+  reasons: string[];
+  globalSummary: string;
+  appKnowledgeSnippets: string[];
+}
+
+export function buildRequirementOwnershipKnowledgeContext(
+  paths: ReturnType<typeof getRunPaths>,
+  manifest: ProjectManifest
+): string {
+  const knowledgeRoot = resolveKnowledgeRoot();
+  if (!knowledgeRoot) {
+    return [
+      '## 需求应用归属知识库检索',
+      '',
+      '- Global 知识库未找到；只能使用 MRD 与应用管理候选应用做归属判断。',
+    ].join('\n');
+  }
+
+  const requirementText = readRequirementText(paths, manifest);
+  const appDomainMap = readJson<Record<string, { domain?: string; domainName?: string; serviceName?: string; summary?: string }>>(
+    path.join(knowledgeRoot, 'global', 'app-domain-map.json')
+  ) ?? {};
+  const capabilityMap = readJson<Record<string, string[]>>(path.join(knowledgeRoot, 'global', 'capability-map.json')) ?? {};
+  const apiRouteMap = readJson<Record<string, unknown[]>>(path.join(knowledgeRoot, 'global', 'api-route-map.json')) ?? {};
+  const dependencyMap = readJson<{ edges?: Array<{ source?: string; target?: string; type?: string }> }>(
+    path.join(knowledgeRoot, 'global', 'dependency-map.json')
+  ) ?? {};
+  const impactMap = readJson<Record<string, unknown>>(path.join(knowledgeRoot, 'global', 'gitnexus-graph', 'impact-map.json')) ?? {};
+
+  const candidates = manifest.projects
+    .map(project => scoreKnowledgeCandidate({
+      appId: project.appId || project.name,
+      appName: project.name,
+      requirementText,
+      appDomainMap,
+      capabilityMap,
+      apiRouteMap,
+      dependencyMap,
+      impactMap,
+      knowledgeRoot,
+    }))
+    .filter(candidate => candidate.score > 0)
+    .sort((a, b) => b.score - a.score || a.appId.localeCompare(b.appId));
+
+  const selected = candidates.slice(0, 8);
+  const lines = [
+    '## 需求应用归属知识库检索',
+    '',
+    '### 判断顺序',
+    '',
+    '1. 先用 MRD 关键词、业务域、验收场景匹配 global 知识库：`app-domain-map`、`capability-map`、`api-route-map`、`dependency-map`、`impact-map`。',
+    '2. 再读取命中候选应用的应用级知识库摘要，验证是否真的拥有对应业务能力。',
+    '3. 输出归属时，实施应用只选择确实需要改代码的应用；交易、支付、履约等只在 MRD 明确要求实现时才进入实施分支，否则归入回归/跨应用测试范围。',
+    '',
+    '### Global 知识库召回结果',
+    '',
+  ];
+
+  if (!selected.length) {
+    lines.push('- 未从 global 知识库召回确定候选；请基于 MRD 和应用管理 manifest 保守判断，并把不确定项放到 Clarification Questions。');
+  } else {
+    for (const candidate of selected) {
+      lines.push(`- ${candidate.appId}: score=${candidate.score}; ${candidate.reasons.join('；')}`);
+      if (candidate.globalSummary) lines.push(`  - global: ${candidate.globalSummary}`);
+      for (const snippet of candidate.appKnowledgeSnippets) {
+        lines.push(`  - app-kb: ${snippet}`);
+      }
+    }
+  }
+
+  lines.push('', '### 归属约束', '');
+  lines.push('- 不使用代码内置的业务域到应用名映射；应用归属必须来自 manifest、global 知识库、应用级知识库、docs、src 或 API/路由证据。');
+  lines.push('- 只有 MRD 和知识库证据都表明需要改代码的应用才进入实施分支；仅消费、透传、观察或回归范围的应用进入跨应用测试/回归范围。');
+  lines.push('- 如果业务名无法映射到 manifest 中的真实应用，不要写“未上传代码项目”，应标为未解析并放入澄清或边界说明。');
+
+  return lines.join('\n');
+}
+
+function scoreKnowledgeCandidate(args: {
+  appId: string;
+  appName: string;
+  requirementText: string;
+  appDomainMap: Record<string, { domain?: string; domainName?: string; serviceName?: string; summary?: string }>;
+  capabilityMap: Record<string, string[]>;
+  apiRouteMap: Record<string, unknown[]>;
+  dependencyMap: { edges?: Array<{ source?: string; target?: string; type?: string }> };
+  impactMap: Record<string, unknown>;
+  knowledgeRoot: string;
+}): KnowledgeCandidate {
+  const text = normalizeKnowledgeText(args.requirementText);
+  const app = args.appDomainMap[args.appId] ?? {};
+  const capabilities = args.capabilityMap[args.appId] ?? [];
+  const apiRoutes = args.apiRouteMap[args.appId] ?? [];
+  const appTerms = [
+    args.appId,
+    args.appName,
+    app.domain,
+    app.domainName,
+    app.serviceName,
+    app.summary,
+    ...capabilities,
+    ...readRegistryAppTerms(args.knowledgeRoot, args.appId, args.appName),
+  ].filter(Boolean).map(String);
+
+  let score = 0;
+  const reasons: string[] = [];
+  for (const term of appTerms) {
+    const normalized = normalizeKnowledgeText(term);
+    if (!normalized || normalized.length < 2) continue;
+    if (text.includes(normalized)) {
+      score += 1;
+      reasons.push(`MRD 命中 ${term}`);
+    }
+  }
+  if (apiRoutes.length && knowledgeTermsMatchRoutes(apiRoutes, text, appTerms)) {
+    score += 2;
+    reasons.push('MRD 命中 API/路由语义');
+  }
+  if (JSON.stringify(args.impactMap[args.appId] ?? '').length > 2 && score > 0) {
+    score += 1;
+    reasons.push('global impact-map 存在影响面索引');
+  }
+  const edges = args.dependencyMap.edges ?? [];
+  const relatedEdges = edges.filter(edge => edge.source === args.appId || edge.target === args.appId);
+  if (relatedEdges.length && score > 0) {
+    reasons.push(`dependency-map 关联 ${relatedEdges.length} 条依赖边`);
+  }
+
+  const appKnowledgeSnippets = score > 0
+    ? readAppKnowledgeSnippets(args.knowledgeRoot, args.appId, args.requirementText)
+    : [];
+  if (appKnowledgeSnippets.length) {
+    score += Math.min(3, appKnowledgeSnippets.length);
+    reasons.push('应用级知识库有匹配证据');
+  }
+
+  return {
+    appId: args.appId,
+    score,
+    reasons: Array.from(new Set(reasons)).slice(0, 8),
+    globalSummary: [
+      app.domainName || app.domain,
+      app.summary,
+      capabilities.length ? `capabilities=${capabilities.join(', ')}` : '',
+    ].filter(Boolean).join('；').slice(0, 600),
+    appKnowledgeSnippets,
+  };
+}
+
+function readAppKnowledgeSnippets(knowledgeRoot: string, appId: string, requirementText: string): string[] {
+  const root = path.join(knowledgeRoot, 'apps', appId, 'app-knowledge-base');
+  if (!fs.existsSync(root)) return [];
+  const files = [
+    '00_概览.md',
+    '01_业务与领域知识层.md',
+    '03_核心流程与逻辑层.md',
+    'api-index.md',
+    'component-index.md',
+  ];
+  const queryTerms = extractQueryTerms(requirementText);
+  const snippets: string[] = [];
+  for (const file of files) {
+    const fullPath = path.join(root, file);
+    if (!fs.existsSync(fullPath)) continue;
+    const content = fs.readFileSync(fullPath, 'utf-8');
+    const lines = content.split(/\r?\n/);
+    const matched = lines
+      .filter(line => queryTerms.some(term => normalizeKnowledgeText(line).includes(term)))
+      .map(line => line.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    if (matched.length) {
+      snippets.push(`${appId}/${file}: ${matched.join(' / ').slice(0, 700)}`);
+    }
+  }
+  return snippets.slice(0, 4);
+}
+
+function readRequirementText(paths: ReturnType<typeof getRunPaths>, manifest: ProjectManifest): string {
+  return manifest.requirements
+    .map(req => {
+      try {
+        return fs.readFileSync(path.join(paths.runDir, req.path), 'utf-8');
+      } catch {
+        return '';
+      }
+    })
+    .join('\n');
+}
+
+function resolveKnowledgeRoot(): string | null {
+  const candidates = [
+    path.join(process.cwd(), 'demo', 'ecom', 'spaces', 'knowledge', 'knowledge-base'),
+  ];
+  return candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) ?? null;
+}
+
+function readJson<T>(filePath: string): T | null {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as T;
+  } catch {
+    return null;
+  }
+}
+
+function extractQueryTerms(text: string): string[] {
+  const baseTerms = [
+    '运营', '后台', '活动', '营销', 'campaign', '商品', 'sku', 'spu', '上架', '可售',
+    'saleable', '库存', 'stock', '预占', 'reserve', '保护', '释放', '优惠', '折扣',
+    '校验', '启用', '删除', '创建',
+  ];
+  return Array.from(new Set(baseTerms.map(normalizeKnowledgeText).filter(term => normalizeKnowledgeText(text).includes(term))));
+}
+
+function readRegistryAppTerms(knowledgeRoot: string, appId: string, appName: string): string[] {
+  const registry = readJson<{ apps?: Array<{ appId?: string; name?: string; domain?: string; domains?: string[]; tags?: string[]; aliases?: string[] }> }>(
+    path.join(knowledgeRoot, 'registry', 'apps.json')
+  );
+  const app = registry?.apps?.find(item => item.appId === appId || item.name === appName);
+  return [
+    app?.domain,
+    ...(app?.domains ?? []),
+    ...(app?.tags ?? []),
+    ...(app?.aliases ?? []),
+  ].filter((item): item is string => Boolean(item));
+}
+
+function knowledgeTermsMatchRoutes(apiRoutes: unknown[], normalizedRequirementText: string, terms: string[]): boolean {
+  const routeText = normalizeKnowledgeText(JSON.stringify(apiRoutes));
+  return terms
+    .map(normalizeKnowledgeText)
+    .filter(term => term.length >= 2)
+    .some(term => normalizedRequirementText.includes(term) || routeText.includes(term));
+}
+
+function normalizeKnowledgeText(value: string): string {
+  return value.toLowerCase().replace(/[\s._:/\\-]+/g, '');
 }
 
 export function buildFinalRequirementDecompositionPrompt(

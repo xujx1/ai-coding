@@ -3,7 +3,7 @@ import type {
   ExecutionReport,
   GeneratedScript,
   TestCase,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 
 export function calculateTestingMetrics(args: {
   caseSet: TestCase;

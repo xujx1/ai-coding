@@ -6,7 +6,11 @@ import {
 
 export async function initAllKnowledgeBases(c: any) {
   try {
-    return c.json(await runInitAllKnowledgeBases());
+    const body = await c.req.json().catch(() => ({}));
+    const appIds = Array.isArray(body?.appIds)
+      ? body.appIds.filter((item: unknown): item is string => typeof item === 'string' && item.trim().length > 0)
+      : undefined;
+    return c.json(await runInitAllKnowledgeBases({ appIds }));
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : String(error) }, 500);
   }

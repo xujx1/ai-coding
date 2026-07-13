@@ -116,35 +116,26 @@ export function buildCodeChangeArtifacts(
   projectName: string,
   changedFiles: ProjectChangedFile[]
 ): CodeArtifactBundle {
-  const previewFiles = writeChangedFilePreviews(paths, projectName, 'changed-files', changedFiles);
-  const existingManifest = readJson(path.join(paths.artifactsDir, projectName, 'changed-files.json')) as
-    | { changedFiles?: Array<Record<string, unknown>> }
-    | undefined;
-  const existingPreviewManifest = readJson(path.join(paths.artifactsDir, projectName, 'code-preview-manifest.json')) as
-    | { files?: Array<Record<string, unknown>> }
-    | undefined;
-  const changedFileEntries = mergeByKey(
-    Array.isArray(existingManifest?.changedFiles) ? existingManifest.changedFiles : [],
-    changedFiles.map(file => ({
+  const scopedChangedFiles = changedFiles.filter(file => !isMockDemoArtifactPath(file.path));
+  const previewFiles = writeChangedFilePreviews(paths, projectName, 'changed-files', scopedChangedFiles);
+  const changedFileEntries = scopedChangedFiles
+    .map(file => ({
       path: file.path,
       status: file.status,
       size: file.size,
       previewArtifact: previewFiles.get(file.path),
       absolutePreviewArtifact: toAbsoluteArtifactPath(paths, previewFiles.get(file.path)),
-    })),
-    'path'
-  );
-  const previewEntries = mergeByKey(
-    Array.isArray(existingPreviewManifest?.files) ? existingPreviewManifest.files : [],
-    changedFiles.map(file => ({
+    }))
+    .sort((a, b) => a.path.localeCompare(b.path));
+  const previewEntries = scopedChangedFiles
+    .map(file => ({
       sourcePath: file.path,
       status: file.status,
       language: file.path.endsWith('.java') ? 'java' : 'text',
       artifactPath: previewFiles.get(file.path),
       absoluteArtifactPath: toAbsoluteArtifactPath(paths, previewFiles.get(file.path)),
-    })),
-    'sourcePath'
-  );
+    }))
+    .sort((a, b) => a.sourcePath.localeCompare(b.sourcePath));
   const manifest = {
     project: projectName,
     generatedAt: new Date().toISOString(),
@@ -168,49 +159,23 @@ export function buildCodeChangeArtifacts(
   };
 }
 
-function readJson(filePath: string): unknown {
-  try {
-    if (!fs.existsSync(filePath)) return undefined;
-    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  } catch {
-    return undefined;
-  }
-}
-
-function mergeByKey<T extends Record<string, unknown>>(existing: T[], next: T[], key: keyof T): T[] {
-  const map = new Map<string, T>();
-  for (const item of existing) {
-    const value = item[key];
-    if (typeof value === 'string' && value) map.set(value, item);
-  }
-  for (const item of next) {
-    const value = item[key];
-    if (typeof value === 'string' && value) map.set(value, item);
-  }
-  return Array.from(map.values()).sort((a, b) => String(a[key] ?? '').localeCompare(String(b[key] ?? '')));
-}
-
 export function buildTestCodeArtifacts(
   paths: ReturnType<typeof getRunPaths>,
   projectName: string,
   changedTests: ProjectChangedFile[],
   output: string
 ): CodeArtifactBundle {
-  const previewFiles = writeChangedFilePreviews(paths, projectName, 'changed-test-files', changedTests);
-  const existingPreviewManifest = readJson(path.join(paths.artifactsDir, projectName, 'test-code-preview-manifest.json')) as
-    | { files?: Array<Record<string, unknown>> }
-    | undefined;
-  const previewEntries = mergeByKey(
-    Array.isArray(existingPreviewManifest?.files) ? existingPreviewManifest.files : [],
-    changedTests.map(file => ({
+  const scopedChangedTests = changedTests.filter(file => !isMockDemoArtifactPath(file.path));
+  const previewFiles = writeChangedFilePreviews(paths, projectName, 'changed-test-files', scopedChangedTests);
+  const previewEntries = scopedChangedTests
+    .map(file => ({
       sourcePath: file.path,
       status: file.status,
       language: 'java',
       artifactPath: previewFiles.get(file.path),
       absoluteArtifactPath: toAbsoluteArtifactPath(paths, previewFiles.get(file.path)),
-    })),
-    'sourcePath'
-  );
+    }))
+    .sort((a, b) => a.sourcePath.localeCompare(b.sourcePath));
   const testFileList = renderTemplate(loadTemplate('test-file-list.md'), {
     project_name: projectName,
     test_file_lines: previewEntries.length
@@ -242,6 +207,10 @@ export function buildTestCodeArtifacts(
       ...Array.from(previewFiles.values()).filter(Boolean) as string[],
     ],
   };
+}
+
+function isMockDemoArtifactPath(filePath: string): boolean {
+  return filePath === 'src/main/java/demo/DemoService.java' || filePath === 'src/test/java/demo/DemoServiceTest.java';
 }
 
 function writeChangedFilePreviews(

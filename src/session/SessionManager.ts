@@ -236,7 +236,8 @@ export class SessionManager {
     const instance = state?.workflowInstance;
     const branch = instance?.branches.find(item => item.branchId === branchId);
     if (!state || !instance || !branch) return null;
-    if (!['failed', 'waiting_fix', 'cancelled'].includes(branch.status)) return state;
+    const explicitRerun = typeof fromNodeId === 'string' && fromNodeId.trim().length > 0;
+    if (!explicitRerun && !['failed', 'waiting_fix', 'cancelled'].includes(branch.status)) return state;
 
     const requestedNodeId = normalizeStageId(fromNodeId || branch.currentNodeId || 'implementation-plan');
     resetSessionBranchFromNode(branch, requestedNodeId);

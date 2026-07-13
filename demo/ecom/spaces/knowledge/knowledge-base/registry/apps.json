@@ -10,7 +10,19 @@
       ],
       "tags": [
         "frontend",
-        "console"
+        "console",
+        "运营后台",
+        "管理端",
+        "后台页面"
+      ],
+      "aliases": [
+        "运营后台",
+        "管理后台",
+        "运营端",
+        "管理端",
+        "后台页面",
+        "页面入口",
+        "结果展示"
       ],
       "codeRepo": {
         "provider": "local-git-service",

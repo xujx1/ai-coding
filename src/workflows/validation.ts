@@ -24,7 +24,7 @@ const ALLOWED_NODE_TYPES: ReadonlySet<WorkflowNodeType> = new Set([
 const BUILT_IN_STAGE_RUNNERS: ReadonlySet<StageRunnerId> = new Set(
   [
     ...PIPELINE_NODES.map((node) => node.id),
-    'app-spec-generate',
+    'app-implementation-plan',
     'app-code-impl',
     'app-code-review',
     'app-testcode-generate',

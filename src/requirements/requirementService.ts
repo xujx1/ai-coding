@@ -44,8 +44,8 @@ export function buildSessionRequirementOverview(args: {
     runId: args.session.runId,
     requirementId: sessionRequirementId,
     name: args.execution?.name ?? args.session.name,
-    status: args.lifecycle?.status ?? args.execution?.status ?? args.session.status,
-    phase: args.lifecycle?.phase ?? args.execution?.currentNodeId ?? 'created',
+    status: args.execution?.status ?? args.lifecycle?.status ?? args.session.status,
+    phase: args.execution?.currentNodeId ?? args.lifecycle?.phase ?? 'created',
     appCount: args.apps.length,
     artifactCount: args.lifecycle?.artifacts.length ?? Object.values(args.execution?.artifactIndex ?? {}).flat().length,
     waitingApprovals: args.lifecycle?.approvals.filter(approval => approval.status === 'waiting').length ?? 0,
@@ -65,6 +65,7 @@ export function appendMrdRepositoryRequirements(requirements: ManagedRequirement
   const mrdRoot = path.join(process.cwd(), 'demo', 'mrd');
   if (!fs.existsSync(mrdRoot) || !fs.statSync(mrdRoot).isDirectory()) return;
 
+  const startedMrdRuns = listStartedMrdRuns();
   for (const entry of fs.readdirSync(mrdRoot, { withFileTypes: true })) {
     if (!entry.isFile() || path.extname(entry.name).toLowerCase() !== '.md') continue;
     const fullPath = path.join(mrdRoot, entry.name);
@@ -72,19 +73,21 @@ export function appendMrdRepositoryRequirements(requirements: ManagedRequirement
     const title = extractMarkdownTitle(content) || entry.name.replace(/\.md$/i, '');
     if (!isTargetDemoMrd(title, entry.name)) continue;
     const stat = fs.statSync(fullPath);
+    const linkedRun = findLinkedMrdRun(startedMrdRuns, title, entry.name);
     requirements.push({
       id: `mrd:${entry.name}`,
+      runId: linkedRun?.runId,
       requirementId: entry.name.replace(/\.md$/i, ''),
       name: title,
-      status: 'available',
-      phase: 'mrd-ready',
-      appCount: countMrdImpactApps(content),
-      artifactCount: 1,
-      waitingApprovals: 0,
-      completedApprovals: 0,
+      status: linkedRun?.status ?? 'available',
+      phase: linkedRun?.phase ?? 'mrd-ready',
+      appCount: linkedRun?.appCount ?? 0,
+      artifactCount: Math.max(1, linkedRun?.artifactCount ?? 1),
+      waitingApprovals: linkedRun?.waitingApprovals ?? 0,
+      completedApprovals: linkedRun?.completedApprovals ?? 0,
       type: 'mrd',
       source: 'demo/mrd',
-      updatedAt: stat.mtime.toISOString(),
+      updatedAt: linkedRun?.updatedAt ?? stat.mtime.toISOString(),
       fileRoot: mrdRoot,
       paths: [entry.name],
     });
@@ -187,6 +190,60 @@ function listRunMrdInputPaths(paths: RunPaths): string[] {
   });
 }
 
+function listStartedMrdRuns(): ManagedRequirementOverview[] {
+  const runs: ManagedRequirementOverview[] = [];
+  for (const session of getSessionManager().listSessions()) {
+    const execution = getStateStore(session.runId).loadExecutionState();
+    const lifecycle = loadLifecycleState(session.runId);
+    const paths = getRunPaths(session.runId);
+    const apps = lifecycle?.apps?.length
+      ? lifecycle.apps.map(app => ({
+        appId: app.appId,
+        root: app.repoRef,
+        branchName: app.branchName,
+        status: app.status,
+        role: app.role,
+      }))
+      : (execution?.projects ?? []).map(project => ({
+        appId: project.name,
+        root: project.root,
+        branchName: project.branchId,
+        status: project.status,
+        role: 'primary',
+      }));
+    const overview = buildSessionRequirementOverview({ session, execution, lifecycle, apps, paths });
+    if (overview?.runId) runs.push(overview);
+  }
+  return runs.sort((a, b) => timestampOf(b.updatedAt) - timestampOf(a.updatedAt));
+}
+
+function findLinkedMrdRun(
+  runs: ManagedRequirementOverview[],
+  title: string,
+  fileName: string,
+): ManagedRequirementOverview | undefined {
+  const normalizedTitle = normalizeRequirementIdentity(title);
+  const normalizedFileName = normalizeRequirementIdentity(fileName);
+  return runs.find(run => {
+    const runName = normalizeRequirementIdentity(run.name);
+    if (runName === normalizedTitle || runName.includes(normalizedTitle) || normalizedTitle.includes(runName)) {
+      return true;
+    }
+    return run.paths.some(inputPath => {
+      const inputFileName = path.basename(inputPath);
+      return normalizeRequirementIdentity(inputFileName) === normalizedFileName;
+    });
+  });
+}
+
+function normalizeRequirementIdentity(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '');
+}
+
+function timestampOf(value?: string): number {
+  return value ? new Date(value).getTime() || 0 : 0;
+}
+
 function isTargetDemoMrd(title: string, fileName: string): boolean {
   return title.includes('定向营销活动创建时增加商品上架与库存保护校验')
     || fileName === 'targeted-campaign-stock-guard-mrd.md';
@@ -195,13 +252,4 @@ function isTargetDemoMrd(title: string, fileName: string): boolean {
 function extractMarkdownTitle(content: string): string | undefined {
   const line = content.split(/\r?\n/).find(item => item.trim().startsWith('# '));
   return line?.replace(/^#\s+/, '').trim();
-}
-
-function countMrdImpactApps(content: string): number {
-  const impactSection = content.split('## 3. 影响应用范围')[1]?.split('不纳入本次变更')[0] ?? content;
-  const apps = new Set<string>();
-  for (const match of impactSection.matchAll(/`(console|ecom-[^`]+)`/g)) {
-    apps.add(match[1]);
-  }
-  return apps.size;
 }

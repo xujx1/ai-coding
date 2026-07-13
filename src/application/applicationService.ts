@@ -62,6 +62,7 @@ export function listManagedApplications(workspaceRoot = process.cwd()): ManagedA
 
   return service.listRepositories()
     .filter(repo => fs.existsSync(repo.root))
+    .filter(repo => repo.implementationApp !== false && repo.repositoryType !== 'testing')
     .map(repo => {
       const appId = repo.appId ?? repo.repoId;
       const registryApp = registry.get(appId);
@@ -137,11 +138,40 @@ export function getManagementOverview(): ManagementOverview {
 
   return {
     repositories: [...repositoriesByApp.values()].sort((a, b) => a.name.localeCompare(b.name)),
-    knowledgeBases,
+    knowledgeBases: dedupeKnowledgeBasesForManagement(knowledgeBases),
     requirements,
     pipelines,
     generatedAt: new Date().toISOString(),
   };
+}
+
+function dedupeKnowledgeBasesForManagement(
+  knowledgeBases: ManagedKnowledgeBaseOverview[],
+): ManagedKnowledgeBaseOverview[] {
+  const byScope = new Map<string, ManagedKnowledgeBaseOverview>();
+  for (const knowledgeBase of knowledgeBases) {
+    const key = `${knowledgeBase.type}:${knowledgeBase.scope}`;
+    const existing = byScope.get(key);
+    if (!existing || shouldPreferKnowledgeBase(knowledgeBase, existing)) {
+      byScope.set(key, knowledgeBase);
+    }
+  }
+  return [...byScope.values()].sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'global' ? -1 : 1;
+    return a.scope.localeCompare(b.scope);
+  });
+}
+
+function shouldPreferKnowledgeBase(
+  candidate: ManagedKnowledgeBaseOverview,
+  existing: ManagedKnowledgeBaseOverview,
+): boolean {
+  const candidateRepositoryGenerated = candidate.runId === 'init-all-app-knowledge';
+  const existingRepositoryGenerated = existing.runId === 'init-all-app-knowledge';
+  if (candidateRepositoryGenerated !== existingRepositoryGenerated) {
+    return candidateRepositoryGenerated;
+  }
+  return timestampOf(candidate.updatedAt) > timestampOf(existing.updatedAt);
 }
 
 export type ApplicationRepositoryDownloadResult =
@@ -186,6 +216,8 @@ export function buildEcomRepositoryOverview(): Map<string, ManagedRepositoryOver
     repositoriesByApp.set(repo.appId ?? repo.repoId, {
       appId: repo.appId ?? repo.repoId,
       name: repo.name,
+      repositoryType: repo.repositoryType ?? 'application',
+      implementationApp: repo.implementationApp !== false,
       description: readRepositoryDescription(repo.root, repo.repoId),
       root: repo.root,
       provider: repo.provider,
@@ -480,4 +512,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function firstString(...values: unknown[]): string | undefined {
   return values.find((value): value is string => typeof value === 'string' && value.trim().length > 0)?.trim();
+}
+
+function timestampOf(value?: string): number {
+  if (!value) return 0;
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 }

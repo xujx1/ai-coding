@@ -184,7 +184,7 @@ export function recordPipelineLifecycleNodeFailed(args: {
   now?: number;
 }): void {
   updatePipelineLifecycle(args.execution, { now: args.now }, state => {
-    state.phase = args.node.id === 'cross-app-test' ? 'diagnosis' : inferPhase(args.node.id);
+    state.phase = isPipelineTestingNode(args.node.id) ? 'diagnosis' : inferPhase(args.node.id);
     state.status = 'failed';
     syncAppsFromExecution(state, args.execution);
     const nodeRun = nodeRunForState(args.execution, args.node, args.nodeState, 'failed', state, args.now);
@@ -484,7 +484,7 @@ function recordDomainFactsAfterNode(args: {
   if (args.node.id === 'mrd-render') {
     recordFanout(args.state, args.execution, args.paths);
   }
-  if (args.node.id === 'cross-app-test') {
+  if (args.node.id === 'execute-integration-tests') {
     recordDeploymentAndIntegrationTesting(args.state, args.execution, args.paths, args.outputArtifacts, args.now);
   }
   if (args.node.id === 'archive') {
@@ -948,7 +948,7 @@ function inferPhase(nodeId?: string): LifecyclePhase {
   if (nodeId === 'mrd-render') return 'fanout';
   if (nodeId === 'implementation-plan' || nodeId === 'spec-generate') return 'planning';
   if (nodeId === 'java-impl' || nodeId === 'testcode-generate') return 'implementation';
-  if (nodeId === 'cross-app-test') return 'testing';
+  if (isPipelineTestingNode(nodeId)) return 'testing';
   if (nodeId === 'archive') return 'archive';
   return 'created';
 }
@@ -956,14 +956,25 @@ function inferPhase(nodeId?: string): LifecyclePhase {
 function gateTypeForNode(nodeId: string): ApprovalGateType | undefined {
   if (nodeId === 'mrd-render') return 'requirement_clarification';
   if (nodeId === 'implementation-plan') return 'technical_design';
-  if (nodeId === 'testcode-generate' || nodeId === 'cross-app-test') return 'pre_test_environment_code_review';
+  if (nodeId === 'testcode-generate' || nodeId === 'execute-integration-tests') return 'pre_test_environment_code_review';
   return undefined;
 }
 
 function sourceTypeForNode(nodeId: string): 'agent' | 'workflow' | 'runtime' | 'testing' {
-  if (nodeId === 'cross-app-test') return 'testing';
+  if (isPipelineTestingNode(nodeId)) return 'testing';
   if (nodeId === 'archive' || nodeId === 'upload-init') return 'workflow';
   return 'agent';
+}
+
+function isPipelineTestingNode(nodeId?: string): boolean {
+  return Boolean(nodeId && [
+    'integration-test-cases',
+    'test-data-plan',
+    'integration-test-code',
+    'deploy-related-apps',
+    'execute-integration-tests',
+    'cross-app-test',
+  ].includes(nodeId));
 }
 
 function artifactTypeForPath(artifactPath: string): string {

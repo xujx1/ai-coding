@@ -87,7 +87,7 @@ export function createBuiltInAppBranchWorkflow(
 ): BranchWorkflowDefinition {
   const timestamp = options.createdAt ?? DEFAULT_CREATED_AT;
   const nodeIds = [
-    'app-spec-generate',
+    'app-implementation-plan',
     'app-code-impl',
     'app-code-review',
     'app-testcode-generate',
@@ -206,7 +206,7 @@ function createEdge(
 
 function branchNodeLabel(nodeId: string): string {
   return {
-    'app-spec-generate': 'App Spec Generate',
+    'app-implementation-plan': 'App Implementation Plan',
     'app-code-impl': 'App Code Impl',
     'app-code-review': 'App Code Review',
     'app-testcode-generate': 'App Test Code Generate',
@@ -217,7 +217,7 @@ function branchNodeLabel(nodeId: string): string {
 
 function branchArtifactOutputs(nodeId: string): string[] {
   return {
-    'app-spec-generate': ['{project}/openspec-task.md'],
+    'app-implementation-plan': ['{project}/tech-design.md', '{project}/openspec-task.md', '{project}/openspec-test-task.md'],
     'app-code-impl': ['{project}/changed-files.json', '{project}/code-review.md'],
     'app-code-review': ['{project}/review-findings.json'],
     'app-testcode-generate': ['{project}/testcode-generation-report.md'],

@@ -1,4 +1,4 @@
-import type { DataPlan } from '../../testing/artifacts.js';
+import type { DataPlan } from '../../lifecycle/testingArtifactSchemas.js';
 
 export interface TestingDataDependencyEdge {
   edgeId: string;

@@ -10,6 +10,7 @@ const PRODUCT_MODULES = new Set([
   'requirements',
   'requirement-pi',
   'app-ops',
+  'testing',
   'settings',
 ]);
 const FOUNDATION_MODULES = new Set([
@@ -50,6 +51,40 @@ test('lower layers do not import product services or server controllers', () => 
   }
 
   assert.deepEqual(violations, []);
+});
+
+test('testing migration boundaries stay layered', () => {
+  const violations: string[] = [];
+  for (const file of listTypeScriptFiles(SRC_ROOT)) {
+    const sourceTopLevel = topLevelModule(file);
+    if (!sourceTopLevel || sourceTopLevel === '__tests__' || sourceTopLevel === 'server') continue;
+    if (!['workflows', 'agents', 'tools', 'lifecycle', 'runtime', 'models', 'persistence', 'events', 'config', 'integrations'].includes(sourceTopLevel)) continue;
+
+    for (const specifier of readImportSpecifiers(file)) {
+      const targetTopLevel = resolveTopLevelModule(file, specifier);
+      if (targetTopLevel === 'testing' || targetTopLevel === 'server') {
+        violations.push(`${relative(file)} imports ${specifier}`);
+      }
+    }
+  }
+
+  assert.deepEqual(violations, []);
+});
+
+test('testing agents use shared testing tools instead of private tool implementations', () => {
+  const privateToolFiles = listTypeScriptFiles(path.join(SRC_ROOT, 'agents', 'testing'))
+    .filter(file => /tool/i.test(path.basename(file)) && !file.endsWith('e2eVerificationAgent.ts'));
+  const invalidImports: string[] = [];
+  for (const file of listTypeScriptFiles(path.join(SRC_ROOT, 'agents', 'testing'))) {
+    for (const specifier of readImportSpecifiers(file)) {
+      if (specifier.includes('/tools/') && !specifier.includes('/tools/testing/')) {
+        invalidImports.push(`${relative(file)} imports ${specifier}`);
+      }
+    }
+  }
+
+  assert.deepEqual(privateToolFiles.map(relative), []);
+  assert.deepEqual(invalidImports, []);
 });
 
 function listTypeScriptFiles(root: string): string[] {

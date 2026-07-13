@@ -6,7 +6,7 @@ import type {
   RegressionPlan,
   TestCase,
   TestStrategy,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 import type { TestingDataDependencyEdge } from '../../tools/testing/data.js';
 
 export interface TestingAgentContext {

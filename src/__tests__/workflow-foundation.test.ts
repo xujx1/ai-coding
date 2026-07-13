@@ -76,6 +76,7 @@ import {
 import { validateStructuredPlanDocument } from '../workflows/planValidation.js';
 import {
   buildRequirementOwnershipArtifact,
+  normalizeClarifiedMrdProjectNames,
   REQUIREMENT_OWNERSHIP_ARTIFACT_PATH,
 } from '../workflows/requirementOwnership.js';
 import { requestStructuredSessionPlan } from '../workflows/structuredPlannerAdapter.js';
@@ -197,12 +198,14 @@ test('session workflow instance creates dynamic graph and legacy fallback', () =
     instance.nodes.map(node => node.id),
     [
       'upload-init',
-      'mrd-clarify',
       'mrd-render',
       'project-fanout',
       'app-join',
-      'cross-app-code-review',
-      'cross-app-integration-review',
+      'integration-test-cases',
+      'test-data-plan',
+      'integration-test-code',
+      'deploy-related-apps',
+      'execute-integration-tests',
       'archive',
     ]
   );
@@ -247,8 +250,7 @@ test('session branch runtime aggregates completed branches and stale node update
     projectRoot: '/tmp/marketing',
   });
   marketing.nodes = [
-    { id: 'implementation-plan', label: '实施方案', status: 'completed' },
-    { id: 'spec-generate', label: 'SPEC生成', status: 'completed' },
+    { id: 'implementation-plan', label: '实施方案与任务', status: 'completed' },
     { id: 'java-impl', label: 'Java实现', status: 'completed' },
     { id: 'backend-test', label: '后端测试', status: 'completed' },
   ];
@@ -262,22 +264,20 @@ test('session branch runtime aggregates completed branches and stale node update
     projectRoot: '/tmp/marketing-admin',
   });
   admin.nodes = [
-    { id: 'implementation-plan', label: '实施方案', status: 'completed' },
-    { id: 'spec-generate', label: 'SPEC生成', status: 'completed' },
+    { id: 'implementation-plan', label: '实施方案与任务', status: 'completed' },
     { id: 'java-impl', label: 'Java实现', status: 'completed' },
     { id: 'frontend-impl', label: '前端实现', status: 'completed' },
     { id: 'backend-test', label: '后端测试', status: 'running' },
-    { id: 'frontend-test', label: '前端测试', status: 'completed' },
-    { id: 'e2e-verify', label: '端到端验证', status: 'failed', error: 'startup timeout' },
+    { id: 'frontend-test', label: '前端测试', status: 'failed', error: 'startup timeout' },
   ];
   syncSessionBranchRuntimeFromNodes(admin);
   assert.equal(admin.status, 'failed');
-  assert.equal(admin.currentNodeId, 'e2e-verify');
+  assert.equal(admin.currentNodeId, 'frontend-test');
 
   admin.nodes.find(node => node.id === 'backend-test')!.status = 'completed';
   syncSessionBranchRuntimeFromNodes(admin);
-  assert.equal(admin.status, 'failed', 'stale backend-test completion must not overwrite downstream e2e failure');
-  assert.equal(admin.currentNodeId, 'e2e-verify');
+  assert.equal(admin.status, 'failed', 'stale backend-test completion must not overwrite downstream frontend failure');
+  assert.equal(admin.currentNodeId, 'frontend-test');
 
   const workflow = createBuiltInMrdToCodeWorkflow();
   const workflowInstance = createInitialSessionWorkflowInstance({
@@ -529,12 +529,15 @@ test('session execution planner creates capability-driven branch tracks and vali
   const fullstack = plan.branches.find(branch => branch.projectName === 'fullstack');
   const docs = plan.branches.find(branch => branch.projectName === 'docs');
   assert.deepEqual(api?.tracks.map(track => track.kind), ['backend']);
-  assert.deepEqual(web?.tracks.map(track => track.kind), ['frontend', 'e2e']);
-  assert.deepEqual(fullstack?.tracks.map(track => track.kind), ['backend', 'frontend', 'e2e', 'contract']);
+  assert.deepEqual(web?.tracks.map(track => track.kind), ['frontend']);
+  assert.deepEqual(fullstack?.tracks.map(track => track.kind), ['backend', 'frontend']);
   assert.deepEqual(docs?.tracks.map(track => track.kind), ['documentation']);
   assert.ok(docs?.tracks[0].fallbackReason?.includes('No package'));
   assert.ok(api?.omittedTracks.some(item => item.trackKind === 'frontend'));
-  assert.ok(fullstack?.nodes.some(node => node.id === 'app-track-join'));
+  assert.equal(fullstack?.nodes.some(node => node.id === 'app-track-join'), false);
+  assert.equal(plan.branches.some(branch => branch.nodes.some(node => node.id === 'spec-generate')), false);
+  assert.equal(api?.tracks[0].dependsOn.includes('implementation-plan'), true);
+  assert.equal(api?.tracks[0].dependsOn.includes('spec-generate'), false);
 });
 
 test('structured plan registry covers generated and orchestration node contracts', () => {
@@ -542,24 +545,25 @@ test('structured plan registry covers generated and orchestration node contracts
   const expectedNodeTypes = [
     'requirement-ownership-confirmation',
     'implementation-plan',
-    'spec-generate',
     'backend-impl',
     'java-impl',
     'frontend-impl',
     'backend-test',
     'frontend-test',
-    'api-contract-check',
-    'e2e-verify',
     'documentation-impl',
     'documentation-test',
-    'app-track-join',
-    'app-branch-summary',
-    'cross-app-code-review',
-    'cross-app-integration-review',
+    'integration-test-cases',
+    'test-data-plan',
+    'integration-test-code',
+    'deploy-related-apps',
+    'execute-integration-tests',
     'archive',
   ];
 
   assert.deepEqual(contracts.map(contract => contract.nodeType).sort(), expectedNodeTypes.sort());
+  const implementationContract = contracts.find(contract => contract.nodeType === 'implementation-plan');
+  assert.ok(implementationContract?.artifacts.producedArtifacts.some(artifact => artifact.includes('openspec-task.md')));
+  assert.ok(implementationContract?.artifacts.producedArtifacts.some(artifact => artifact.includes('openspec-test-task.md')));
   for (const contract of contracts) {
     assert.equal(PLAN_NODE_REGISTRY[contract.nodeType], contract);
     assert.equal(contract.runner.length > 0, true);
@@ -572,7 +576,7 @@ test('structured plan registry covers generated and orchestration node contracts
     assert.equal(Number.isInteger(contract.replan.maxAttempts), true);
   }
   assert.equal(PLAN_NODE_REGISTRY['requirement-ownership-confirmation'].confirmation.required, true);
-  assert.equal(PLAN_NODE_REGISTRY['e2e-verify'].resources.browserSlots, 1);
+  assert.equal(PLAN_NODE_REGISTRY['execute-integration-tests'].resources.browserSlots, 1);
   assert.equal(PLAN_NODE_REGISTRY.archive.replan.replannable, false);
 });
 
@@ -597,7 +601,9 @@ test('structured session plans persist initial revision and migration metadata',
   assert.equal(plan.schemaVersion, 1);
   assert.equal(plan.currentRevisionId, 'rev-1');
   assert.equal(plan.revisions.length, 1);
-  assert.ok(plan.nodeContracts.some(contract => contract.nodeType === 'e2e-verify' && contract.resources.browserSlots === 1));
+  assert.equal(plan.nodeContracts.some(contract => contract.nodeType === 'e2e-verify'), false);
+  assert.equal(plan.nodeContracts.some(contract => contract.nodeType === 'cross-app-test'), false);
+  assert.ok(plan.nodeContracts.some(contract => contract.nodeType === 'execute-integration-tests' && contract.resources.browserSlots === 1));
   assert.equal(plan.revisions[0].revisionId, 'rev-1');
   assert.equal(plan.revisions[0].reason, 'initial');
   assert.equal(plan.revisions[0].validation.valid, true);
@@ -737,8 +743,8 @@ test('session execution planner uses AI-owned implementation surfaces before key
 
   const admin = plan.branches.find(branch => branch.projectName === 'marketing-admin');
   const marketing = plan.branches.find(branch => branch.projectName === 'marketing');
-  assert.deepEqual(admin?.tracks.map(track => track.kind), ['backend', 'frontend', 'e2e', 'contract']);
-  assert.deepEqual(marketing?.tracks.map(track => track.kind), ['backend', 'contract']);
+  assert.deepEqual(admin?.tracks.map(track => track.kind), ['backend', 'frontend']);
+  assert.deepEqual(marketing?.tracks.map(track => track.kind), ['backend']);
 });
 
 test('structured requirement ownership drives fanout and track planning before legacy text fallback', () => {
@@ -806,8 +812,73 @@ test('structured requirement ownership drives fanout and track planning before l
   assert.deepEqual(fanoutDecision.includedProjects.map(project => project.name), ['marketing-admin', 'marketing']);
   assert.deepEqual(fanoutDecision.excludedProjects.map(project => project.name), ['docs']);
   assert.ok(plan.sourceArtifacts.includes(REQUIREMENT_OWNERSHIP_ARTIFACT_PATH));
-  assert.deepEqual(plan.branches.find(branch => branch.projectName === 'marketing-admin')?.tracks.map(track => track.kind), ['backend', 'frontend', 'e2e', 'contract']);
-  assert.deepEqual(plan.branches.find(branch => branch.projectName === 'marketing')?.tracks.map(track => track.kind), ['backend', 'contract']);
+  assert.deepEqual(plan.branches.find(branch => branch.projectName === 'marketing-admin')?.tracks.map(track => track.kind), ['backend', 'frontend']);
+  assert.deepEqual(plan.branches.find(branch => branch.projectName === 'marketing')?.tracks.map(track => track.kind), ['backend', 'frontend']);
+});
+
+test('requirement ownership maps business-domain labels through knowledge metadata without full fanout fallback', () => {
+  const manifest = {
+    requirements: [],
+    projects: [
+      { name: 'console', root: 'project/console', appId: 'console', capabilities: startupCapability({ frontend: true }) },
+      { name: 'ecom-marketing', root: 'project/ecom-marketing', appId: 'ecom-marketing', buildTool: 'maven', capabilities: startupCapability({ backend: true }) },
+      { name: 'ecom-product', root: 'project/ecom-product', appId: 'ecom-product', buildTool: 'maven', capabilities: startupCapability({ backend: true }) },
+      { name: 'ecom-inventory', root: 'project/ecom-inventory', appId: 'ecom-inventory', buildTool: 'maven', capabilities: startupCapability({ backend: true }) },
+      { name: 'ecom-trade', root: 'project/ecom-trade', appId: 'ecom-trade', buildTool: 'maven', capabilities: startupCapability({ backend: true }) },
+    ],
+  };
+  const clarified = [
+    '# MRD Clarification',
+    '',
+    '## Feature Inventory',
+    '| 功能名 | 业务域 | 来源摘要 | 验收摘要 |',
+    '| --- | --- | --- | --- |',
+    '| 创建前商品与库存校验 | 营销活动 | 创建时校验商品与库存 | 商品未上架或库存不足时失败 |',
+    '',
+    '## Project Ownership',
+    '| 功能项 | 主责项目 | 协作/消费项目 | 归属判断 |',
+    '| --- | --- | --- | --- |',
+    '| 创建前商品与库存校验 | 未上传代码项目（营销域服务） | 未上传代码项目（商品域服务）、未上传代码项目（库存域服务） | 营销域编排，商品域和库存域提供被调能力。 |',
+    '',
+    '## Implementation Surfaces',
+    '| 功能项 | 项目 | frontend | backend | contract | e2e | 判断依据 |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+    '| 创建前商品与库存校验 | 未上传代码项目（营销域服务） | no | yes | yes | yes | 营销域编排商品接口与库存接口。 |',
+    '| SKU 售卖状态查询能力 | 未上传代码项目（商品域服务） | no | yes | yes | yes | 商品域提供 SKU 状态。 |',
+    '| 可用库存查询能力 | 未上传代码项目（库存域服务） | no | yes | yes | yes | 库存域提供库存摘要。 |',
+    '| 运营后台结果展示 | 未上传代码项目（运营后台） | yes | no | yes | yes | 当前知识库没有将该业务别名映射为真实应用时保持未解析。 |',
+    '',
+    '## Implementation Boundaries',
+    '- ecom-trade 仅作为回归范围。',
+    '',
+    '## Clarification Questions',
+    '无需澄清。',
+    '',
+    '## Clarified Decisions',
+    '- 按知识库可验证应用生成实施分支。',
+  ].join('\n');
+
+  const ownership = buildRequirementOwnershipArtifact({ clarified, manifest });
+  const decision = deriveFanoutDecision({ manifest, clarifiedMrd: clarified, requirementOwnership: ownership });
+  const normalizedClarified = normalizeClarifiedMrdProjectNames(clarified, manifest);
+  const unmatchedOwnership = buildRequirementOwnershipArtifact({
+    clarified: clarified.replace(/营销域服务/g, '未知业务域').replace(/商品域服务/g, '另一个未知业务域').replace(/库存域服务/g, '第三个未知业务域'),
+    manifest,
+  });
+  const unmatchedDecision = deriveFanoutDecision({ manifest, requirementOwnership: unmatchedOwnership });
+
+  assert.deepEqual(
+    decision.includedProjects.map(project => project.name),
+    ['console', 'ecom-marketing', 'ecom-product', 'ecom-inventory']
+  );
+  assert.equal(decision.includedProjects.some(project => project.name === 'ecom-trade'), false);
+  assert.equal(normalizedClarified.includes('未上传代码项目'), false);
+  assert.match(normalizedClarified, /console/);
+  assert.match(normalizedClarified, /ecom-marketing/);
+  assert.match(normalizedClarified, /ecom-product/);
+  assert.match(normalizedClarified, /ecom-inventory/);
+  assert.deepEqual(unmatchedDecision.includedProjects.map(project => project.name), ['console']);
+  assert.deepEqual(unmatchedDecision.excludedProjects.map(project => project.name), manifest.projects.slice(1).map(project => project.name));
 });
 
 test('session execution plan validation rejects unsupported catalog entries cycles and missing artifact metadata', () => {
@@ -1030,7 +1101,7 @@ test('branch rerun targets dynamic plan revision nodes and preserves sibling art
   });
   branch.artifactIndex = { 'backend-test': ['artifacts/fullstack/test-report.md'] };
   for (const node of branch.nodes ?? []) {
-    if (['implementation-plan', 'spec-generate', 'java-impl', 'backend-test', 'frontend-impl'].includes(node.id)) {
+    if (['implementation-plan', 'java-impl', 'backend-test', 'frontend-impl'].includes(node.id)) {
       node.status = 'completed';
     }
     if (node.id === 'frontend-test') node.status = 'failed';
@@ -1064,7 +1135,7 @@ test('branch rerun targets dynamic plan revision nodes and preserves sibling art
 
   assert.equal(rerunBranch?.nodes?.find(node => node.id === 'backend-test')?.status, 'completed');
   assert.equal(rerunBranch?.nodes?.find(node => node.id === 'frontend-test')?.status, 'pending');
-  assert.equal(rerunBranch?.nodes?.find(node => node.id === 'e2e-verify')?.status, 'pending');
+  assert.equal(rerunBranch?.nodes?.some(node => node.id === 'e2e-verify'), false);
   assert.deepEqual(rerunBranch?.artifactIndex?.['backend-test'], ['artifacts/fullstack/test-report.md']);
   const rerunEvent = getEventLog(runId).getAllEvents().find(event => event.type === 'branch_rerun_scheduled');
   assert.equal((rerunEvent?.data as Record<string, unknown>)?.planRevisionId, 'rev-1');
@@ -1117,13 +1188,15 @@ test('session details backfill dynamic workflow instance for historical project 
   assert.equal(instance?.legacyFallback, false);
   assert.deepEqual(instance?.nodes.map(node => node.id), [
     'upload-init',
-    'mrd-clarify',
-    'mrd-render',
-    'project-fanout',
-    'app-join',
-    'cross-app-code-review',
-    'cross-app-integration-review',
-    'archive',
+      'mrd-render',
+      'project-fanout',
+      'app-join',
+      'integration-test-cases',
+      'test-data-plan',
+      'integration-test-code',
+      'deploy-related-apps',
+      'execute-integration-tests',
+      'archive',
   ]);
   assert.equal(instance?.branches[0].projectName, 'marketing');
   assert.equal(instance?.branches[0].status, 'completed');
@@ -1311,10 +1384,6 @@ test('planned branch executor dispatches runners, joins tracks, reruns and cance
         calls.push(node.runner);
         return { outputArtifacts: ['artifacts/fullstack/frontend-implementation-summary.json'] };
       },
-      'api-contract-check': (_ctx, node) => {
-        calls.push(node.runner);
-        return { outputArtifacts: ['artifacts/fullstack/e2e/api-contract-results.json'] };
-      },
       'frontend-test': (_ctx, node) => {
         calls.push(node.runner);
         return { outputArtifacts: ['artifacts/fullstack/frontend-test-report.md'] };
@@ -1323,23 +1392,17 @@ test('planned branch executor dispatches runners, joins tracks, reruns and cance
         calls.push(node.runner);
         return { outputArtifacts: ['artifacts/fullstack/test-report.md'] };
       },
-      'e2e-verify': (_ctx, node) => {
-        calls.push(node.runner);
-        return { outputArtifacts: ['artifacts/fullstack/e2e/e2e-summary.json'] };
-      },
     },
   });
 
   assert.equal(completed.status, 'completed');
   assert.equal(completed.tracks?.backend.status, 'completed');
   assert.equal(completed.tracks?.frontend.status, 'completed');
-  assert.equal(completed.tracks?.e2e.status, 'completed');
-  assert.equal(completed.nodes['app-track-join'].status, 'completed');
+  assert.equal(Boolean(completed.nodes['app-track-join']), false);
   assert.equal(completed.nodes['java-impl'].childAgentIds?.[0], 'agent-java');
   assert.deepEqual(completed.tracks?.backend.artifactIndex['backend-test'], ['artifacts/fullstack/test-report.md']);
   assert.ok(calls.includes('java-impl'));
   assert.ok(calls.includes('frontend-test'));
-  assert.ok(calls.includes('api-contract-check'));
 
   const failing = await runPlannedBranch({
     graphState,
@@ -1363,7 +1426,7 @@ test('planned branch executor dispatches runners, joins tracks, reruns and cance
   assert.equal(failing.tracks?.backend.status, 'completed');
   assert.equal(failing.tracks?.frontend.status, 'failed');
   assert.deepEqual(failing.tracks?.backend.artifactIndex['backend-test'], ['artifacts/fullstack/test-report.md']);
-  assert.equal(failing.nodes['app-track-join'].status, 'waiting_fix');
+  assert.equal(Boolean(failing.nodes['app-track-join']), false);
 
   const rerun = resetBranchTrackFromNode(failing, 'frontend', 'frontend-test');
   assert.equal(rerun.tracks?.frontend.status, 'pending');
@@ -1392,12 +1455,13 @@ test('planned branch executor enforces node resource semaphores from registry co
     },
   });
   const branchPlan = JSON.parse(JSON.stringify(plan.branches[0])) as typeof plan.branches[0];
-  const e2eClone = {
-    ...branchPlan.nodes.find(node => node.id === 'e2e-verify')!,
-    id: 'e2e-verify-second',
+  const frontendTestClone = {
+    ...branchPlan.nodes.find(node => node.id === 'frontend-test')!,
+    id: 'frontend-test-second',
+    dependsOn: ['frontend-impl'],
   };
-  branchPlan.nodes.push(e2eClone);
-  branchPlan.tracks.find(track => track.trackId === 'e2e')?.nodes.push(e2eClone);
+  branchPlan.nodes.push(frontendTestClone);
+  branchPlan.tracks.find(track => track.trackId === 'frontend')?.nodes.push(frontendTestClone);
   const branch = createInitialBranchState({
     branchId: branchPlan.branchId,
     workflowId: 'mrd-to-code-app-branch',
@@ -1405,8 +1469,8 @@ test('planned branch executor enforces node resource semaphores from registry co
     projectRoot: 'fullstack',
     plan: branchPlan,
   });
-  let activeBrowser = 0;
-  let maxActiveBrowser = 0;
+  let activeCommand = 0;
+  let maxActiveCommand = 0;
   const completed = await runPlannedBranch({
     graphState: createInitialGraphState({
       runId: 'planned-resource-run',
@@ -1421,24 +1485,24 @@ test('planned branch executor enforces node resource semaphores from registry co
     resourceSemaphores: createPlanResourceSemaphores({
       branchConcurrency: 8,
       modelConcurrency: 8,
-      commandConcurrency: 8,
-      browserConcurrency: 1,
+      commandConcurrency: 1,
+      browserConcurrency: 8,
     }),
     handlers: {
-      'e2e-verify': async () => {
-        activeBrowser += 1;
-        maxActiveBrowser = Math.max(maxActiveBrowser, activeBrowser);
+      'frontend-test': async () => {
+        activeCommand += 1;
+        maxActiveCommand = Math.max(maxActiveCommand, activeCommand);
         await new Promise(resolve => setTimeout(resolve, 10));
-        activeBrowser -= 1;
-        return { outputArtifacts: ['artifacts/fullstack/e2e/e2e-summary.json'] };
+        activeCommand -= 1;
+        return { outputArtifacts: ['artifacts/fullstack/frontend-test-report.md'] };
       },
     },
   });
 
   assert.equal(completed.status, 'completed');
-  assert.equal(maxActiveBrowser, 1);
-  assert.equal(completed.nodes['e2e-verify'].status, 'completed');
-  assert.equal(completed.nodes['e2e-verify-second'].status, 'completed');
+  assert.equal(maxActiveCommand, 1);
+  assert.equal(completed.nodes['frontend-test'].status, 'completed');
+  assert.equal(completed.nodes['frontend-test-second'].status, 'completed');
 });
 
 test('replan requests lock completed siblings replace remaining nodes and enforce fuse limits', () => {
@@ -1484,7 +1548,7 @@ test('replan requests lock completed siblings replace remaining nodes and enforc
     const nextBranch = result.plan.branches[0];
     assert.equal(result.plan.currentRevisionId, 'rev-2');
     assert.equal(result.plan.revisions[1].parentRevisionId, 'rev-1');
-    assert.equal(nextBranch.nodes.find(node => node.id === 'java-impl')?.label, 'Backend Implementation');
+    assert.equal(nextBranch.nodes.find(node => node.id === 'java-impl')?.label, '后端实现');
     assert.equal(nextBranch.nodes.find(node => node.id === 'frontend-test')?.label, 'Frontend Test Replanned');
   }
 
@@ -1591,24 +1655,18 @@ test('read-model sync exposes branch tracks and artifacts for UI snapshots', () 
   assert.ok(project?.nodes?.['java-impl']);
 });
 
-test('workflow UI exposes nested tracks, planner evidence, and track-scoped artifact filtering hooks', () => {
+test('workflow UI exposes nested tracks and track-scoped artifact filtering hooks', () => {
   const appJs = fsSync.readFileSync(path.resolve('web/app.js'), 'utf-8');
   const appCss = fsSync.readFileSync(path.resolve('web/app.css'), 'utf-8');
 
   assert.ok(appJs.includes('function getBranchTracks('), 'UI should normalize branch tracks');
   assert.ok(appJs.includes('function renderFanoutTrackLane('), 'UI should render nested fanout track lanes');
-  assert.ok(appJs.includes('function renderPlannerSnapshotDetails('), 'UI should surface planner details');
-  assert.ok(appJs.includes('function renderSelectedBranchNodeDetails('), 'UI should show selected branch node contract details');
-  assert.ok(appJs.includes('findPlanNodeContractSummary'), 'UI should resolve plan node contract summaries');
-  assert.ok(appJs.includes('plan?.currentRevisionId'), 'UI should display plan revision provenance');
   assert.ok(appJs.includes('structuredPayload: data.structuredPayload'), 'UI should restore structured confirmation payloads after refresh');
   assert.ok(appJs.includes('state.lifecycle?.pendingConfirmation'), 'UI should restore lifecycle-backed pending confirmations after refresh');
   assert.ok(appJs.includes('isLifecyclePendingConfirmationActive'), 'UI should validate lifecycle pending confirmation state');
   assert.ok(appJs.includes('selection.trackId'), 'artifact filtering should account for selected track');
   assert.ok(appJs.includes('track?.artifactIndex?.[stageId]'), 'artifact filtering should read track artifact index');
   assert.ok(appCss.includes('.fanout-track-stack'), 'CSS should style nested fanout tracks');
-  assert.ok(appCss.includes('.planner-evidence-card'), 'CSS should style planner evidence');
-  assert.ok(appCss.includes('.branch-node-contract-panel'), 'CSS should style selected branch node contract details');
   assert.ok(appCss.includes('.branch-track-node'), 'CSS should style branch track nodes');
 });
 
@@ -1690,7 +1748,7 @@ test('OpenSpec SDD artifacts map MRD proposal design spec and generated tasks wi
     proposalSummary: 'MRD requires activity hit preview in setting side.',
     requirementOwnershipSummary: 'marketing-admin owns frontend/backend/contract/e2e surfaces.',
     techDesignSummary: 'Use controller/service split and static admin page update.',
-    nodeContractSummary: '- frontend-impl produces changed-files.json; e2e-verify produces e2e-summary.json',
+    nodeContractSummary: '- frontend-impl produces changed-files.json; execute-integration-tests produces e2e-summary.json',
   });
   const proposal = fsSync.readFileSync(path.join(paths.artifactsDir, change.proposalPath), 'utf-8');
   const design = fsSync.readFileSync(path.join(paths.artifactsDir, change.designPath), 'utf-8');
@@ -1701,7 +1759,7 @@ test('OpenSpec SDD artifacts map MRD proposal design spec and generated tasks wi
   assert.ok(proposal.includes('Requirement ownership source: `artifacts/requirement-ownership.json`'));
   assert.ok(proposal.includes('Legacy `artifacts/prd.md`: optional compatibility context only when present.'));
   assert.ok(design.includes('## Node Contracts'));
-  assert.ok(design.includes('e2e-verify produces e2e-summary.json'));
+  assert.ok(design.includes('execute-integration-tests produces e2e-summary.json'));
   assert.ok(spec.includes('ownership=artifacts/requirement-ownership.json'));
   assert.ok(tasks.includes('## Backend\n- [ ] Add preview submission endpoint'));
   assert.ok(tasks.includes('## Frontend\n- [ ] Render preview form'));
@@ -1731,8 +1789,12 @@ test('file checkpointer writes latest graph checkpoint envelope', async () => {
   await fs.rm(getRunPaths(runId).runDir, { recursive: true, force: true });
 });
 
-test('demo fixtures remain readable and execution-state recovery creates LangGraph checkpoint', async () => {
+test('demo fixtures remain readable and execution-state recovery creates LangGraph checkpoint', async (t) => {
   const legacyFixture = path.join(process.cwd(), 'fixtures/full-flow-demo/run');
+  if (!fsSync.existsSync(path.join(legacyFixture, 'execution-state.json'))) {
+    t.skip('demo fixtures are not present in this checkout');
+    return;
+  }
   const legacyState = JSON.parse(fsSync.readFileSync(path.join(legacyFixture, 'execution-state.json'), 'utf-8'));
   assert.equal(legacyState.status, 'completed');
   assert.ok(Array.isArray(legacyState.nodes));
@@ -1800,9 +1862,13 @@ test('demo fixtures remain readable and execution-state recovery creates LangGra
   await fs.rm(paths.runDir, { recursive: true, force: true });
 });
 
-test('dual-runtime golden fixtures preserve final read contracts', () => {
+test('dual-runtime golden fixtures preserve final read contracts', (t) => {
   const legacyRun = path.join(process.cwd(), 'fixtures/full-flow-demo/run');
   const langGraphRun = path.join(process.cwd(), 'fixtures/langgraph-demo/run');
+  if (!fsSync.existsSync(path.join(legacyRun, 'execution-state.json')) || !fsSync.existsSync(path.join(langGraphRun, 'execution-state.json'))) {
+    t.skip('demo fixtures are not present in this checkout');
+    return;
+  }
   const legacyState = readJson(path.join(legacyRun, 'execution-state.json')) as {
     status: string;
     nodes: Array<{ id: string; status: string; childAgentIds?: string[] }>;
@@ -1876,11 +1942,19 @@ test('rollback router maps failure categories to target nodes and retry updates'
   });
 
   const decision = routeAfterTestCode(state, 'coverage_failure', 'archive');
+  const frontendDecision = routeAfterTestCode(state, 'frontend_test_failure', 'app-join', 'frontend-test');
+  const backendDecision = routeAfterTestCode(state, 'backend_test_failure', 'app-join', 'backend-test');
 
   assert.equal(targetNodeForFailure('review_block'), 'java-impl');
+  assert.equal(targetNodeForFailure('frontend_test_failure'), 'frontend-impl');
+  assert.equal(targetNodeForFailure('backend_test_failure'), 'java-impl');
   assert.equal(decision.targetNodeId, 'testcode-generate');
   assert.equal(decision.retry?.coverageRetryCount, 1);
   assert.equal(decision.rollback?.sourceNodeId, 'testcode-generate');
+  assert.equal(frontendDecision.targetNodeId, 'frontend-impl');
+  assert.equal(frontendDecision.rollback?.sourceNodeId, 'frontend-test');
+  assert.equal(backendDecision.targetNodeId, 'java-impl');
+  assert.equal(backendDecision.rollback?.sourceNodeId, 'backend-test');
 });
 
 test('fanout creates stable branch state and join waits for branches', () => {

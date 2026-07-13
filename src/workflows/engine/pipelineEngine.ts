@@ -18,7 +18,7 @@ import * as path from 'path';
 import { nanoid } from 'nanoid';
 import { EventEmitter } from 'events';
 import { PIPELINE_NODES, PipelineNode, normalizeStageId } from '../definitions/pipelineDefinition.js';
-import type { PlanState } from '../../persistence/agentTypes.js';
+import type { AgentState, PlanState } from '../../persistence/agentTypes.js';
 import type { ContextManifest, ExecutionState, NodeState, NodeStatus, ProjectState } from '../../persistence/executionTypes.js';
 import { getStateStore } from '../../persistence/stateStore.js';
 import { getEventLog } from '../../events/EventLog.js';
@@ -58,6 +58,7 @@ import {
 } from '../fanoutDecision.js';
 import {
   buildRequirementOwnershipArtifact,
+  normalizeClarifiedMrdProjectNames,
   REQUIREMENT_OWNERSHIP_ARTIFACT_PATH,
   writeRequirementOwnershipArtifact,
 } from '../requirementOwnership.js';
@@ -149,6 +150,16 @@ import { createLegacyStageRunnerRegistry } from '../runtime/pipeline-node-runner
 import { runE2EVerificationStage } from '../runtime/pipeline-node-runners/e2eVerificationRunner.js';
 import { runUploadInitStage } from '../runtime/pipeline-node-runners/uploadInitRunner.js';
 import { runE2EVerification } from '../../agents/testing/index.js';
+import { createTestingWorkflowRuntime } from '../runtime/testing/index.js';
+import type { TestingWorkflowNodeId } from '../definitions/testing/index.js';
+import {
+  createEnvironmentPlan,
+  createRequirementDeploymentSet,
+  loadLifecycleState,
+  registerDeploymentArtifacts,
+  saveLifecycleState,
+  type EnvironmentRef,
+} from '../../lifecycle/index.js';
 import {
   ensurePipelineLifecycleForExecution,
   recordPipelineLifecycleApprovalResolved,
@@ -236,6 +247,13 @@ export class PipelineEngine extends EventEmitter {
     if (recoverInterruptedState(state)) {
       store.saveExecutionState(state);
     }
+    const agentStates = store.listAgentStates();
+    if (recoverInterruptedAgentStates(agentStates, (agent) => store.saveAgentState(agent))) {
+      agentStates.splice(0, agentStates.length, ...store.listAgentStates());
+    }
+    if (repairBranchChildAgentIdsFromPersistedAgents(state, agentStates)) {
+      store.saveExecutionState(state);
+    }
     state = ensurePipelineLifecycleForExecution(state, { workflowId: 'legacy-pipeline' });
     store.saveExecutionState(state);
     this.state = state;
@@ -305,7 +323,9 @@ export class PipelineEngine extends EventEmitter {
       nodeState.error = undefined;
       nodeState.failureCount = nodeState.failureCount ?? 0;
       nodeState.childAgentIds = nodeState.childAgentIds ?? [];
-      this.markProjectsForNode(node.id, 'running');
+      if (!isBranchPipelineRootNode(node.id)) {
+        this.markProjectsForNode(node.id, 'running');
+      }
       recordPipelineLifecycleNodeStarted({
         execution: this.state,
         node,
@@ -325,7 +345,9 @@ export class PipelineEngine extends EventEmitter {
         nodeState.output = output;
         nodeState.outputArtifacts = collectOutputArtifacts(node, output, nodeState);
         this.updateArtifactIndex(node.id, nodeState.outputArtifacts);
-        this.markProjectsForNode(node.id, 'completed');
+        if (!isBranchPipelineRootNode(node.id)) {
+          this.markProjectsForNode(node.id, 'completed');
+        }
         this.saveContextManifest(node.id, nodeState, output);
         recordPipelineLifecycleNodeCompleted({
           execution: this.state,
@@ -445,7 +467,9 @@ export class PipelineEngine extends EventEmitter {
         nodeState.status = 'failed';
         nodeState.error = (err as Error).message;
         nodeState.failureCount = (nodeState.failureCount ?? 0) + 1;
-        this.markProjectsForNode(node.id, 'failed');
+        if (!isBranchPipelineRootNode(node.id)) {
+          this.markProjectsForNode(node.id, 'failed');
+        }
         recordPipelineLifecycleNodeFailed({
           execution: this.state,
           node,
@@ -463,7 +487,9 @@ export class PipelineEngine extends EventEmitter {
           nodeState.status = 'pending';
           this.state.status = 'running';
           this.state.error = undefined;
-          this.markProjectsForNode(node.id, 'running');
+          if (!isBranchPipelineRootNode(node.id)) {
+            this.markProjectsForNode(node.id, 'running');
+          }
           store.saveExecutionState(this.state);
           eventLog.logEvent('node_retry_scheduled', {
             nodeId: node.id,
@@ -611,21 +637,36 @@ export class PipelineEngine extends EventEmitter {
     this.running = false;
   }
 
-  private recordChildAgent(nodeId: string, agentRunId: string): void {
+  private recordChildAgent(nodeId: string, agentRunId: string, projectName?: string): void {
     const nodeState = this.state.nodes.find(node => node.id === nodeId);
     if (!nodeState) return;
     nodeState.childAgentIds = nodeState.childAgentIds ?? [];
     if (!nodeState.childAgentIds.includes(agentRunId)) {
       nodeState.childAgentIds.push(agentRunId);
     }
+    if (projectName) {
+      this.recordBranchChildAgent(nodeId, projectName, agentRunId);
+    }
     this.state.currentAgentRunId = agentRunId;
     getStateStore(this.runId).saveExecutionState(this.state);
+  }
+
+  private recordBranchChildAgent(nodeId: string, projectName: string, agentRunId: string): void {
+    const instance = this.state.workflowInstance;
+    const branchNodeId = branchNodeIdForStage(nodeId);
+    if (!instance?.branches?.length || !branchNodeId) return;
+    const branch = instance.branches.find(item => item.projectName === projectName);
+    const branchNode = branch?.nodes?.find(item => item.id === branchNodeId);
+    if (!branch || !branchNode) return;
+    branchNode.childAgentIds = Array.from(new Set([...(branchNode.childAgentIds ?? []), agentRunId]));
+    branch.childAgentIds = Array.from(new Set([...(branch.childAgentIds ?? []), agentRunId]));
+    instance.updatedAt = new Date().toISOString();
   }
 
   private markProjectsForNode(nodeId: string, status: ProjectState['status']): void {
     if (!isProjectScopedNode(nodeId)) return;
     if (nodeId === 'testcode-generate') return;
-    const activeProjects = this.getActiveProjectNamesForNode(nodeId);
+    const activeProjects = this.getActiveProjectNamesForNode(nodeId) ?? this.getPlannedBranchProjectNamesForNode(nodeId);
     this.state.projects?.forEach(project => {
       if (activeProjects && !activeProjects.has(project.name)) return;
       project.currentNodeId = nodeId;
@@ -654,7 +695,6 @@ export class PipelineEngine extends EventEmitter {
       branchNode.status = branchStatus;
       branchNode.failureCount = nodeState?.failureCount;
       branchNode.error = nodeState?.error;
-      branchNode.childAgentIds = nodeState?.childAgentIds;
       syncBranchTrackStatus(branch, branchNodeId, toSessionBranchStatus(status));
 
       const artifacts = artifactsForProject(this.state.artifactIndex?.[nodeId] ?? [], branch.projectName);
@@ -663,10 +703,6 @@ export class PipelineEngine extends EventEmitter {
         branch.artifactIndex = branch.artifactIndex ?? {};
         branch.artifactIndex[branchNodeId] = artifacts;
       }
-      branch.childAgentIds = Array.from(new Set([
-        ...(branch.childAgentIds ?? []),
-        ...(nodeState?.childAgentIds ?? []),
-      ]));
       syncSessionBranchRuntimeFromNodes(branch);
       if (previousBranchStatus !== branch.status || previousCurrentNodeId !== branch.currentNodeId) {
         getEventLog(this.runId).logEvent('branch_transition', {
@@ -692,7 +728,19 @@ export class PipelineEngine extends EventEmitter {
 
   private filterProjectsForNode<T extends { name: string }>(nodeId: string, projects: T[]): T[] {
     const activeProjects = this.getActiveProjectNamesForNode(nodeId);
-    return activeProjects ? projects.filter(project => activeProjects.has(project.name)) : projects;
+    if (activeProjects) return projects.filter(project => activeProjects.has(project.name));
+    const branchProjects = this.getPlannedBranchProjectNamesForNode(nodeId);
+    return branchProjects ? projects.filter(project => branchProjects.has(project.name)) : projects;
+  }
+
+  private getPlannedBranchProjectNamesForNode(nodeId: string): Set<string> | null {
+    const branchNodeIds = branchNodeIdsForStage(nodeId);
+    const branches = this.state.workflowInstance?.branches ?? [];
+    if (!branchNodeIds.length || !branches.length) return null;
+    const names = branches
+      .filter(branch => (branch.nodes ?? []).some(node => branchNodeIds.includes(node.id)))
+      .map(branch => branch.projectName);
+    return names.length ? new Set(names) : null;
   }
 
   private async runProjectStageTasks<T>(
@@ -1001,8 +1049,8 @@ export class PipelineEngine extends EventEmitter {
       return this.executeMrdClarifyStage(node, paths, nodeState);
     }
 
-    if (node.id === 'cross-app-test') {
-      return this.executeCrossAppTestStage(node, paths);
+    if (isTestingPiStage(node.id)) {
+      return this.executeTestingPiStage(node, paths);
     }
 
     // For stages that don't use ReAct loop, use a single-turn agent
@@ -1114,7 +1162,7 @@ export class PipelineEngine extends EventEmitter {
       projectDir: paths.projectDir,
       artifactsDir: paths.artifactsDir,
       runDir: paths.runDir,
-      taskDescription: '需求拆解',
+      taskDescription: '需求应用归属确认',
       requireToolUse: shouldRequireToolUse(),
     });
 
@@ -1140,6 +1188,11 @@ export class PipelineEngine extends EventEmitter {
         ? extractMrdContent(output)
         : buildFallbackMrd(paths, manifest, output);
       clarified = buildFallbackClarifiedMrd(mrdContent, output);
+      fs.writeFileSync(clarifiedPath, clarified, 'utf-8');
+    }
+    const normalizedClarified = normalizeClarifiedMrdProjectNames(clarified, manifest);
+    if (normalizedClarified !== clarified) {
+      clarified = normalizedClarified;
       fs.writeFileSync(clarifiedPath, clarified, 'utf-8');
     }
 
@@ -1258,7 +1311,7 @@ export class PipelineEngine extends EventEmitter {
         projectDir: paths.projectDir,
         artifactsDir: paths.artifactsDir,
         runDir: paths.runDir,
-        taskDescription: '根据用户回答生成最终需求归属确认结果',
+        taskDescription: '根据用户回答生成最终需求应用归属确认结果',
         requireToolUse: shouldRequireToolUse(),
       });
 
@@ -1287,7 +1340,10 @@ export class PipelineEngine extends EventEmitter {
 
     const finalArtifactContent = readTextIfExists(clarifiedPath)?.trim() || clarified;
     if (finalArtifactContent !== clarified) clarified = finalArtifactContent;
+    const finalNormalizedClarified = normalizeClarifiedMrdProjectNames(clarified, manifest);
+    if (finalNormalizedClarified !== clarified) clarified = finalNormalizedClarified;
     if (!fs.existsSync(clarifiedPath)) fs.writeFileSync(clarifiedPath, clarified, 'utf-8');
+    else fs.writeFileSync(clarifiedPath, clarified, 'utf-8');
     this.emitArtifactWritten(node.id, 'mrd-clarified.md', Buffer.byteLength(clarified, 'utf-8'), '需求拆解与归属确认清单');
     const requirementBreakdown = buildRequirementBreakdownArtifact(clarified, manifest);
     fs.writeFileSync(path.join(paths.artifactsDir, 'requirement-breakdown.md'), requirementBreakdown, 'utf-8');
@@ -1469,6 +1525,7 @@ export class PipelineEngine extends EventEmitter {
     if (!isClarifiedMrdContent(clarified)) {
       clarified = buildFallbackClarifiedMrd(mrdContent, clarified);
     }
+    clarified = normalizeClarifiedMrdProjectNames(clarified, manifest);
 
     fs.mkdirSync(paths.artifactsDir, { recursive: true });
     const clarifiedPath = path.join(paths.artifactsDir, 'mrd-clarified.md');
@@ -1611,17 +1668,18 @@ export class PipelineEngine extends EventEmitter {
     const provider = createLLMProvider(model.providerId);
     event_model_selected(this.runId, model, node.id);
 
-    const baseSystemPrompt = loadPromptTemplate(node.id);
+    const specPromptNode = createSpecGeneratePromptNode();
+    const baseSystemPrompt = loadPromptTemplate(specPromptNode.id);
     const manifest = ensureProjectManifest(paths);
     const baseUserPrompt = buildSpecGeneratePrompt(
-      node,
+      specPromptNode,
       paths,
       manifest,
       this.state.nodes.find(n => n.id === node.id)?.confirmation?.feedback || '（无）',
     );
     const projects = this.filterProjectsForNode(node.id, detectProjectRoots(paths.projectDir));
     if (shouldUseDocumentationOnlyFallback(projects)) {
-      return this.executeDocumentationOnlyImplementationPlanStage(node, paths, projects);
+      return this.executeDocumentationOnlySpecStage(node, paths, projects);
     }
     const specAgentTimeoutMs = resolveSpecAgentTimeoutMs();
     const runSpecAgent = async (
@@ -1794,7 +1852,9 @@ export class PipelineEngine extends EventEmitter {
       });
     }
     artifacts['spec-manifest.json'] = JSON.stringify({
-      nodeId: 'spec-generate',
+      nodeId: node.id,
+      sourceStageId: 'spec-generate',
+      mergedInto: node.id === 'implementation-plan' ? 'implementation-plan' : undefined,
       implementationPlanManifest: 'artifacts/implementation-plan-manifest.json',
       projects: manifestProjects,
     }, null, 2);
@@ -1840,7 +1900,12 @@ export class PipelineEngine extends EventEmitter {
     );
     const projects = this.filterProjectsForNode(node.id, detectProjectRoots(paths.projectDir));
     if (shouldUseDocumentationOnlyFallback(projects)) {
-      return this.executeDocumentationOnlySpecStage(node, paths, projects);
+      const implementation = this.executeDocumentationOnlyImplementationPlanStage(node, paths, projects);
+      const spec = this.executeDocumentationOnlySpecStage(node, paths, projects);
+      return {
+        artifacts: { ...implementation.artifacts, ...spec.artifacts },
+        content: `${implementation.content}\n\n${spec.content}`,
+      };
     }
 
     const runSimpleAgent = async (
@@ -1965,9 +2030,10 @@ export class PipelineEngine extends EventEmitter {
       );
     }
 
+    const spec = await this.executeSpecStage(node, paths);
     return {
-      artifacts,
-      content: buildImplementationPlanConfirmationContent(proposal, manifestProjects, paths),
+      artifacts: { ...artifacts, ...spec.artifacts },
+      content: `${buildImplementationPlanConfirmationContent(proposal, manifestProjects, paths)}\n\n${spec.content}`,
     };
   }
 
@@ -1976,11 +2042,132 @@ export class PipelineEngine extends EventEmitter {
     paths: ReturnType<typeof getRunPaths>,
     nodeState: NodeState
   ): Promise<{ content: string; artifacts: Record<string, string> }> {
-    const projects = this.filterProjectsForNode(node.id, detectProjectRoots(paths.projectDir));
+    const projects = this.getBranchPipelineProjects(paths, node.id);
     if (shouldUseDocumentationOnlyFallback(projects)) {
       return this.executeDocumentationOnlyJavaImplStage(node, paths, projects);
     }
-    const results = await this.runProjectStageTasks(node, projects, async project => {
+    const limit = Math.max(1, Math.min(projects.length || 1, getConfig().workflow.branchConcurrency));
+    const semaphore = new AsyncSemaphore(limit);
+    const settled = await Promise.all(projects.map(project => semaphore.run(async () => {
+      try {
+        const value = await this.executeProjectBranchPipeline(node, paths, nodeState, project);
+        return { status: 'fulfilled' as const, project, value };
+      } catch (err) {
+        return { status: 'rejected' as const, project, reason: err };
+      }
+    })));
+    const failures = settled.filter((item): item is Extract<typeof item, { status: 'rejected' }> => item.status === 'rejected');
+    if (failures.length) {
+      throw new Error(failures
+        .map(item => `${item.project.name}: ${(item.reason as Error).message || String(item.reason)}`)
+        .join('\n'));
+    }
+    const results = settled.map(item => {
+      if (item.status === 'fulfilled') return item.value;
+      throw item.reason;
+    });
+
+    const artifacts = Object.assign({}, ...results.map(result => result.artifacts));
+    const summaries = results.flatMap(result => result.summaries);
+
+    return {
+      artifacts,
+      content: buildProjectStageConfirmationContent('Java 实现结果', summaries),
+    };
+  }
+
+  private getBranchPipelineProjects(
+    paths: ReturnType<typeof getRunPaths>,
+    nodeId: string
+  ): Array<{ name: string; root: string }> {
+    const projects = detectProjectRoots(paths.projectDir);
+    const activeProjects = this.getActiveProjectNamesForNode(nodeId);
+    if (activeProjects) return projects.filter(project => activeProjects.has(project.name));
+
+    const branches = this.state.workflowInstance?.branches ?? [];
+    if (!branches.length) return this.filterProjectsForNode(nodeId, projects);
+
+    const branchPipelineNodeIds = new Set(['java-impl', 'frontend-impl', 'backend-test', 'frontend-test']);
+    const branchProjectNames = new Set(branches
+      .filter(branch => branch.status !== 'completed')
+      .filter(branch => (branch.nodes ?? []).some(branchNode =>
+        branchPipelineNodeIds.has(branchNode.id) &&
+        !['completed', 'skipped'].includes(branchNode.status)
+      ))
+      .map(branch => branch.projectName));
+
+    return branchProjectNames.size
+      ? projects.filter(project => branchProjectNames.has(project.name))
+      : this.filterProjectsForNode(nodeId, projects);
+  }
+
+  private async executeProjectBranchPipeline(
+    node: PipelineNode,
+    paths: ReturnType<typeof getRunPaths>,
+    nodeState: NodeState,
+    project: { name: string; root: string }
+  ): Promise<{ artifacts: Record<string, string>; summaries: ProjectStageSummary[] }> {
+    const artifacts: Record<string, string> = {};
+    const summaries: ProjectStageSummary[] = [];
+    const shouldRunBranchNode = (branchNodeId: string): boolean => {
+      const branchNode = this.getBranchNode(project.name, branchNodeId);
+      return Boolean(branchNode && !['completed', 'skipped'].includes(branchNode.status));
+    };
+
+    if (shouldRunBranchNode('java-impl')) {
+      const result = await this.executeJavaImplForProject(node, paths, project, nodeState);
+      Object.assign(artifacts, result.artifacts);
+      summaries.push(result.summary);
+      if (this.isProjectJavaReviewBlocked(paths, project.name)) {
+        return { artifacts, summaries };
+      }
+    }
+
+    if (shouldRunBranchNode('frontend-impl')) {
+      const result = await this.executeFrontendImplForProject(paths, project, nodeState);
+      Object.assign(artifacts, result.artifacts);
+      summaries.push(result.summary);
+    }
+
+    if (shouldRunBranchNode('backend-test')) {
+      const result = await this.executeBackendTestForProject(paths, project, nodeState);
+      Object.assign(artifacts, result.artifacts);
+      summaries.push(result.summary);
+    }
+
+    if (shouldRunBranchNode('frontend-test')) {
+      const result = this.executeFrontendTestForProject(paths, project);
+      Object.assign(artifacts, result.artifacts);
+      summaries.push(result.summary);
+    }
+
+    return { artifacts, summaries };
+  }
+
+  private getBranchNode(projectName: string, branchNodeId: string): { status: SessionWorkflowRuntimeStatus } | undefined {
+    return this.state.workflowInstance?.branches
+      ?.find(branch => branch.projectName === projectName)
+      ?.nodes?.find(branchNode => branchNode.id === branchNodeId);
+  }
+
+  private isProjectJavaReviewBlocked(
+    paths: ReturnType<typeof getRunPaths>,
+    projectName: string
+  ): boolean {
+    const findings = readJsonIfExists<{ result?: string }>(
+      path.join(paths.artifactsDir, projectName, 'review-findings.json')
+    );
+    return String(findings?.result ?? '').toUpperCase() === 'BLOCK';
+  }
+
+  private async executeJavaImplForProject(
+    node: PipelineNode,
+    paths: ReturnType<typeof getRunPaths>,
+    project: { name: string; root: string },
+    nodeState: NodeState
+  ): Promise<{ artifacts: Record<string, string>; summary: ProjectStageSummary }> {
+    this.markProjectForNode(node.id, project.name, 'running');
+    try {
       const artifacts: Record<string, string> = {};
       const before = snapshotProjectFiles(project.root, JAVA_MAIN_CHANGE_PATTERN);
       const userPrompt = renderPromptTemplate(loadPromptFile('java-impl-user.md'), {
@@ -1996,6 +2183,9 @@ export class PipelineEngine extends EventEmitter {
       });
       const after = snapshotProjectFiles(project.root, JAVA_MAIN_CHANGE_PATTERN);
       let changedFiles = diffProjectSnapshots(before, after);
+      if (!changedFiles.length && process.env.AI_CODING_MOCK_LLM !== '1') {
+        changedFiles = this.recoverChangedFilesFromManifest(paths, project, JAVA_MAIN_CHANGE_PATTERN);
+      }
       if (!changedFiles.length && process.env.AI_CODING_MOCK_LLM === '1') {
         changedFiles = [mockChangedJavaFile(project.name)];
       }
@@ -2071,19 +2261,13 @@ export class PipelineEngine extends EventEmitter {
           ? `${changedFiles.length} 个主代码文件发生变更；代码评审结果：${findings.result}。`
           : `未检测到主代码文件变更；代码评审结果：${findings.result}。`,
       };
-      return {
-        artifacts,
-        summary,
-      };
-    });
-
-    const artifacts = Object.assign({}, ...results.map(result => result.artifacts));
-    const summaries = results.map(result => result.summary);
-
-    return {
-      artifacts,
-      content: buildProjectStageConfirmationContent('Java 实现结果', summaries),
-    };
+      this.setBranchArtifactsForProject(node.id, project.name, summary.artifactPaths);
+      this.markProjectForNode(node.id, project.name, 'completed');
+      return { artifacts, summary };
+    } catch (err) {
+      this.markProjectForNode(node.id, project.name, 'failed', (err as Error).message);
+      throw err;
+    }
   }
 
   private async executeJavaReviewStage(
@@ -2228,7 +2412,9 @@ export class PipelineEngine extends EventEmitter {
       });
     }
     artifacts['spec-manifest.json'] = JSON.stringify({
-      nodeId: 'spec-generate',
+      nodeId: node.id,
+      sourceStageId: 'spec-generate',
+      mergedInto: node.id === 'implementation-plan' ? 'implementation-plan' : undefined,
       projects: manifestProjects,
       fallbackReason: 'documentation-only-projects',
     }, null, 2);
@@ -2313,28 +2499,35 @@ export class PipelineEngine extends EventEmitter {
     const settled = await Promise.all(projects.map(project => semaphore.run(async () => {
       const branch = this.state.workflowInstance?.branches?.find(item => item.projectName === project.name);
       const branchNodeIds = new Set(branch?.nodes?.map(item => item.id) ?? ['testcode-generate']);
+      const isRunnableBranchNode = (branchNodeId: string): boolean => {
+        const branchNode = branch?.nodes?.find(item => item.id === branchNodeId);
+        return !branchNode || !['completed', 'skipped'].includes(branchNode.status);
+      };
       const projectArtifacts: Record<string, string> = {};
       const projectSummaries: ProjectStageSummary[] = [];
 
-      if (branchNodeIds.has('frontend-impl')) {
+      if (branchNodeIds.has('frontend-impl') && isRunnableBranchNode('frontend-impl')) {
         const result = await this.executeFrontendImplForProject(paths, project, nodeState);
         Object.assign(projectArtifacts, result.artifacts);
         projectSummaries.push(result.summary);
       }
-      if (branchNodeIds.has('backend-test') || branchNodeIds.has('testcode-generate')) {
+      if ((branchNodeIds.has('backend-test') || branchNodeIds.has('testcode-generate')) && isRunnableBranchNode('backend-test')) {
         const result = await this.executeBackendTestForProject(paths, project, nodeState);
         Object.assign(projectArtifacts, result.artifacts);
         projectSummaries.push(result.summary);
       }
-      if (branchNodeIds.has('frontend-test')) {
+      if (branchNodeIds.has('frontend-test') && isRunnableBranchNode('frontend-test')) {
         const result = this.executeFrontendTestForProject(paths, project);
         Object.assign(projectArtifacts, result.artifacts);
         projectSummaries.push(result.summary);
       }
-      if (branchNodeIds.has('e2e-verify')) {
-        const result = await this.executeE2EVerifyForProject(paths, project);
-        Object.assign(projectArtifacts, result.artifacts);
-        projectSummaries.push(result.summary);
+      if (!projectSummaries.length) {
+        projectSummaries.push({
+          project: project.name,
+          title: `${project.name} 分支测试`,
+          artifactPaths: Object.values(branch?.artifactIndex ?? {}).flat(),
+          summary: '分支测试节点已在应用流水线中完成，本阶段不重复执行。',
+        });
       }
       return { artifacts: projectArtifacts, summaries: projectSummaries };
     })));
@@ -2356,7 +2549,13 @@ export class PipelineEngine extends EventEmitter {
     nodeState: NodeState
   ): Promise<{ artifacts: Record<string, string>; summary: ProjectStageSummary }> {
     const node = createVirtualPipelineNode('backend-test', '后端测试', 'Generate backend tests and run Maven verification.');
-    const reusable = this.tryReuseBackendTestArtifacts(paths, project);
+    const branchNodeStatus = this.state.workflowInstance?.branches
+      ?.find(branch => branch.projectName === project.name)
+      ?.nodes?.find(branchNode => branchNode.id === node.id)
+      ?.status;
+    const reusable = branchNodeStatus === 'completed'
+      ? this.tryReuseBackendTestArtifacts(paths, project)
+      : null;
     if (reusable) {
       this.markProjectForNode(node.id, project.name, 'completed');
       return reusable;
@@ -2379,6 +2578,9 @@ export class PipelineEngine extends EventEmitter {
       });
       const after = snapshotProjectFiles(project.root, JAVA_TEST_CHANGE_PATTERN);
       let changedTests = diffProjectSnapshots(before, after);
+      if (!changedTests.length && process.env.AI_CODING_MOCK_LLM !== '1') {
+        changedTests = this.recoverChangedFilesFromManifest(paths, project, JAVA_TEST_CHANGE_PATTERN, 'test-code-preview-manifest.json');
+      }
       if (!changedTests.length && process.env.AI_CODING_MOCK_LLM === '1') {
         changedTests = [mockChangedTestFile(project.name)];
       }
@@ -2444,6 +2646,7 @@ export class PipelineEngine extends EventEmitter {
         artifactPaths: [...written.paths, ...testRunArtifacts.paths],
         summary: `${changedTests.length} 个测试文件发生变更；已执行 Maven 单元测试。`,
       };
+      this.setBranchArtifactsForProject(node.id, project.name, summary.artifactPaths);
       this.markProjectForNode(node.id, project.name, 'completed');
       return { artifacts, summary };
     } catch (err) {
@@ -2508,7 +2711,13 @@ export class PipelineEngine extends EventEmitter {
     nodeState: NodeState
   ): Promise<{ artifacts: Record<string, string>; summary: ProjectStageSummary }> {
     const node = createVirtualPipelineNode('frontend-impl', '前端实现', 'Implement frontend/static UI changes.');
-    const reusable = this.tryReuseFrontendImplArtifacts(paths, project);
+    const branchNodeStatus = this.state.workflowInstance?.branches
+      ?.find(branch => branch.projectName === project.name)
+      ?.nodes?.find(branchNode => branchNode.id === node.id)
+      ?.status;
+    const reusable = branchNodeStatus === 'completed'
+      ? this.tryReuseFrontendImplArtifacts(paths, project)
+      : null;
     if (reusable) {
       this.markProjectForNode(node.id, project.name, 'completed');
       return reusable;
@@ -2521,12 +2730,15 @@ export class PipelineEngine extends EventEmitter {
         nodeState,
         registry: createProjectToolRegistry('code'),
         promptTemplateId: 'java-impl',
-        modelStageId: 'java-impl',
+        modelStageId: 'frontend-impl',
         taskDescription: `实现 ${project.name} 项目文件夹的前端代码`,
         timeoutMs: resolveProjectAgentTimeoutMs('java-impl'),
       });
       const after = snapshotProjectFiles(project.root, FRONTEND_CHANGE_PATTERN);
-      const changedFiles = diffProjectSnapshots(before, after);
+      let changedFiles = diffProjectSnapshots(before, after);
+      if (!changedFiles.length && process.env.AI_CODING_MOCK_LLM !== '1') {
+        changedFiles = this.recoverChangedFilesFromManifest(paths, project, FRONTEND_CHANGE_PATTERN);
+      }
       if (!changedFiles.length && process.env.AI_CODING_MOCK_LLM !== '1') {
         throw new Error(`${project.name} 前端实现未产生真实前端文件变更。请修改 src/main/resources/static、templates 或前端源码。`);
       }
@@ -2556,6 +2768,7 @@ export class PipelineEngine extends EventEmitter {
           ? `${changedFiles.length} 个前端文件发生变更。`
           : '未检测到前端文件变更。',
       };
+      this.setBranchArtifactsForProject(node.id, project.name, summary.artifactPaths);
       this.markProjectForNode(node.id, project.name, 'completed');
       return { artifacts, summary };
     } catch (err) {
@@ -2642,14 +2855,16 @@ export class PipelineEngine extends EventEmitter {
         throw new Error(result.messages.join('\n'));
       }
       this.markProjectForNode(nodeId, project.name, 'completed');
+      const summary: ProjectStageSummary = {
+        project: project.name,
+        title: `${project.name} 前端测试`,
+        artifactPaths: [`artifacts/${reportPath}`, `artifacts/${jsonPath}`],
+        summary: result.messages.join('；'),
+      };
+      this.setBranchArtifactsForProject(nodeId, project.name, summary.artifactPaths);
       return {
         artifacts: { [reportPath]: report, [jsonPath]: summaryJson },
-        summary: {
-          project: project.name,
-          title: `${project.name} 前端测试`,
-          artifactPaths: [`artifacts/${reportPath}`, `artifacts/${jsonPath}`],
-          summary: result.messages.join('；'),
-        },
+        summary,
       };
     } catch (err) {
       this.markProjectForNode(nodeId, project.name, 'failed', (err as Error).message);
@@ -2659,9 +2874,9 @@ export class PipelineEngine extends EventEmitter {
 
   private async executeE2EVerifyForProject(
     paths: ReturnType<typeof getRunPaths>,
-    project: { name: string; root: string }
+    project: { name: string; root: string },
+    nodeId = 'e2e-verify'
   ): Promise<{ artifacts: Record<string, string>; summary: ProjectStageSummary }> {
-    const nodeId = 'e2e-verify';
     this.markProjectForNode(nodeId, project.name, 'running');
     try {
       const result = await runE2EVerification({
@@ -2695,6 +2910,75 @@ export class PipelineEngine extends EventEmitter {
       this.markProjectForNode(nodeId, project.name, 'failed', (err as Error).message);
       throw err;
     }
+  }
+
+  private ensureCrossAppTestingDeploymentContext(
+    paths: ReturnType<typeof getRunPaths>
+  ): { deploymentSetId: string; environmentId: string } | undefined {
+    const lifecycle = loadLifecycleState(this.runId);
+    if (!lifecycle) return undefined;
+    const existing = lifecycle.deploymentSets.at(-1);
+    if (existing) return { deploymentSetId: existing.deploymentSetId, environmentId: existing.environmentId };
+
+    const apps = lifecycle.apps.length
+      ? lifecycle.apps.filter(app => app.role !== 'excluded')
+      : (this.state.projects ?? []).map(project => ({
+          appId: project.name,
+          role: 'primary' as const,
+          status: 'deployed' as const,
+          repoRef: project.root,
+          branchName: project.branchId,
+          artifactIds: [],
+          ciRunIds: [],
+          testRunIds: [],
+        }));
+    if (!apps.length) return undefined;
+
+    lifecycle.apps = apps;
+    const primaryApps = apps.filter(app => app.role === 'primary').map(app => app.appId);
+    const secondaryApps = apps.filter(app => app.role === 'secondary').map(app => app.appId);
+    const testOnlyApps = apps.filter(app => app.role === 'test-only').map(app => app.appId);
+    const buildRefs = apps.map(app => ({
+      appId: app.appId,
+      branchName: app.branchName ?? `feature/${lifecycle.requirementId}/${app.appId}`,
+      repoRef: app.repoRef,
+      pipelineRunId: `local-pipeline-${this.runId}-${safeSegment(app.appId)}`,
+    }));
+    const environmentPlan = createEnvironmentPlan({
+      state: lifecycle,
+      primaryApps,
+      secondaryApps,
+      testOnlyApps,
+      buildRefs,
+      sharedEnvironmentHealthy: true,
+    });
+    const environment: EnvironmentRef = {
+      environmentId: `env-${lifecycle.runId}-v${lifecycle.deploymentSets.length + 1}`,
+      requirementId: lifecycle.requirementId,
+      runId: lifecycle.runId,
+      mode: environmentPlan.mode,
+      baseUrl: `local://${lifecycle.runId}`,
+      metadata: { source: 'cross-app-test' },
+    };
+    const deploymentSet = createRequirementDeploymentSet({
+      state: lifecycle,
+      environmentId: environment.environmentId,
+      apps: buildRefs,
+    });
+    const deploymentRefs = registerDeploymentArtifacts({
+      paths,
+      state: lifecycle,
+      environmentPlan,
+      deploymentSet,
+      environmentRefs: [environment],
+    });
+    deploymentSet.artifactIds = [
+      ...deploymentSet.artifactIds,
+      deploymentRefs.environmentPlanRef.artifactId,
+      deploymentRefs.deploymentSetRef.artifactId,
+    ];
+    saveLifecycleState(lifecycle);
+    return { deploymentSetId: deploymentSet.deploymentSetId, environmentId: environment.environmentId };
   }
 
   private async executeMavenTestRunnerStage(
@@ -2748,7 +3032,7 @@ export class PipelineEngine extends EventEmitter {
     project: { name: string; root: string }
   ): Promise<ToolResult> {
     const agentRunId = nanoid(8);
-    this.recordChildAgent(node.id, agentRunId);
+    this.recordChildAgent(node.id, agentRunId, project.name);
     const registry = createProjectToolRegistry('runner');
     return executeToolChain({
       toolName: 'maven_test',
@@ -2926,7 +3210,7 @@ export class PipelineEngine extends EventEmitter {
     return artifactPath;
   }
 
-  private writeLegacyCrossAppReviewArtifacts(paths: ReturnType<typeof getRunPaths>): Record<string, string> {
+  private writeLegacyCrossAppReviewArtifacts(paths: ReturnType<typeof getRunPaths>, nodeId = 'execute-integration-tests'): Record<string, string> {
     const instance = this.state.workflowInstance;
     if (!instance?.joins?.some(join => join.status === 'completed')) return {};
     const branchSummaries = (instance.branches ?? []).map(branch => ({
@@ -2962,20 +3246,85 @@ export class PipelineEngine extends EventEmitter {
       'cross-app/test-results.json': JSON.stringify(crossAppTest, null, 2),
       'cross-app/delivery-metadata.json': JSON.stringify(deliveryMetadata, null, 2),
     };
-    this.writeArtifact(paths, 'cross-app-test', 'cross-app/test-results.json', artifacts['cross-app/test-results.json'], '跨应用测试结果');
-    this.writeArtifact(paths, 'cross-app-test', 'cross-app/delivery-metadata.json', artifacts['cross-app/delivery-metadata.json'], '跨应用交付元数据');
+    this.writeArtifact(paths, nodeId, 'cross-app/test-results.json', artifacts['cross-app/test-results.json'], '跨应用测试结果');
+    this.writeArtifact(paths, nodeId, 'cross-app/delivery-metadata.json', artifacts['cross-app/delivery-metadata.json'], '跨应用交付元数据');
     return artifacts;
   }
 
-  private executeCrossAppTestStage(
+  private async executeTestingPiStage(
     node: PipelineNode,
     paths: ReturnType<typeof getRunPaths>
-  ): Record<string, string> {
+  ): Promise<{ artifacts: Record<string, string>; content: string }> {
     const projects = this.state.projects ?? [];
-    for (const project of projects) {
-      this.writeBranchSummary(paths, node.id, project.name);
+    const artifacts: Record<string, string> = {};
+    const summaries: ProjectStageSummary[] = [];
+
+    if (node.id === 'execute-integration-tests') {
+      for (const project of projects) {
+        this.writeBranchSummary(paths, node.id, project.name);
+      }
+      Object.assign(artifacts, this.writeLegacyCrossAppReviewArtifacts(paths, node.id));
+      for (const project of projects) {
+        try {
+          const result = await this.executeE2EVerifyForProject(paths, project, node.id);
+          Object.assign(artifacts, result.artifacts);
+          summaries.push(result.summary);
+        } catch (error) {
+          summaries.push({
+            project: project.name,
+            title: `${project.name} E2E 验证`,
+            artifactPaths: [],
+            summary: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
     }
-    return this.writeLegacyCrossAppReviewArtifacts(paths);
+
+    const lifecycle = loadLifecycleState(this.runId);
+    if (lifecycle) {
+      const deploymentContext = node.id === 'deploy-related-apps' || node.id === 'execute-integration-tests'
+        ? this.ensureCrossAppTestingDeploymentContext(paths)
+        : undefined;
+      const runtime = createTestingWorkflowRuntime();
+      const result = await runtime.start({
+        requirementId: lifecycle.requirementId,
+        runId: this.runId,
+        workflowInstanceId: `cross-app-testing-${this.runId}`,
+        requirementSummary: String(lifecycle.metadata?.requirementSummary ?? this.state.name ?? lifecycle.requirementId),
+        appIds: lifecycle.apps.filter(app => app.role !== 'excluded').map(app => app.appId),
+        deploymentSetId: deploymentContext?.deploymentSetId,
+        environmentId: deploymentContext?.environmentId,
+        autoApproveReviews: true,
+        dryRunExecution: false,
+        continueExisting: true,
+        stopAfterNode: testingPiStopAfterNode(node.id),
+      });
+      artifacts[`testing/${result.state.workflowInstanceId}/workflow-state.json`] =
+        readTextIfExists(path.join(paths.artifactsDir, 'testing', result.state.workflowInstanceId, 'workflow-state.json')) || '';
+      for (const ref of result.context.lifecycle.artifacts.filter(ref => ref.producerWorkflowRunId === result.state.workflowInstanceId && ref.path)) {
+        artifacts[ref.path!.replace(/^artifacts\//, '')] = readTextIfExists(path.join(paths.runDir, ref.path!)) || '';
+      }
+      summaries.push({
+        project: 'cross-app',
+        title: node.name,
+        artifactPaths: result.state.artifactIds
+          .map(artifactId => result.context.lifecycle.artifacts.find(ref => ref.artifactId === artifactId)?.path)
+          .filter((item): item is string => Boolean(item)),
+        summary: `AI Testing 推进到 ${result.state.currentNodeId}，状态 ${result.state.status}，累计产物 ${result.state.artifactIds.length} 个。`,
+      });
+    } else {
+      summaries.push({
+        project: 'cross-app',
+        title: node.name,
+        artifactPaths: [],
+        summary: '缺少 lifecycle state，跳过 AI Testing workflow 推进。',
+      });
+    }
+
+    return {
+      artifacts,
+      content: buildProjectStageConfirmationContent(node.name, summaries),
+    };
   }
 
   private readCrossAppTestArtifacts(paths: ReturnType<typeof getRunPaths>): Record<string, string> {
@@ -3059,7 +3408,7 @@ export class PipelineEngine extends EventEmitter {
       completedTaskList?: string;
     }> => {
       const agentId = nanoid(8);
-      this.recordChildAgent(node.id, agentId);
+      this.recordChildAgent(node.id, agentId, project.name);
       const agent = new AgentEngine({
         runId: this.runId,
         agentRunId: agentId,
@@ -3077,7 +3426,7 @@ export class PipelineEngine extends EventEmitter {
         planGoal: prompt.slice(0, 200),
         projectName: project.name,
         taskDescription,
-        requireToolUse: options.requireToolUse ?? (process.env.AI_CODING_MOCK_LLM !== '1' && ['java-impl', 'testcode-generate'].includes(node.id)),
+        requireToolUse: options.requireToolUse ?? (process.env.AI_CODING_MOCK_LLM !== '1' && ['java-impl', 'frontend-impl', 'testcode-generate'].includes(node.id)),
         getProgressChecklist: options.getProgressChecklist ?? createProjectProgressChecklistProvider(paths, this.runId, node.id, project.name),
         progressChecklistLabel: options.progressChecklistLabel ?? progressChecklistLabelForNode(node.id),
       });
@@ -3260,6 +3609,21 @@ export class PipelineEngine extends EventEmitter {
     getStateStore(this.runId).saveExecutionState(this.state);
   }
 
+  private setBranchArtifactsForProject(nodeId: string, projectName: string, artifactPaths: string[]): void {
+    const instance = this.state.workflowInstance;
+    const branchNodeId = branchNodeIdForStage(nodeId);
+    if (!instance?.branches?.length || !branchNodeId) return;
+    const branch = instance.branches.find(item => item.projectName === projectName);
+    const branchNode = branch?.nodes?.find(item => item.id === branchNodeId);
+    if (!branch || !branchNode) return;
+    const normalizedArtifacts = uniqueArtifacts(artifactPaths.map(artifactPath => artifactPath.replace(/\\/g, '/')));
+    branchNode.outputArtifacts = normalizedArtifacts;
+    branch.artifactIndex = branch.artifactIndex ?? {};
+    branch.artifactIndex[branchNodeId] = normalizedArtifacts;
+    instance.updatedAt = new Date().toISOString();
+    getStateStore(this.runId).saveExecutionState(this.state);
+  }
+
   private writeArtifact(
     paths: ReturnType<typeof getRunPaths>,
     nodeId: string,
@@ -3351,6 +3715,45 @@ export class PipelineEngine extends EventEmitter {
       artifacts: entries,
       paths: artifactPaths,
     };
+  }
+
+  private recoverChangedFilesFromManifest(
+    paths: ReturnType<typeof getRunPaths>,
+    project: { name: string; root: string },
+    includePattern: RegExp,
+    manifestFileName = 'changed-files.json'
+  ): ProjectChangedFile[] {
+    const manifest = readJsonIfExists<{
+      changedFiles?: Array<{ path?: string; status?: string; size?: number }>;
+      files?: Array<{ sourcePath?: string; status?: string }>;
+    }>(path.join(paths.artifactsDir, project.name, manifestFileName));
+    const entries = Array.isArray(manifest?.changedFiles)
+      ? manifest.changedFiles.map(item => ({ path: item.path, status: item.status, size: item.size }))
+      : Array.isArray(manifest?.files)
+        ? manifest.files.map(item => ({ path: item.sourcePath, status: item.status }))
+        : [];
+    const recovered: ProjectChangedFile[] = [];
+    for (const entry of entries) {
+      if (typeof entry.path !== 'string' || !includePattern.test(entry.path)) continue;
+      if (isMockDemoArtifactPath(entry.path)) continue;
+      const status = entry.status === 'added' || entry.status === 'deleted' || entry.status === 'modified'
+        ? entry.status
+        : 'modified';
+      const absPath = path.join(project.root, entry.path);
+      if (status === 'deleted') {
+        recovered.push({ path: entry.path, status, size: 0 });
+        continue;
+      }
+      const content = readTextIfExists(absPath);
+      if (!content) continue;
+      recovered.push({
+        path: entry.path,
+        status,
+        size: Buffer.byteLength(content, 'utf-8'),
+        content,
+      });
+    }
+    return recovered.sort((a, b) => a.path.localeCompare(b.path));
   }
 
   private writeTestCodeArtifacts(
@@ -3582,6 +3985,7 @@ export class PipelineEngine extends EventEmitter {
 
   private resetNodesForRerun(startIndex: number): void {
     const rerunNodeIds = new Set(PIPELINE_NODES.slice(startIndex).map(node => node.id));
+    this.cancelPersistedAgentsForRerun(rerunNodeIds);
     for (let i = startIndex; i < this.state.nodes.length; i++) {
       const current = this.state.nodes[i];
       this.state.nodes[i] = {
@@ -3622,6 +4026,26 @@ export class PipelineEngine extends EventEmitter {
     }
     this.state.rollback = undefined;
     this.state.currentAgentRunId = undefined;
+  }
+
+  private cancelPersistedAgentsForRerun(nodeIds: Set<string>): void {
+    const store = getStateStore(this.runId);
+    const cancellable = new Set(['created', 'waking', 'running', 'waiting_tool', 'waiting_confirmation', 'compacting', 'suspended', 'waiting_fix']);
+    for (const agent of store.listAgentStates()) {
+      if (!nodeIds.has(agent.nodeId) || !cancellable.has(agent.status)) continue;
+      store.saveAgentState({
+        ...agent,
+        status: 'cancelled',
+        completedAt: Date.now(),
+        error: 'Superseded by node rerun.',
+      });
+      getEventLog(this.runId).logEvent('agent_end', {
+        agentRunId: agent.agentRunId,
+        nodeId: agent.nodeId,
+        status: 'cancelled',
+        reason: 'Superseded by node rerun.',
+      }, agent.agentRunId, agent.nodeId);
+    }
   }
 }
 
@@ -4060,7 +4484,7 @@ interface ProjectStageSummary {
   summary: string;
 }
 
-const FRONTEND_CHANGE_PATTERN = /(^package\.json$|^package-lock\.json$|^vite\.config\.(ts|js)$|^playwright\.config\.(ts|js|mjs|cjs)$|^src\/main\/resources\/(static|templates)\/.*\.(html|css|js|mjs|ts|tsx|jsx|json|vue)$|^(src|app|pages|components|public)\/.*\.(html|css|js|mjs|ts|tsx|jsx|json|vue)$)/;
+const FRONTEND_CHANGE_PATTERN = /(^package\.json$|^package-lock\.json$|^vite\.config\.(ts|js)$|^playwright\.config\.(ts|js|mjs|cjs)$|^(index\.html|app\.js|style\.css)$|^src\/main\/resources\/(static|templates)\/.*\.(html|css|js|mjs|ts|tsx|jsx|json|vue)$|^(src|app|pages|components|public)\/.*\.(html|css|js|mjs|ts|tsx|jsx|json|vue)$)/;
 
 function createVirtualPipelineNode(id: string, name: string, description: string): PipelineNode {
   return {
@@ -4071,6 +4495,36 @@ function createVirtualPipelineNode(id: string, name: string, description: string
     usesReActLoop: true,
     maxTurns: id === 'frontend-impl' ? 50 : 40,
     planModeRequired: false,
+  };
+}
+
+const TESTING_PI_STAGE_STOP_AFTER: Record<string, TestingWorkflowNodeId | undefined> = {
+  'integration-test-cases': 'review_cases',
+  'test-data-plan': 'review_data_plans',
+  'integration-test-code': 'review_scripts',
+  'deploy-related-apps': 'deploy_related_apps',
+  'execute-integration-tests': undefined,
+};
+
+function isTestingPiStage(nodeId: string): boolean {
+  return Object.prototype.hasOwnProperty.call(TESTING_PI_STAGE_STOP_AFTER, normalizeStageId(nodeId));
+}
+
+function testingPiStopAfterNode(nodeId: string): TestingWorkflowNodeId | undefined {
+  return TESTING_PI_STAGE_STOP_AFTER[normalizeStageId(nodeId)];
+}
+
+function createSpecGeneratePromptNode(): PipelineNode {
+  return {
+    id: 'spec-generate',
+    name: 'SPEC生成',
+    description: 'Generate development OpenSpec task list and OpenSpec test-code checklist',
+    hasConfirmationGate: false,
+    usesReActLoop: false,
+    maxTurns: 12,
+    planModeRequired: false,
+    artifactOutput: 'openspec-task.md',
+    artifactOutputs: ['{project}/openspec-task.md', '{project}/openspec-test-task.md'],
   };
 }
 
@@ -4206,6 +4660,77 @@ function reconcilePipelineNodes(state: ExecutionState): boolean {
 
 type RetryField = keyof ProjectState['retry'];
 
+function recoverInterruptedAgentStates(
+  agents: AgentState[],
+  saveAgentState: (agent: AgentState) => void
+): boolean {
+  const interruptedStatuses = new Set<AgentState['status']>([
+    'created',
+    'waking',
+    'running',
+    'waiting_tool',
+    'waiting_confirmation',
+    'compacting',
+  ]);
+  let changed = false;
+  for (const agent of agents) {
+    if (!interruptedStatuses.has(agent.status)) continue;
+    saveAgentState({
+      ...agent,
+      status: 'suspended',
+      error: agent.error ?? 'Agent process was interrupted before completion.',
+    });
+    changed = true;
+  }
+  return changed;
+}
+
+function repairBranchChildAgentIdsFromPersistedAgents(
+  state: ExecutionState,
+  agents: Array<{ agentRunId: string; nodeId: string; projectName?: string }>
+): boolean {
+  const instance = state.workflowInstance;
+  if (!instance?.branches?.length) return false;
+  let changed = false;
+  const agentIdsByProjectAndBranchNode = new Map<string, string[]>();
+
+  for (const agent of agents) {
+    if (!agent.projectName) continue;
+    const branchNodeId = branchNodeIdForStage(agent.nodeId);
+    if (!branchNodeId) continue;
+    const key = `${agent.projectName}\0${branchNodeId}`;
+    agentIdsByProjectAndBranchNode.set(key, [
+      ...(agentIdsByProjectAndBranchNode.get(key) ?? []),
+      agent.agentRunId,
+    ]);
+  }
+
+  for (const branch of instance.branches) {
+    const branchChildAgentIds: string[] = [];
+    for (const branchNode of branch.nodes ?? []) {
+      const key = `${branch.projectName}\0${branchNode.id}`;
+      const nextChildAgentIds = ['pending', 'skipped'].includes(branchNode.status)
+        ? []
+        : Array.from(new Set(agentIdsByProjectAndBranchNode.get(key) ?? []));
+      if (JSON.stringify(branchNode.childAgentIds ?? []) !== JSON.stringify(nextChildAgentIds)) {
+        branchNode.childAgentIds = nextChildAgentIds;
+        changed = true;
+      }
+      branchChildAgentIds.push(...nextChildAgentIds);
+    }
+    const nextBranchChildAgentIds = Array.from(new Set(branchChildAgentIds));
+    if (JSON.stringify(branch.childAgentIds ?? []) !== JSON.stringify(nextBranchChildAgentIds)) {
+      branch.childAgentIds = nextBranchChildAgentIds;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    instance.updatedAt = new Date().toISOString();
+  }
+  return changed;
+}
+
 function recoverInterruptedState(state: ExecutionState): boolean {
   let changed = false;
   if (state.status === 'running') {
@@ -4224,13 +4749,39 @@ function recoverInterruptedState(state: ExecutionState): boolean {
       changed = true;
     }
   });
+  for (const branch of state.workflowInstance?.branches ?? []) {
+    let branchChanged = false;
+    for (const branchNode of branch.nodes ?? []) {
+      if (branchNode.status === 'running') {
+        branchNode.status = 'suspended';
+        branchChanged = true;
+      }
+    }
+    for (const track of branch.tracks ?? []) {
+      if (track.status === 'running') {
+        track.status = 'suspended';
+        branchChanged = true;
+      }
+    }
+    if (branch.status === 'running') {
+      branch.status = 'suspended';
+      branchChanged = true;
+    }
+    if (branchChanged) {
+      syncSessionBranchRuntimeFromNodes(branch);
+      changed = true;
+    }
+  }
+  if (changed && state.workflowInstance) {
+    syncSessionWorkflowJoinFromBranches(state.workflowInstance);
+    state.workflowInstance.updatedAt = new Date().toISOString();
+  }
   return changed;
 }
 
 function isProjectScopedNode(nodeId: string): boolean {
   return [
     'implementation-plan',
-    'spec-generate',
     'java-impl',
     'testcode-generate',
     'backend-test',
@@ -4242,11 +4793,18 @@ function isProjectScopedNode(nodeId: string): boolean {
   ].includes(normalizeStageId(nodeId));
 }
 
+function isBranchPipelineRootNode(nodeId: string): boolean {
+  return normalizeStageId(nodeId) === 'java-impl';
+}
+
+function isMockDemoArtifactPath(filePath: string): boolean {
+  return filePath === 'src/main/java/demo/DemoService.java' || filePath === 'src/test/java/demo/DemoServiceTest.java';
+}
+
 function branchNodeIdForStage(nodeId: string): string | null {
   const normalized = normalizeStageId(nodeId);
   return [
     'implementation-plan',
-    'spec-generate',
     'java-impl',
     'backend-test',
     'frontend-impl',
@@ -4256,6 +4814,15 @@ function branchNodeIdForStage(nodeId: string): string | null {
   ].includes(normalized) ? normalized : null;
 }
 
+function branchNodeIdsForStage(nodeId: string): string[] {
+  const normalized = normalizeStageId(nodeId);
+  if (normalized === 'testcode-generate') {
+    return ['backend-test', 'frontend-impl', 'frontend-test'];
+  }
+  const branchNodeId = branchNodeIdForStage(normalized);
+  return branchNodeId ? [branchNodeId] : [];
+}
+
 function branchRerunStartNodeIdForStage(nodeId: string): string | null {
   const normalized = normalizeStageId(nodeId);
   if (normalized === 'testcode-generate') return 'backend-test';
@@ -4263,7 +4830,7 @@ function branchRerunStartNodeIdForStage(nodeId: string): string | null {
 }
 
 function isBranchNodeAfter(nodeId: string, referenceNodeId: string): boolean {
-  const sequence = ['implementation-plan', 'spec-generate', 'java-impl', 'frontend-impl', 'backend-test', 'frontend-test', 'e2e-verify'];
+  const sequence = ['implementation-plan', 'java-impl', 'frontend-impl', 'backend-test', 'frontend-test', 'e2e-verify'];
   const nodeIndex = sequence.indexOf(nodeId);
   const referenceIndex = sequence.indexOf(referenceNodeId);
   return nodeIndex > referenceIndex && referenceIndex >= 0;
@@ -4701,6 +5268,10 @@ function safeLivePreviewFileName(relativePath: string): string {
     .split('/')
     .filter(Boolean)
     .join('__');
+}
+
+function safeSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'unknown';
 }
 
 function shouldRequireToolUse(): boolean {

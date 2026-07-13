@@ -76,7 +76,7 @@ export interface PlanMigrationMetadata {
 
 export const plannedTrackKindSchema: JsonSchema = {
   type: 'string',
-  enum: ['backend', 'frontend', 'contract', 'e2e', 'documentation'] satisfies PlannedTrackKind[],
+  enum: ['backend', 'frontend', 'contract', 'documentation'] satisfies PlannedTrackKind[],
 };
 
 export const plannedNodeTypeSchema: JsonSchema = {
@@ -84,16 +84,18 @@ export const plannedNodeTypeSchema: JsonSchema = {
   enum: [
     'requirement-ownership-confirmation',
     'implementation-plan',
-    'spec-generate',
     'backend-impl',
     'java-impl',
     'frontend-impl',
     'backend-test',
     'frontend-test',
-    'e2e-verify',
     'documentation-impl',
     'documentation-test',
-    'cross-app-test',
+    'integration-test-cases',
+    'test-data-plan',
+    'integration-test-code',
+    'deploy-related-apps',
+    'execute-integration-tests',
     'archive',
   ] satisfies PlannedNodeType[],
 };

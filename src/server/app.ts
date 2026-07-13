@@ -58,6 +58,15 @@ import {
   validateWorkflow,
 } from './controllers/requirementPiController.js';
 import { getSettings, patchSettings } from './controllers/settingsController.js';
+import {
+  getTestingArtifact,
+  getTestingDashboard,
+  getTestingExecutionReport,
+  getTestingWorkflowStatus,
+  listTestingArtifacts,
+  startTestingWorkflow,
+  submitTestingReviewDecision,
+} from './controllers/testingController.js';
 
 interface UploadedFilePayload {
   name: string;
@@ -123,6 +132,7 @@ app.get('/api/models', (c) => {
       'implementation-plan': getModelForStage('implementation-plan').id,
       'spec-generate': getModelForStage('spec-generate').id,
       'java-impl': getModelForStage('java-impl').id,
+      'frontend-impl': getModelForStage('frontend-impl').id,
       'java-review': getModelForStage('java-review').id,
       'similar-alert': getModelForStage('similar-alert').id,
       'local-log-trace': getModelForStage('local-log-trace').id,
@@ -264,6 +274,14 @@ app.get('/api/ops/workbench', getOpsWorkbench);
 
 app.post('/api/ops/analyze', analyzeOps);
 app.post('/api/ops/analyze/stream', analyzeOpsStream);
+
+app.post('/api/testing/workflows/start', startTestingWorkflow);
+app.get('/api/testing/:runId/dashboard', getTestingDashboard);
+app.get('/api/testing/:runId/workflows/:workflowInstanceId/status', getTestingWorkflowStatus);
+app.post('/api/testing/:runId/workflows/:workflowInstanceId/review', submitTestingReviewDecision);
+app.get('/api/testing/:runId/artifacts', listTestingArtifacts);
+app.get('/api/testing/:runId/artifacts/:artifactId', getTestingArtifact);
+app.get('/api/testing/:runId/reports/:artifactId', getTestingExecutionReport);
 
 app.get('/api/management/knowledge/:knowledgeId/files', getKnowledgeBaseFiles);
 

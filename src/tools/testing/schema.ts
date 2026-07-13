@@ -2,7 +2,7 @@ import {
   TestingArtifactSchema,
   validateTestingArtifact,
   type TestingArtifact,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 
 export interface SchemaValidationResult {
   valid: boolean;

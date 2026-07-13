@@ -277,6 +277,7 @@ export const STAGE_MODEL_MAP: Record<string, string> = {
   'implementation-plan': 'claude-opus-4-6',
   'spec-generate': 'claude-sonnet-4-6',
   'java-impl': 'claude-sonnet-4-6',
+  'frontend-impl': 'claude-sonnet-4-6',
   'java-review': 'claude-opus-4-6',
   'similar-alert': 'claude-sonnet-4-6',
   'local-log-trace': 'claude-sonnet-4-6',

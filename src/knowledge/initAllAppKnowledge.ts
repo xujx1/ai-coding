@@ -24,6 +24,8 @@ export interface InitAllAppKnowledgeOptions {
   allowTemplateFallback?: boolean;
   modelId?: string;
   appConcurrency?: number;
+  appIds?: string[];
+  updateGlobalKnowledge?: boolean;
   onProgress?: (event: InitAllAppKnowledgeProgressEvent) => void;
 }
 
@@ -156,7 +158,16 @@ export async function initAllAppKnowledge(options: InitAllAppKnowledgeOptions = 
   const gitNexusHome = path.resolve(options.gitNexusHome ?? path.join(knowledgeRoot, '.gitnexus-home'));
   const gitNexusIndexRoot = path.join(knowledgeRoot, 'global', 'gitnexus-indexes');
   const service = createEcomLocalGitService(ecomRoot);
-  const repos = service.listRepositories();
+  const requestedAppIds = new Set((options.appIds ?? []).map(appId => appId.trim()).filter(Boolean));
+  const repos = service.listRepositories()
+    .filter(repo => {
+      const repoId = repo.appId ?? repo.repoId;
+      if (requestedAppIds.size) return requestedAppIds.has(repoId) || requestedAppIds.has(repo.repoId);
+      return repo.implementationApp !== false && repo.repositoryType !== 'testing';
+    });
+  if (requestedAppIds.size && repos.length === 0) {
+    throw new Error(`No repositories matched selected appIds: ${Array.from(requestedAppIds).join(', ')}`);
+  }
   const generatedFiles: string[] = [];
   fs.mkdirSync(knowledgeRoot, { recursive: true });
 
@@ -225,17 +236,20 @@ export async function initAllAppKnowledge(options: InitAllAppKnowledgeOptions = 
 
   const appResults = perApp.map(item => item.result);
   for (const item of perApp) generatedFiles.push(...item.files);
-  const appKnowledgeSummaries = readAppKnowledgeSummaries(knowledgeRoot, appResults);
-
-  generatedFiles.push(...writeGlobalKnowledge({
-    knowledgeRoot,
-    versionId,
-    startedAt,
-    scans,
-    appResults,
-    appKnowledgeSummaries,
-    gitNexusResults,
-  }));
+  if (options.updateGlobalKnowledge !== false) {
+    const appKnowledgeSummaries = readAppKnowledgeSummaries(knowledgeRoot, appResults);
+    generatedFiles.push(...writeGlobalKnowledge({
+      knowledgeRoot,
+      versionId,
+      startedAt,
+      scans,
+      appResults,
+      appKnowledgeSummaries,
+      gitNexusResults,
+    }));
+  } else {
+    updateRegistryFreshnessForApps(knowledgeRoot, appResults, versionId, startedAt);
+  }
   const finishedAt = new Date().toISOString();
   const result: InitAllAppKnowledgeResult = {
     versionId,
@@ -248,8 +262,10 @@ export async function initAllAppKnowledge(options: InitAllAppKnowledgeOptions = 
     startedAt,
     finishedAt,
   };
-  const reportJson = path.join(knowledgeRoot, 'global', 'init-report.json');
-  fs.writeFileSync(reportJson, `${JSON.stringify(result, null, 2)}\n`, 'utf-8');
+  if (options.updateGlobalKnowledge !== false) {
+    const reportJson = path.join(knowledgeRoot, 'global', 'init-report.json');
+    fs.writeFileSync(reportJson, `${JSON.stringify(result, null, 2)}\n`, 'utf-8');
+  }
   return result;
 }
 
@@ -677,6 +693,46 @@ function writeGlobalKnowledge(args: {
     written.push(file);
   }
   return written;
+}
+
+function updateRegistryFreshnessForApps(
+  knowledgeRoot: string,
+  appResults: AppKnowledgeResult[],
+  versionId: string,
+  generatedAt: string,
+): void {
+  const appsPath = path.join(knowledgeRoot, 'registry', 'apps.json');
+  const registry = readJson<{
+    versionId?: string;
+    generatedAt?: string;
+    apps?: Array<{
+      appId?: string;
+      freshness?: Record<string, unknown>;
+    }>;
+  }>(appsPath);
+  if (!registry?.apps?.length) return;
+
+  const resultsByApp = new Map(appResults.map(result => [result.appId, result]));
+  let changed = false;
+  registry.versionId = versionId;
+  registry.generatedAt = generatedAt;
+  registry.apps = registry.apps.map(app => {
+    const result = app.appId ? resultsByApp.get(app.appId) : undefined;
+    if (!result) return app;
+    changed = true;
+    return {
+      ...app,
+      freshness: {
+        ...(app.freshness ?? {}),
+        sourceCommitSha: result.sourceCommitSha,
+        lastGeneratedAt: generatedAt,
+        status: result.status === 'created' ? 'fresh' : 'failed',
+        updateMethod: result.generationMode,
+        modelId: result.modelId,
+      },
+    };
+  });
+  if (changed) fs.writeFileSync(appsPath, json(registry), 'utf-8');
 }
 
 function renderContext(scan: AppScan, gitNexus: GitNexusAnalyzeResult): string {

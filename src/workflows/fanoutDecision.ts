@@ -67,7 +67,7 @@ export function deriveFanoutDecision(args: {
       unresolvedProjects: [],
       confidence: 'low',
       evidence,
-      fallbackReason: 'No uploaded project candidates were detected.',
+      fallbackReason: 'No repository project candidates were detected from MRD and knowledge context.',
       generatedAt: args.generatedAt ?? new Date().toISOString(),
     };
   }
@@ -80,20 +80,26 @@ export function deriveFanoutDecision(args: {
     : findUnresolvedProjectNames(ownershipSection, candidates);
 
   if (!referencedNames.size) {
+    const includedProjects = args.requirementOwnership
+      ? []
+      : candidates.map(project => ({
+        ...project,
+        reason: 'Included by fallback because MRD ownership could not be mapped confidently.',
+      }));
     return {
       schemaVersion: 1,
       candidates,
-      includedProjects: candidates.map(project => ({
+      includedProjects,
+      excludedProjects: args.requirementOwnership ? candidates.map(project => ({
         ...project,
-        reason: 'Included by fallback because MRD ownership could not be mapped confidently.',
-      })),
-      excludedProjects: [],
+        reason: 'Excluded because structured requirement ownership could not map this repository project.',
+      })) : [],
       unresolvedProjects,
       confidence: 'low',
       evidence,
       fallbackReason: args.requirementOwnership
-        ? 'Structured requirement ownership did not confidently match uploaded project names.'
-        : 'MRD ownership did not confidently match uploaded project names.',
+        ? 'Structured requirement ownership did not confidently match repository project names.'
+        : 'MRD ownership did not confidently match repository project names.',
       generatedAt: args.generatedAt ?? new Date().toISOString(),
     };
   }
@@ -103,16 +109,16 @@ export function deriveFanoutDecision(args: {
     .map(project => ({
       ...project,
         reason: args.requirementOwnership
-          ? 'Included because structured requirement ownership references this uploaded project.'
-          : 'Included because MRD ownership references this uploaded project.',
+          ? 'Included because structured requirement ownership references this repository project.'
+          : 'Included because MRD ownership references this repository project.',
     }));
   const excludedProjects = candidates
     .filter(project => !referencedNames.has(normalizeProjectName(project.name)))
     .map(project => ({
       ...project,
         reason: args.requirementOwnership
-          ? 'Excluded because structured requirement ownership does not reference this uploaded project.'
-          : 'Excluded because MRD ownership does not reference this uploaded project.',
+          ? 'Excluded because structured requirement ownership does not reference this repository project.'
+          : 'Excluded because MRD ownership does not reference this repository project.',
     }));
 
   return {

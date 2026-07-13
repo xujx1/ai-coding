@@ -1,7 +1,7 @@
 import {
   DataPlanSchema,
   type DataPlan,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 import { buildDataPlanFromEdges } from '../../tools/testing/data.js';
 import type { DataPlanAgentInput } from './types.js';
 

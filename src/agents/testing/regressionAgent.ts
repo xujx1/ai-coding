@@ -1,7 +1,7 @@
 import {
   RegressionPlanSchema,
   type RegressionPlan,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 import type { RegressionAgentInput } from './types.js';
 
 export async function planTestingRegression(input: RegressionAgentInput): Promise<RegressionPlan> {

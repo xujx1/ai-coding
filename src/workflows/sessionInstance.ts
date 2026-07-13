@@ -18,7 +18,6 @@ import {
 export const SESSION_WORKFLOW_INSTANCE_VERSION = 1;
 export const SESSION_BRANCH_NODE_SEQUENCE = [
   'implementation-plan',
-  'spec-generate',
   'java-impl',
   'testcode-generate',
   'app-integration-test',
@@ -35,8 +34,10 @@ const DEPRECATED_BRANCH_TRACK_IDS = new Set([
 ]);
 
 const DEPRECATED_TOP_LEVEL_NODE_IDS = new Set([
+  'mrd-clarify',
   'cross-app-code-review',
   'cross-app-integration-review',
+  'cross-app-test',
 ]);
 
 export type SessionWorkflowLayout = 'dynamic-fanout' | 'legacy-fixed';
@@ -246,18 +247,16 @@ function createDynamicTopLevelNodes(): SessionWorkflowNode[] {
       artifactHints: ['artifacts/project-manifest.json'],
     },
     {
-      id: 'mrd-clarify',
-      label: '需求归属确认',
-      kind: 'stage',
-      sourceNodeId: 'mrd-render',
-      artifactHints: ['artifacts/mrd-clarify-questions.md', 'artifacts/implementation-boundaries.md'],
-    },
-    {
       id: 'mrd-render',
-      label: labelForPipelineNode('mrd-render', '需求拆解'),
+      label: labelForPipelineNode('mrd-render', '需求分析与归属确认'),
       kind: 'stage',
       sourceNodeId: 'mrd-render',
-      artifactHints: ['artifacts/mrd-clarified.md', 'artifacts/fanout-decision.json'],
+      artifactHints: [
+        'artifacts/mrd-clarify-questions.md',
+        'artifacts/implementation-boundaries.md',
+        'artifacts/mrd-clarified.md',
+        'artifacts/fanout-decision.json',
+      ],
     },
     {
       id: 'project-fanout',
@@ -272,19 +271,53 @@ function createDynamicTopLevelNodes(): SessionWorkflowNode[] {
       kind: 'join',
       joinId: 'app-join',
     },
-    {
-      id: 'cross-app-test',
-      label: '跨应用测试',
-      kind: 'aggregate_review',
-      sourceNodeId: 'cross-app-test',
-      artifactHints: ['artifacts/cross-app/test-results.json'],
-    },
+    ...createTestingTopLevelNodes(),
     {
       id: 'archive',
       label: labelForPipelineNode('archive', '归档'),
       kind: 'archive',
       sourceNodeId: 'archive',
       artifactHints: ['artifacts/archive-manifest.json'],
+    },
+  ];
+}
+
+function createTestingTopLevelNodes(): SessionWorkflowNode[] {
+  return [
+    {
+      id: 'integration-test-cases',
+      label: labelForPipelineNode('integration-test-cases', '集成测试用例'),
+      kind: 'stage',
+      sourceNodeId: 'integration-test-cases',
+      artifactHints: ['artifacts/testing/*/workflow-state.json'],
+    },
+    {
+      id: 'test-data-plan',
+      label: labelForPipelineNode('test-data-plan', '造数'),
+      kind: 'stage',
+      sourceNodeId: 'test-data-plan',
+      artifactHints: ['artifacts/testing/*/workflow-state.json'],
+    },
+    {
+      id: 'integration-test-code',
+      label: labelForPipelineNode('integration-test-code', '生成集成测试代码'),
+      kind: 'stage',
+      sourceNodeId: 'integration-test-code',
+      artifactHints: ['artifacts/testing/*/workflow-state.json'],
+    },
+    {
+      id: 'deploy-related-apps',
+      label: labelForPipelineNode('deploy-related-apps', '部署关联应用'),
+      kind: 'stage',
+      sourceNodeId: 'deploy-related-apps',
+      artifactHints: ['artifacts/cross-app/delivery-metadata.json'],
+    },
+    {
+      id: 'execute-integration-tests',
+      label: labelForPipelineNode('execute-integration-tests', '执行集成测试'),
+      kind: 'aggregate_review',
+      sourceNodeId: 'execute-integration-tests',
+      artifactHints: ['artifacts/cross-app/test-results.json'],
     },
   ];
 }
@@ -454,31 +487,27 @@ export function normalizeSessionWorkflowInstanceShape(instance: SessionWorkflowI
   const hasDeprecatedTopLevel = instance.nodes.some(node => DEPRECATED_TOP_LEVEL_NODE_IDS.has(node.id));
   if (hasDeprecatedTopLevel) {
     instance.nodes = instance.nodes.filter(node => !DEPRECATED_TOP_LEVEL_NODE_IDS.has(node.id));
-    const archiveIndex = instance.nodes.findIndex(node => node.id === 'archive');
-    if (!instance.nodes.some(node => node.id === 'cross-app-test')) {
-      const crossAppTestNode: SessionWorkflowNode = {
-        id: 'cross-app-test',
-        label: '跨应用测试',
-        kind: 'aggregate_review',
-        sourceNodeId: 'cross-app-test',
-        artifactHints: ['artifacts/cross-app/test-results.json'],
-      };
-      if (archiveIndex >= 0) {
-        instance.nodes.splice(archiveIndex, 0, crossAppTestNode);
-      } else {
-        instance.nodes.push(crossAppTestNode);
-      }
-    }
+    insertMissingTestingTopLevelNodes(instance);
     instance.edges = createDynamicTopLevelEdges(instance.nodes);
   }
-  const crossAppTestNode = instance.nodes.find(node => node.id === 'cross-app-test');
-  if (crossAppTestNode && !crossAppTestNode.sourceNodeId) {
-    crossAppTestNode.sourceNodeId = 'cross-app-test';
-  }
+  insertMissingTestingTopLevelNodes(instance);
   for (const branch of instance.branches ?? []) {
     normalizeSessionBranchExecutionShape(branch);
   }
   instance.updatedAt = new Date().toISOString();
+}
+
+function insertMissingTestingTopLevelNodes(instance: SessionWorkflowInstance): void {
+  const testingNodes = createTestingTopLevelNodes();
+  const missing = testingNodes.filter(node => !instance.nodes.some(existing => existing.id === node.id));
+  if (!missing.length) return;
+  const archiveIndex = instance.nodes.findIndex(node => node.id === 'archive');
+  if (archiveIndex >= 0) {
+    instance.nodes.splice(archiveIndex, 0, ...missing);
+  } else {
+    instance.nodes.push(...missing);
+  }
+  instance.edges = createDynamicTopLevelEdges(instance.nodes);
 }
 
 function normalizeSessionBranchExecutionShape(branch: SessionWorkflowBranchRef): void {
@@ -631,8 +660,8 @@ function createTrackRefs(tracks: AppTrackPlan[]): SessionWorkflowTrackRef[] {
 
 function branchNodeLabel(nodeId: string): string {
   return {
-    'implementation-plan': '实施方案',
-    'spec-generate': 'SPEC生成',
+    'implementation-plan': '实施方案与任务',
+    'spec-generate': '实施方案与任务',
     'java-impl': 'Java实现',
     'testcode-generate': '测试代码',
     'backend-test': '后端测试',

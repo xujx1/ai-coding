@@ -1,7 +1,7 @@
 import {
   TestCaseSchema,
   type TestCase,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 import type { CaseAgentInput } from './types.js';
 
 export async function generateTestingCases(input: CaseAgentInput): Promise<TestCase> {

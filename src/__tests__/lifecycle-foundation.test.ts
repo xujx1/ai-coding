@@ -1231,7 +1231,7 @@ test('pipeline bridge writes lifecycle deployment and integration facts from pip
     currentNodeId: 'upload-init',
     nodes: [
       { id: 'upload-init', name: 'Upload / Init', status: 'pending', failureCount: 0 },
-      { id: 'cross-app-test', name: '跨应用测试', status: 'pending', failureCount: 0 },
+      { id: 'execute-integration-tests', name: '执行集成测试', status: 'pending', failureCount: 0 },
     ],
     permissionMode: 'default',
     modelOverrides: {},
@@ -1274,8 +1274,8 @@ test('pipeline bridge writes lifecycle deployment and integration facts from pip
   fs.writeFileSync(`${paths.artifactsDir}/cross-app/test-results.json`, JSON.stringify({ status: 'approved' }), 'utf-8');
   fs.writeFileSync(`${paths.artifactsDir}/cross-app/delivery-metadata.json`, JSON.stringify({ deliveryStatus: 'ready' }), 'utf-8');
   const crossNode = {
-    id: 'cross-app-test',
-    name: '跨应用测试',
+    id: 'execute-integration-tests',
+    name: '执行集成测试',
     description: '',
     hasConfirmationGate: false,
     usesReActLoop: false,

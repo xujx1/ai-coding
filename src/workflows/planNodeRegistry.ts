@@ -57,7 +57,17 @@ export const PLAN_NODE_REGISTRY: Readonly<Record<PlannedNodeType, PlanNodeContra
   }),
   'implementation-plan': contract('implementation-plan', 'implementation-plan', {
     requiredArtifacts: ['artifacts/mrd-clarified.md', 'artifacts/project-manifest.json', 'artifacts/requirement-ownership.json'],
-    producedArtifacts: ['artifacts/{project}/tech-design.md', 'artifacts/implementation-plan-manifest.json'],
+    producedArtifacts: [
+      'artifacts/{project}/tech-design.md',
+      'artifacts/implementation-plan-manifest.json',
+      'artifacts/{project}/openspec-task.md',
+      'artifacts/{project}/openspec-test-task.md',
+      'artifacts/{project}/openspec/changes/*/proposal.md',
+      'artifacts/{project}/openspec/changes/*/design.md',
+      'artifacts/{project}/openspec/changes/*/tasks.md',
+      'artifacts/{project}/openspec/changes/*/specs/*/spec.md',
+      'artifacts/spec-manifest.json',
+    ],
     resources: modelResources,
     confirmation: { required: true, kind: 'implementation-plan', riskLevel: 'medium' },
   }),
@@ -94,10 +104,70 @@ export const PLAN_NODE_REGISTRY: Readonly<Record<PlannedNodeType, PlanNodeContra
     producedArtifacts: ['artifacts/{project}/documentation-test-report.md'],
     resources: modelResources,
   }),
+  'integration-test-cases': contract('integration-test-cases', 'integration-test-cases', {
+    requiredArtifacts: ['artifacts/*/branch-summary.json'],
+    producedArtifacts: [
+      'artifacts/testing/*/workflow-state.json',
+      'artifacts/testing/*/testing-strategy-*.json',
+      'artifacts/testing/*/testing-test-cases-*.json',
+    ],
+    resources: { modelSlots: 1 },
+    replan: { replannable: true, invalidatesDownstream: true, maxAttempts: 2 },
+  }),
+  'test-data-plan': contract('test-data-plan', 'test-data-plan', {
+    requiredArtifacts: ['artifacts/testing/*/testing-test-cases-*.json'],
+    producedArtifacts: [
+      'artifacts/testing/*/workflow-state.json',
+      'artifacts/testing/*/testing-data-plan-*.json',
+    ],
+    resources: { modelSlots: 1 },
+    replan: { replannable: true, invalidatesDownstream: true, maxAttempts: 2 },
+  }),
+  'integration-test-code': contract('integration-test-code', 'integration-test-code', {
+    requiredArtifacts: [
+      'artifacts/testing/*/testing-test-cases-*.json',
+      'artifacts/testing/*/testing-data-plan-*.json',
+    ],
+    producedArtifacts: [
+      'artifacts/testing/*/workflow-state.json',
+      'artifacts/testing/*/testing-generated-script-*.json',
+      'artifacts/testing/*/testing-quality-gate-*.json',
+    ],
+    resources: { modelSlots: 1, commandSlots: 1 },
+    replan: { replannable: true, invalidatesDownstream: true, maxAttempts: 2 },
+  }),
+  'deploy-related-apps': contract('deploy-related-apps', 'deploy-related-apps', {
+    requiredArtifacts: ['artifacts/testing/*/testing-generated-script-*.json'],
+    producedArtifacts: [
+      'artifacts/testing/*/workflow-state.json',
+      'artifacts/cross-app/delivery-metadata.json',
+    ],
+    resources: { commandSlots: 1 },
+    replan: { replannable: true, invalidatesDownstream: true, maxAttempts: 2 },
+  }),
+  'execute-integration-tests': contract('execute-integration-tests', 'execute-integration-tests', {
+    requiredArtifacts: ['artifacts/testing/*/testing-generated-script-*.json'],
+    producedArtifacts: [
+      'artifacts/cross-app/test-results.json',
+      'artifacts/cross-app/delivery-metadata.json',
+      'artifacts/*/e2e/e2e-summary.json',
+      'artifacts/testing/*/workflow-state.json',
+      'artifacts/testing/*/testing-execution-report-*.json',
+      'artifacts/testing/*/testing-coverage-report-*.json',
+      'artifacts/testing/*/testing-regression-plan-*.json',
+    ],
+    resources: { modelSlots: 1, commandSlots: 1, browserSlots: 1 },
+    replan: { replannable: true, invalidatesDownstream: true, maxAttempts: 2 },
+  }),
   'cross-app-test': contract('cross-app-test', 'cross-app-test', {
     requiredArtifacts: ['artifacts/*/branch-summary.json'],
-    producedArtifacts: ['artifacts/cross-app/test-results.json'],
-    resources: modelResources,
+    producedArtifacts: [
+      'artifacts/cross-app/test-results.json',
+      'artifacts/cross-app/delivery-metadata.json',
+      'artifacts/*/e2e/e2e-summary.json',
+      'artifacts/testing/*/workflow-state.json',
+    ],
+    resources: { modelSlots: 1, commandSlots: 1, browserSlots: 1 },
     replan: { replannable: true, invalidatesDownstream: true, maxAttempts: 2 },
   }),
   archive: contract('archive', 'archive', {
@@ -116,11 +186,14 @@ export function getPlanNodeContract(nodeType: PlannedNodeType): PlanNodeContract
 }
 
 export function isRegisteredPlanNodeType(value: string): value is PlannedNodeType {
+  if (value === 'e2e-verify' || value === 'spec-generate' || value === 'cross-app-test') return false;
   return Object.prototype.hasOwnProperty.call(PLAN_NODE_REGISTRY, value);
 }
 
 export function listPlanNodeContracts(): PlanNodeContract[] {
-  return Object.values(PLAN_NODE_REGISTRY);
+  return Object.values(PLAN_NODE_REGISTRY).filter(contract =>
+    contract.nodeType !== 'e2e-verify' && contract.nodeType !== 'spec-generate' && contract.nodeType !== 'cross-app-test'
+  );
 }
 
 function codeContract(nodeType: PlannedNodeType, runner: string): PlanNodeContract {

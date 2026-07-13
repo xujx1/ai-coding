@@ -1,6 +1,36 @@
 {
   "alerts": [
     {
+      "id": "alert-1783846805767-gzt5c6",
+      "appId": "console",
+      "alert": "库存扣减失败，服务 ecom-inventory，接口 POST /api/inventory/deduct，traceId=inventory-stock-negative-20260712-004，BusinessDataInconsistencyException，available stock would become negative，存在超卖风险\n\n",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "20260712": 1,
+        "库存扣减失败": 1,
+        "ecom": 1,
+        "inventory": 1,
+        "post": 1,
+        "api": 1,
+        "deduct": 1,
+        "traceid": 1,
+        "stock": 1,
+        "negative": 1
+      },
+      "createdAt": "2026-07-12T09:00:05.767Z",
+      "workflowId": "fault-analysis",
+      "status": "completed",
+      "problemCause": "最可能根因是 SKU-RED-1001 当前库存状态与扣减请求不匹配，库存服务的负库存保护在 `POST /api/inventory/deduct` 直接拦截了本次扣减；证据是 `logs/ecom-inventory.log` 记录同一 traceId 报错 `BusinessDataInconsistencyException: available stock would become negative, skuId=SKU-RED-1001, available=1, requestQty=3`，说明请求扣减 3 件时系统仅剩 1 件可售库存。结合现有证据未见相关下游超时或网络异常，更像是并发扣减、重复扣减或库存预占/回补未及时一致导致的本地库存数据冲突。",
+      "repairPlan": "立即冻结 SKU-RED-1001 的继续售卖或改为人工审核，核对订单 `T202607120018` 是否应继续履约，先阻断超卖扩大。\n核查该 SKU 在告警时点前后的库存流水、预占、释放、取消、补偿和请求日志，重点确认是否存在并发扣减、同一订单重复调用 `POST /api/inventory/deduct` 或预占未释放导致 `available=1`。\n若库存账实不符，按库存流水修复可售库存与锁定库存，并对受影响订单执行补偿：库存不足则关闭/拆单，重复扣减则回补库存后按幂等规则重试。\n补强库存扣减链路的幂等控制、原子扣减/锁机制和近零库存告警，避免再次出现 `available stock would become negative`。",
+      "durationMs": 42061,
+      "modelId": "gpt-5.4",
+      "tokenUsage": {
+        "inputTokens": 3233,
+        "outputTokens": 353
+      }
+    },
+    {
       "id": "alert-1783836547602-qezwhz",
       "appId": "console",
       "alert": "traceId=abc123 refund timeout error",

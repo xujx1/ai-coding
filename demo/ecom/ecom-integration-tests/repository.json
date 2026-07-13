@@ -1,0 +1,23 @@
+{
+  "repoId": "ecom-integration-tests",
+  "repositoryType": "testing",
+  "name": "ecom-integration-tests",
+  "role": "Cross-application integration test script repository",
+  "implementationApp": false,
+  "ownedDomains": [
+    "integration-testing",
+    "test-data",
+    "regression"
+  ],
+  "relatedApps": [
+    "console",
+    "ecom-marketing",
+    "ecom-product",
+    "ecom-inventory"
+  ],
+  "artifactPolicy": {
+    "runtimeGeneratedScripts": "runtime-projects/runs/{runId}/artifacts/testing/{workflowInstanceId}",
+    "acceptedScripts": "tests/integration",
+    "executionReports": "runtime-projects/runs/{runId}/artifacts/cross-app"
+  }
+}

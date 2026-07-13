@@ -108,7 +108,7 @@ function resolveSearchPath(searchPath: string | undefined, ctx: ToolContext): st
     return path.join(ctx.artifactsDir, normalized.replace(/^artifacts\/?/, ''));
   }
   if (normalized === 'input' || normalized.startsWith('input/')) {
-    return path.join(ctx.runDir, 'workspace', normalized);
+    return path.join(ctx.runDir, normalized);
   }
   if (normalized === 'workspace' || normalized.startsWith('workspace/')) {
     return path.join(ctx.runDir, normalized);

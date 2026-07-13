@@ -3,7 +3,7 @@ import type {
   DataPlan,
   GeneratedScript,
   TestCase,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 
 export interface GeneratePytestScriptInput {
   caseSet: TestCase;

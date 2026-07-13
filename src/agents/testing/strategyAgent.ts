@@ -1,7 +1,7 @@
 import {
   TestStrategySchema,
   type TestStrategy,
-} from '../../testing/artifacts.js';
+} from '../../lifecycle/testingArtifactSchemas.js';
 import type { StrategyAgentInput } from './types.js';
 
 export async function generateTestingStrategy(input: StrategyAgentInput): Promise<TestStrategy> {
