@@ -1,8 +1,383 @@
 # AI Coding
 
-AI Coding 是一个面向研发交付的 AI 工作台。它把 MRD、应用管理、知识库、需求 PI、代码生成、测试验证、应用运维和跨应用 AI Testing 串成一条可追踪的工作流。
+面向需求、代码、测试与应用运维的 AI DevOps 平台。
+
+AI Coding 当前已经不只是代码生成工具，而是覆盖需求、开发、测试、部署、质量门禁、归档和应用运维的 AI DevOps / AI SDLC 平台。它把 MRD、应用管理、知识库、需求 PI、代码实现、测试验证、跨应用 AI Testing 和 AI Ops 应用运维串成一条可追踪的研发交付链路。
 
 当前产品形态不是“上传项目文件让模型猜”。需求从 MRD 和平台知识库出发，系统先基于应用管理列表、全局知识库和应用级知识库判断影响应用，再进入需求归属确认、应用分支并发实现、跨应用测试和归档交付。
+
+完整链路：
+
+```text
+需求管理
+  -> 应用管理 / 知识库管理
+  -> 需求 PI / 影响面分析
+  -> 多应用代码实现
+  -> 单应用测试
+  -> 跨应用 AI Testing
+  -> 部署关联应用
+  -> 质量门禁 / 回归计划
+  -> 归档交付
+  -> AI Ops 应用运维
+```
+
+## AI DevOps 设计思路
+
+这个系统的核心设计不是“让 AI 写一段代码”，而是把研发交付过程中的需求、应用、知识、代码、测试、部署、质量和运维统一到一条可追踪的事实链路里。
+
+传统研发流程里，需求、技术方案、开发、测试、上线和运维通常分散在不同系统中。AI 只能看到局部上下文，很容易出现几个问题：
+
+- MRD 里没有明确写影响哪些应用。
+- 开发知道改了哪些代码，但测试不知道该覆盖哪些跨应用链路。
+- 测试有用例，但不知道需要准备哪些领域数据。
+- 运维看到告警，但不知道和历史需求、代码改动、上下游依赖有什么关系。
+- 产物散在聊天记录、文档、流水线日志和本地文件里，无法复盘。
+
+AI DevOps 的设计目标是把这些分散事实统一起来：
+
+```text
+MRD
+  -> 应用管理
+  -> 知识库 / GitNexus
+  -> 需求归属确认
+  -> 多应用分支实现
+  -> 单应用测试
+  -> 跨应用测试
+  -> lifecycle artifacts
+  -> 运维影响面分析
+```
+
+### 1. 知识库是怎么设计的
+
+知识库分两层：
+
+```text
+应用级知识库
+  -> 描述单个应用负责什么、有哪些接口、依赖谁、有哪些数据库表、怎么测试和造数
+
+全局知识库
+  -> 汇总所有应用的业务域、能力地图、API 路由图、依赖图、影响面索引和业务术语
+```
+
+生成链路：
+
+```text
+应用管理列表
+  -> 仓库扫描
+  -> GitNexus 代码图谱
+  -> 应用级知识库
+  -> 全局知识库合并
+  -> 新鲜度记录
+```
+
+知识库解决的是“AI 判断必须有证据”的问题。比如 MRD 里出现“库存保护”，系统不会靠硬编码把它映射到 `ecom-inventory`，而是按下面的证据链判断：
+
+```text
+MRD 关键词：库存保护、库存不足、可用库存
+  -> global capability-map 命中库存能力
+  -> app-domain-map 命中 inventory 域
+  -> dependency-map 发现 ecom-marketing 依赖 ecom-inventory
+  -> 应用级知识库确认 ecom-inventory 拥有库存可用性校验
+  -> ecom-inventory 进入候选影响应用
+```
+
+### 2. 需求是怎么从 MRD 拆到多个应用改动的
+
+需求 PI 的关键不是直接生成代码，而是先做需求归属确认。
+
+```text
+MRD
+  -> 提取业务关键词、验收场景、用户入口、领域名词
+  -> 从应用管理拿候选应用
+  -> 从 global 知识库召回相关应用
+  -> 从应用级知识库验证应用能力
+  -> 生成 requirement-ownership.json
+  -> 生成 fanout-decision.json
+  -> 创建应用分支 workflow
+```
+
+以当前 case 为例：
+
+```text
+MRD: 定向营销活动创建时增加商品上架与库存保护校验
+```
+
+拆解结果：
+
+| MRD 能力点 | 命中证据 | 应用 | 分支动作 |
+| --- | --- | --- | --- |
+| 活动创建主流程 | 营销活动、campaign、createCampaign | `ecom-marketing` | 后端实现 + 后端测试 |
+| 商品上架校验 | 商品状态、SKU、SALEABLE | `ecom-product` | 后端实现 + 后端测试 |
+| 库存保护校验 | 库存、availableQuantity、stock guard | `ecom-inventory` | 后端实现 + 后端测试 |
+| 运营后台错误提示 | console、运营后台、创建页面 | `console` | 前端实现 + 前端测试 |
+
+最终不是生成一个大任务，而是生成多个独立应用分支：
+
+```text
+console
+  -> frontend-impl
+  -> frontend-test
+
+ecom-marketing
+  -> java-impl
+  -> backend-test
+
+ecom-product
+  -> java-impl
+  -> backend-test
+
+ecom-inventory
+  -> java-impl
+  -> backend-test
+```
+
+每个分支都有自己的子 agent、产物和失败回退，避免多应用上下文互相污染。
+
+### 2.1 多应用代码实现怎么触发子 agent
+
+需求归属确认完成后，系统会生成 `fanout-decision.json`。这个文件决定哪些应用进入本次实现分支：
+
+```text
+fanout-decision.json
+  -> includedProjects
+  -> workflowInstance.branches
+  -> branch nodes
+```
+
+Pipeline Engine 在进入应用实现阶段时，不是创建一个大 agent 处理所有应用，而是按分支创建子 agent：
+
+```text
+for each branch project:
+  create AgentEngine(projectName, nodeId)
+  cwd = 当前应用项目目录
+  tools = read / grep / edit / write / maven / bash
+  prompt = 当前应用的 MRD + 技术方案 + OpenSpec 任务 + 知识库证据
+```
+
+也就是说：
+
+- `ecom-marketing/java-impl` 有自己的实现 agent。
+- `ecom-product/java-impl` 有自己的实现 agent。
+- `ecom-inventory/java-impl` 有自己的实现 agent。
+- `console/frontend-impl` 有自己的前端实现 agent。
+
+子 agent 的触发条件来自分支节点状态：
+
+```text
+branch node status != completed/skipped
+  -> 可以触发对应子 agent
+```
+
+某个应用的 `java-impl` 完成后，该应用可以直接进入 `backend-test`，不需要等待其他应用的 `java-impl` 都完成。这就是“分支流水线并发”。
+
+### 2.2 子 agent 之间怎么通信
+
+子 agent 之间不直接通信，也不共享对话上下文。这样设计是为了避免一个应用的上下文污染另一个应用。
+
+通信方式是通过结构化产物和 workflow 状态完成的：
+
+```text
+子 agent A
+  -> 写入 artifacts/<app>/...
+  -> 更新 branch artifactIndex
+  -> 更新 branch node status
+
+子 agent B
+  -> 只读取自己应用相关输入
+  -> 需要跨应用信息时读取正式产物，而不是读取 A 的聊天记录
+```
+
+允许共享的是正式事实：
+
+- `mrd-clarified.md`
+- `requirement-ownership.json`
+- `fanout-decision.json`
+- `<app>/tech-design.md`
+- `<app>/branch-summary.json`
+- lifecycle artifacts
+- 知识库 / GitNexus 证据
+
+不允许共享的是：
+
+- sibling agent 的自由对话上下文
+- sibling agent 的未确认中间推理
+- sibling 分支的失败状态
+- sibling 分支的临时工具输出
+
+分支汇合时，系统只汇总每个分支的 `branch-summary.json` 和 lifecycle artifacts：
+
+```text
+branch summaries
+  -> app join
+  -> AI Testing input
+```
+
+所以子 agent 之间不是“聊天协作”，而是“通过产物和事实模型协作”。
+
+### 3. 造数是怎么判断的
+
+造数不是让模型随便编几条 JSON。AI Testing 会根据测试用例、应用影响面、知识库里的数据实体和依赖关系判断需要哪些领域数据。
+
+判断依据：
+
+- MRD 的验收场景。
+- 进入实现分支的应用。
+- 知识库里的数据库表、领域实体和接口说明。
+- 跨应用依赖链路。
+- 测试用例的前置条件和断言。
+
+当前 case 的造数判断：
+
+```text
+活动创建需要：
+  -> 一个可上架商品
+  -> 一条可用库存
+  -> 一个活动草稿或创建请求
+
+负向场景需要：
+  -> 一个未上架商品
+  -> 一条低库存记录
+```
+
+所以 AI Testing 生成的数据计划会落到领域 data builder：
+
+```text
+商品域 builder
+  -> createSku(SALEABLE)
+  -> createSku(OFF_SHELF)
+
+库存域 builder
+  -> setStock(AVAILABLE)
+  -> setStock(lowStock)
+
+营销域 builder
+  -> createCampaign(DRAFT)
+```
+
+真实执行时，`demo/ecom/ecom-integration-tests` 会运行：
+
+```bash
+npm run seed
+npm run test:live
+```
+
+其中 `seed` 负责真实造数，`test:live` 负责验证跨应用链路。
+
+### 4. 影响面是怎么分析的
+
+影响面分析是贯穿 AI Coding、AI Testing、AI Ops 的横切能力。
+
+它综合四类事实：
+
+```text
+需求事实：MRD、requirement-ownership、fanout-decision
+应用事实：应用管理、应用业务域、应用能力
+知识事实：应用级知识库、global 知识库、业务术语
+代码事实：GitNexus 文件图谱、接口图谱、依赖图谱
+运行事实：部署、测试、覆盖率、质量门禁、告警、归档
+```
+
+在 AI Coding 中，影响面用于判断哪些应用需要改代码：
+
+```text
+MRD -> 知识库召回 -> 应用级验证 -> fanout-decision
+```
+
+在 AI Testing 中，影响面用于判断哪些链路需要测试：
+
+```text
+已改应用
+  -> 上游入口
+  -> 下游依赖
+  -> 共享数据实体
+  -> 集成测试用例
+  -> 回归范围
+```
+
+在 AI Ops 中，影响面用于判断告警会影响哪些上下游：
+
+```text
+告警接口 / traceId / 错误关键词
+  -> 应用知识库
+  -> GitNexus 依赖图
+  -> 上下游应用
+  -> 修复建议
+```
+
+这个设计保证了同一套事实可以服务研发、测试和运维，而不是每个环节重新让模型猜一次。
+
+### 5. 怎么知道要启动哪些服务
+
+服务启动不是由模型随意决定，而是由 lifecycle deployment context 和影响面共同决定。
+
+判断输入：
+
+```text
+fanout-decision.json
+  -> 本次需求直接影响哪些应用
+
+branch-summary.json
+  -> 每个应用实际改了什么
+
+dependency-map / GitNexus
+  -> 哪些上下游链路需要参与集成测试
+
+AI Testing data plan / cases
+  -> 测试执行依赖哪些领域服务
+
+lifecycle deployment set
+  -> 本次测试环境应该部署哪些 app ref
+```
+
+在当前 ecom case 中：
+
+```text
+活动创建链路：
+  console
+    -> ecom-marketing
+      -> ecom-product
+      -> ecom-inventory
+```
+
+因此部署关联应用阶段会准备这些服务：
+
+| 服务 | 启动原因 |
+| --- | --- |
+| `console` | 运营后台入口和前端交互 |
+| `ecom-marketing` | 活动创建主服务 |
+| `ecom-product` | 商品上架状态校验 |
+| `ecom-inventory` | 库存保护校验 |
+
+demo 环境下，服务启动落到：
+
+```bash
+./demo/ecom/scripts/start-all.sh
+```
+
+AI Testing 执行前会创建 deployment context：
+
+```text
+deploymentSet
+  -> environment
+  -> app refs
+  -> testing workflow
+```
+
+然后集成测试仓库执行：
+
+```bash
+cd demo/ecom/ecom-integration-tests
+npm run seed
+npm run test:live
+```
+
+如果后续接入真实环境，这里可以替换为：
+
+- K8s namespace 部署
+- CI/CD pipeline 部署
+- 测试环境服务发现
+- 稳定版本 + feature version 混部
+- 按 dependency-map 只启动必要服务
 
 ## 产品截图
 
@@ -44,9 +419,9 @@ AI Coding 是一个面向研发交付的 AI 工作台。它把 MRD、应用管�
 - 知识库管理：生成应用级知识库、全局应用能力图谱、依赖图谱、API 路由图和业务术语索引。
 - 需求归属确认：根据 MRD + 全局知识库 + 应用级知识库确认影响应用，不依赖硬编码业务映射。
 - 应用分支流水线：每个应用独立子 agent、独立状态、独立产物和独立失败回退。
-- AI Coding：按应用生成实施方案与任务，完成 Java/前端实现、代码审查、后端测试、前端测试和分支摘要。
-- AI Testing：生成集成测试用例、造数计划、集成测试代码，部署关联应用并执行真实跨应用测试。
-- AI Ops：基于应用、源码、知识库、GitNexus 产物和本地告警内容做告警分析与修复建议。
+- AI Coding：面向开发交付，按应用生成实施方案与任务，完成 Java/前端实现、代码审查、后端测试、前端测试和分支摘要。
+- AI Testing：面向测试交付，生成集成测试用例、造数计划、集成测试代码，部署关联应用并执行真实跨应用测试。
+- AI Ops：面向应用运维，基于应用、源码、知识库、GitNexus 产物和本地告警内容做告警分析与修复建议。
 - 生命周期产物：部署、测试、覆盖率、质量门禁、失败归因、回归计划和归档报告统一登记为 lifecycle artifacts。
 
 ## 已跑通的真实 Case

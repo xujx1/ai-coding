@@ -176,6 +176,55 @@ AI Testing 根据应用管理和 lifecycle deployment set 判断：
 - 调用关系。
 - 代码级影响路径。
 
+## 仓库管理边界
+
+应用管理需要和仓库管理能力配合，但不直接变成完整代码托管平台。
+
+MVP 仓库能力：
+
+```text
+RepositoryRegistry
+  -> 注册应用代码仓库和知识库仓库
+
+RepositoryRef
+  -> provider / repoId / repoPath / defaultBranch / localPath
+
+BranchRef
+  -> 创建或复用需求分支
+
+RepoSearch
+  -> 按 appId、repoId、tag、path、keyword 查找仓库
+
+RepoCheckout
+  -> 拉取或定位本地代码 / 知识库
+
+RepoUpdate
+  -> 写入知识库更新或需求代码变更
+```
+
+边界一句话：
+
+```text
+Harness / Runtime 管仓库和流水线
+AI Coding 管生命周期和知识生成
+```
+
+应用管理只维护 AI DevOps 所需的应用事实，不实现完整 SCM、权限、PR 平台或制品仓库。
+
+## Harness / Internal Runtime 关系
+
+底层可以来自 Harness、internal runtime 或本地脚本，但上层统一成：
+
+```text
+RepositoryRef
+BranchRef
+PipelineRunRef
+EnvironmentRef
+RequirementDeploymentSet
+```
+
+这样 AI Coding 不绑定某个具体 CI/CD 平台，实现可以逐步替换。
+
 ## 关键模块
 
 ```text

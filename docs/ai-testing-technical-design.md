@@ -170,6 +170,107 @@ AI Testing 的造数分两层：
 
 这种方式比在测试脚本里硬编码 HTTP 请求更稳定，因为不同领域的数据准备逻辑可以沉淀为可复用 builder。
 
+## 集成测试边界
+
+AI Testing 不负责单元测试。单元测试属于 AI Coding 的代码生成和 TDD 闭环：
+
+```text
+技术方案
+  -> 代码生成
+  -> 单元测试
+  -> 本地自动修复
+  -> CI 构建
+```
+
+AI Testing 只负责集成环境里的跨应用测试：
+
+```text
+fanout confirmed
+  -> code generated
+  -> unit-test passed
+  -> pre-deploy-code-review approved
+  -> environment-plan
+  -> deploy test environment
+  -> integration-test-strategy
+  -> data-plan
+  -> test-case-generate
+  -> test-script-generate
+  -> wait environment healthy
+  -> data-setup
+  -> integration-test-execute
+  -> data-validation
+  -> data-cleanup
+  -> test-report
+```
+
+## 测试范围分层
+
+AI Testing 不应该在 100+ 应用领域里全量跑测试，而是基于 fanout 和知识库做分层测试计划：
+
+```text
+P0: 主链路跨应用集成测试
+P1: 改动应用接口和状态流测试
+P2: 二级依赖应用兼容性测试
+P3: testOnlyApps 回归抽样或关键用例验证
+```
+
+应用角色：
+
+- `primaryApps`：本次需求主要改造应用，必须重点验证。
+- `secondaryApps`：被调用、依赖或受业务流程影响的应用。
+- `testOnlyApps`：不改代码，但需要回归、联调或兼容性验证。
+
+## 测试环境部署范围
+
+FanoutDecision 不是最终部署清单。最终部署范围由 `EnvironmentPlan` 决定：
+
+```text
+Impact Scope
+  -> 需求影响范围，由 FanoutDecision 产生
+
+Change Scope
+  -> 代码改造范围，由技术方案和代码 diff 产生
+
+Deployment Scope
+  -> 测试环境部署范围，由 EnvironmentPlan 产生
+```
+
+默认模式是 `shared-overlay`：
+
+```text
+共享稳定测试环境
+  + 本次改动应用部署 requirement branch 版本
+  + 受影响但不改代码应用复用稳定版本
+  + 测试数据按 requirementId / tenant / namespace 隔离
+```
+
+出现 schema 大改、共享数据污染、版本强耦合或环境不稳定时，再升级为 dedicated 环境。
+
+## DataPlan 契约
+
+造数必须结构化，不只输出自然语言说明。
+
+```text
+DataPlan
+  -> setupSteps
+  -> validationSteps
+  -> cleanupSteps
+  -> riskLevel
+  -> requiresApproval
+```
+
+DataStep 需要明确：
+
+- `appId`
+- `target`: api / db / queue / cache / file / mock
+- `action`
+- `inputRef`
+- `outputRef`
+- `rollbackRef`
+- `cleanup`
+
+涉及共享数据库、批量数据、配置中心或不可逆操作时，应触发人工确认门。
+
 ## 关键产物
 
 - `testing-strategy-*.json`

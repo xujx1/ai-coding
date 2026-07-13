@@ -134,6 +134,71 @@ alert input
 
 AI Ops 要求真实模型调用。mock LLM 下不应验证告警分析能力，因为告警分析依赖模型综合多源证据。
 
+## 失败归因边界
+
+AI Ops 只做诊断，不直接改代码、不直接改测试、不直接重跑 pipeline。
+
+边界：
+
+```text
+AI Testing
+  -> 发现测试失败
+  -> 输出测试报告、失败用例、断言差异、测试日志
+
+Harness / Runtime
+  -> 输出 CI 日志、部署日志、pipeline 状态、环境信息
+
+AI Ops
+  -> 收集证据
+  -> 输出失败分类、根因候选、修复建议和置信度
+
+AI Coding
+  -> 根据失败分类决定修代码、修测试、修数据、修配置、重跑或人工确认
+```
+
+## 失败分类
+
+```text
+CODE_BUG
+TEST_SCRIPT_BUG
+DATA_SETUP_FAILED
+ENVIRONMENT_NOT_READY
+DEPENDENCY_UNAVAILABLE
+CONFIG_ERROR
+CI_INFRA_FAILURE
+DOCKER_RESOURCE_FAILURE
+UNKNOWN
+```
+
+典型处理：
+
+| 分类 | 默认动作 |
+| --- | --- |
+| `CODE_BUG` | 回流 AI Coding 修代码 |
+| `TEST_SCRIPT_BUG` | 回流 AI Testing 修脚本 |
+| `DATA_SETUP_FAILED` | 回流 AI Testing 修造数 |
+| `ENVIRONMENT_NOT_READY` | 等待或重建环境 |
+| `DEPENDENCY_UNAVAILABLE` | 等待依赖或人工确认 |
+| `UNKNOWN` | 人工确认 |
+
+## 证据输入
+
+AI Ops 不读取所有聊天上下文，而是读取证据产物：
+
+- `test-report`
+- failed test cases
+- CI logs
+- deploy logs
+- container logs
+- application logs
+- health check result
+- changed files
+- tech design
+- branch summary
+- deployment set
+
+这样诊断结果可以追踪到具体证据，而不是依赖模型记忆。
+
 ## 与 AI Coding / AI Testing 的关系
 
 - AI Ops 可以把告警影响面转成修复需求，进入 AI Coding。

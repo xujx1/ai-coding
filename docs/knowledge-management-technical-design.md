@@ -135,6 +135,83 @@ demo/ecom/spaces/knowledge/knowledge-base/
 
 生成后需要记录新鲜度，避免使用过期知识库做影响面判断。代码或仓库结构变化后应刷新对应应用知识库，并重新合并 global 知识库。
 
+## 知识库仓库策略
+
+MVP 采用统一 knowledge monorepo：
+
+```text
+spaces/knowledge/knowledge-base
+```
+
+推荐结构：
+
+```text
+knowledge-base/
+  global/
+    GLOBAL_CONTEXT.md
+    business-glossary.md
+    app-domain-map.json
+    dependency-map.json
+    capability-map.json
+    api-route-map.json
+    gitnexus-graph/
+
+  registry/
+    apps.json
+    repositories.json
+    dependency-map.json
+
+  apps/
+    <appId>/
+      app-knowledge-base/
+        CONTEXT.md
+        KB_INDEX.md
+        api-index.md
+        component-index.md
+        db-schema.md
+        KB_FRESHNESS.md
+        gitnexus/
+```
+
+边界：
+
+```text
+Harness 管仓库
+AI Coding 管知识内容
+```
+
+Harness / Runtime 提供 branch、commit、search、access、checkout 能力；AI Coding 负责扫描、生成、读取、刷新和归档反哺知识库。
+
+## 知识库刷新策略
+
+知识库更新主路径：
+
+```text
+初始化建库
+  + 归档时增量更新
+```
+
+需求执行期间默认只读知识库，不默认刷新。原因是 100+ 应用场景下，全量刷新会导致启动慢、成本高、GitNexus 扫描耗时、主流程不稳定。
+
+刷新策略：
+
+- 初始化：首次接入平台、知识库缺失、应用首次接入。
+- 需求执行中：默认只读；过期只提示，不阻塞。
+- 懒加载刷新：当前应用知识库缺失、fanout 置信度低、关键接口缺失时只刷新当前应用。
+- 归档增量更新：需求完成后，根据代码 diff、测试报告、诊断报告提取 knowledge delta，更新受影响应用和 global 索引。
+
+Freshness 状态：
+
+```text
+fresh
+stale
+missing
+partial
+failed
+```
+
+`missing` 会阻塞关键判断；`stale` 可以继续读取但需要提示；`partial` 会降低 fanout / 技术方案置信度。
+
 ## 在需求 PI 中的使用
 
 需求归属确认会按以下顺序使用知识库：

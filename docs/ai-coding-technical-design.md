@@ -205,6 +205,134 @@ AI Coding 支持分支级回退：
 - 前端测试失败：回到对应应用的 `frontend-impl`。
 - sibling 分支不回退、不重跑、不丢产物。
 
+## 人工确认门与自动化边界
+
+MVP 固定保留三类人工确认门：
+
+```text
+1. 需求归属 / 澄清确认
+2. 技术方案确认
+3. 测试环境发布前代码审核
+```
+
+其他环节默认自动推进，只有触发高风险条件时才插入异常确认门：
+
+- 高风险命令。
+- 大范围代码变更。
+- 共享环境部署。
+- 数据变更或造数。
+- 权限升级。
+- 失败归因不确定。
+
+这样避免两个极端：每一步都人工确认导致自动化价值低，或者全程无确认导致代码、数据和环境风险不可控。
+
+## 分支、提交与发布策略
+
+多应用需求按应用拆分工作分支：
+
+```text
+feature/<requirementId>/<appId>
+```
+
+核心策略：
+
+```text
+一个需求 + 一个应用 = 一个工作分支
+AI 先在本地 workspace 修改代码
+代码审核通过后才允许触发 CI / 测试环境部署
+集成环境以 branch / build artifact / deploymentSet 为主线
+commitSha 只作为可选 sourceSnapshot
+```
+
+代码生成阶段至少产出：
+
+- `changed-files.json`
+- `code-preview-manifest.json`
+- `code-review.md`
+- `test-report.md`
+- `branch-summary.json`
+
+## 生命周期状态机
+
+AI Coding 是唯一生命周期状态写入者。AI Testing、AI Ops、Harness Runtime 只返回结构化结果，由 AI Coding 写入统一状态。
+
+核心对象：
+
+```text
+LifecycleState
+  -> 当前需求事实快照
+
+WorkflowRun
+  -> 某次 workflow 执行记录
+
+NodeRun
+  -> 单个节点执行状态和可恢复依据
+
+ArtifactRef
+  -> 所有产物引用
+
+EventLog
+  -> 追加式历史事件
+```
+
+统一 ID：
+
+- `requirementId`
+- `runId`
+- `appId`
+- `branchName`
+- `deploymentSetId`
+- `pipelineRunId`
+- `environmentId`
+- `testRunId`
+- `diagnosisId`
+- `artifactId`
+- `traceId`
+
+## 失败归因与修复回流
+
+失败归因由 AI Ops 能力承担，AI Coding 负责消费归因结果并推进后续 workflow。
+
+默认分类：
+
+```text
+CODE_BUG
+TEST_SCRIPT_BUG
+DATA_SETUP_FAILED
+ENVIRONMENT_NOT_READY
+DEPENDENCY_UNAVAILABLE
+CONFIG_ERROR
+CI_INFRA_FAILURE
+DOCKER_RESOURCE_FAILURE
+UNKNOWN
+```
+
+处理策略：
+
+- `CODE_BUG` 且置信度足够：回流 AI Coding 修代码。
+- `TEST_SCRIPT_BUG`：回流 AI Testing 修脚本或断言。
+- `DATA_SETUP_FAILED`：回流 AI Testing 修造数计划。
+- `ENVIRONMENT_NOT_READY`：等待或重建环境。
+- `UNKNOWN`：进入人工确认。
+
+## MVP 验收链路
+
+MVP 的验收目标是一条完整、可追踪、可恢复、可诊断、可归档的需求生命周期：
+
+```text
+MRD
+  -> fanout 命中多个应用
+  -> 至少一个应用产生代码变更
+  -> 单应用测试
+  -> 测试环境部署
+  -> DataPlan 造数
+  -> 集成测试执行
+  -> 失败归因 / 修复回流
+  -> 重测通过
+  -> 归档
+  -> 知识库增量更新
+```
+
 ## 关键产物
 
 - `mrd-clarified.md`
