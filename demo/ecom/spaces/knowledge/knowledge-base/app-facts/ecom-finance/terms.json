@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-finance",
+  "terms": [
+    {
+      "raw": "结算",
+      "normalized": "结算",
+      "aliases": [
+        "结算",
+        "finance"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-finance/src/main/java/com/ecommerce/finance/api/FinanceDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

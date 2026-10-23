@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-logistics",
+  "entities": [
+    {
+      "name": "物流",
+      "terms": [
+        "物流"
+      ],
+      "tables": [
+        "logistics_waybills"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR(64)"
+        },
+        {
+          "name": "package_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "carrier",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "address",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "payload_json",
+          "type": "JSON"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP"
+        }
+      ],
+      "seedHints": [
+        "使用 logistics_waybills 的 id/业务键创建最小数据"
+      ],
+      "cleanupHints": [
+        "按 id 或业务键清理，先清理依赖子表再清理主表"
+      ],
+      "evidence": "confirmed"
+    }
+  ]
+}

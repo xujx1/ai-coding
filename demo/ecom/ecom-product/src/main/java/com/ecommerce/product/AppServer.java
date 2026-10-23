@@ -50,7 +50,7 @@ public final class AppServer {
             switch (path) {
             case "/business/create-sku" -> send(exchange, 200, businessService.create(input));
             case "/business/list" -> send(exchange, 200, businessService.list());
-            case "/business/get" -> send(exchange, 200, businessService.get(String.valueOf(input.getOrDefault("id", ""))));
+            case "/business/get" -> send(exchange, 200, businessService.get(String.valueOf(input.getOrDefault("skuId", input.getOrDefault("id", "")))));
             case "/business/enable-sale" -> send(exchange, 200, businessService.enableSale(String.valueOf(input.getOrDefault("skuId", input.getOrDefault("id", "")))));
             case "/business/disable-sale" -> send(exchange, 200, businessService.disableSale(String.valueOf(input.getOrDefault("skuId", input.getOrDefault("id", "")))));
             default -> send(exchange, 404, Map.of("error", "Unknown business route", "path", path));

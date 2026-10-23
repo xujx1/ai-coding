@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-merchant",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "商家店铺资质、审核与店铺资料",
+  "capabilities": [
+    {
+      "capabilityId": "merchant-core",
+      "name": "商家店铺资质、审核与店铺资料",
+      "terms": [
+        "商家"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-merchant",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/approve-merchant",
+        "HTTP /business/disable-shop"
+      ],
+      "dataEntities": [
+        "merchant_shops"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Merchant Shop Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Merchant Shop Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Merchant Shop Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Merchant Shop Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "summary": "入口 HTTP /business/create-merchant"
+    },
+    {
+      "type": "code",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "summary": "入口 HTTP /business/approve-merchant"
+    },
+    {
+      "type": "code",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "summary": "入口 HTTP /business/disable-shop"
+    },
+    {
+      "type": "code",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/api/MerchantDubboService.java",
+      "summary": "入口 com.ecommerce.merchant.api.MerchantDubboService"
+    }
+  ]
+}

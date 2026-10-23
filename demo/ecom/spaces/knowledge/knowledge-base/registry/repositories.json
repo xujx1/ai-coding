@@ -1,203 +1,281 @@
 {
-  "versionId": "kb-20260712T071350Z",
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-16T21:30:27",
   "repositories": [
     {
-      "repoId": "console",
-      "provider": "local-git-service",
-      "repoPath": "console",
-      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/console",
       "type": "code",
-      "appIds": [
-        "console"
-      ]
-    },
-    {
-      "repoId": "ecom-aftersales",
-      "provider": "local-git-service",
-      "repoPath": "ecom-aftersales",
+      "appId": "ecom-aftersales",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
-      "type": "code",
-      "appIds": [
-        "ecom-aftersales"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-content",
-      "provider": "local-git-service",
-      "repoPath": "ecom-content",
+      "type": "codegraph",
+      "appId": "ecom-aftersales",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 330
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-content",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
-      "type": "code",
-      "appIds": [
-        "ecom-content"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-customer-service",
-      "provider": "local-git-service",
-      "repoPath": "ecom-customer-service",
+      "type": "codegraph",
+      "appId": "ecom-content",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 330
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-customer-service",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
-      "type": "code",
-      "appIds": [
-        "ecom-customer-service"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-finance",
-      "provider": "local-git-service",
-      "repoPath": "ecom-finance",
+      "type": "codegraph",
+      "appId": "ecom-customer-service",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 326
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-finance",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
-      "type": "code",
-      "appIds": [
-        "ecom-finance"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-fulfillment",
-      "provider": "local-git-service",
-      "repoPath": "ecom-fulfillment",
+      "type": "codegraph",
+      "appId": "ecom-finance",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 330
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-fulfillment",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
-      "type": "code",
-      "appIds": [
-        "ecom-fulfillment"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-inventory",
-      "provider": "local-git-service",
-      "repoPath": "ecom-inventory",
+      "type": "codegraph",
+      "appId": "ecom-fulfillment",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 329
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-inventory",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
-      "type": "code",
-      "appIds": [
-        "ecom-inventory"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-logistics",
-      "provider": "local-git-service",
-      "repoPath": "ecom-logistics",
+      "type": "codegraph",
+      "appId": "ecom-inventory",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 194,
+        "edges": 334
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-logistics",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
-      "type": "code",
-      "appIds": [
-        "ecom-logistics"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-marketing",
-      "provider": "local-git-service",
-      "repoPath": "ecom-marketing",
+      "type": "codegraph",
+      "appId": "ecom-logistics",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 194,
+        "edges": 333
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-marketing",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
-      "type": "code",
-      "appIds": [
-        "ecom-marketing"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-merchant",
-      "provider": "local-git-service",
-      "repoPath": "ecom-merchant",
+      "type": "codegraph",
+      "appId": "ecom-marketing",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 197,
+        "edges": 347
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-merchant",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
-      "type": "code",
-      "appIds": [
-        "ecom-merchant"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-payment",
-      "provider": "local-git-service",
-      "repoPath": "ecom-payment",
+      "type": "codegraph",
+      "appId": "ecom-merchant",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 326
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-payment",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
-      "type": "code",
-      "appIds": [
-        "ecom-payment"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-product",
-      "provider": "local-git-service",
-      "repoPath": "ecom-product",
+      "type": "codegraph",
+      "appId": "ecom-payment",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 325
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-product",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
-      "type": "code",
-      "appIds": [
-        "ecom-product"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-supply-chain",
-      "provider": "local-git-service",
-      "repoPath": "ecom-supply-chain",
+      "type": "codegraph",
+      "appId": "ecom-product",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 328
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-supply-chain",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
-      "type": "code",
-      "appIds": [
-        "ecom-supply-chain"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-trade",
-      "provider": "local-git-service",
-      "repoPath": "ecom-trade",
+      "type": "codegraph",
+      "appId": "ecom-supply-chain",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 330
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-trade",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
-      "type": "code",
-      "appIds": [
-        "ecom-trade"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "ecom-user",
-      "provider": "local-git-service",
-      "repoPath": "ecom-user",
+      "type": "codegraph",
+      "appId": "ecom-trade",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 18,
+        "nodes": 251,
+        "edges": 526
+      }
+    },
+    {
+      "type": "code",
+      "appId": "ecom-user",
       "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
-      "type": "code",
-      "appIds": [
-        "ecom-user"
-      ]
+      "techStack": "java-maven-dubbo-http"
     },
     {
-      "repoId": "repo_knowledge_base",
-      "provider": "local",
-      "repoPath": "spaces/knowledge/knowledge-base",
-      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base",
+      "type": "codegraph",
+      "appId": "ecom-user",
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user/.codegraph",
+      "status": "indexed",
+      "indexedAt": "2026-07-16T21:23:14",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 326
+      }
+    },
+    {
       "type": "knowledge",
-      "appIds": [
-        "console",
-        "ecom-aftersales",
-        "ecom-content",
-        "ecom-customer-service",
-        "ecom-finance",
-        "ecom-fulfillment",
-        "ecom-inventory",
-        "ecom-logistics",
-        "ecom-marketing",
-        "ecom-merchant",
-        "ecom-payment",
-        "ecom-product",
-        "ecom-supply-chain",
-        "ecom-trade",
-        "ecom-user"
-      ]
+      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base",
+      "domainPath": "domains/ecom"
     },
     {
-      "repoId": "repo_global_gitnexus_indexes",
-      "provider": "local",
-      "repoPath": "spaces/knowledge/knowledge-base/global/gitnexus-indexes",
-      "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/spaces/knowledge/knowledge-base/global/gitnexus-indexes",
-      "type": "gitnexus-index",
-      "appIds": [
-        "console",
-        "ecom-aftersales",
-        "ecom-content",
-        "ecom-customer-service",
-        "ecom-finance",
-        "ecom-fulfillment",
-        "ecom-inventory",
-        "ecom-logistics",
-        "ecom-marketing",
-        "ecom-merchant",
-        "ecom-payment",
-        "ecom-product",
-        "ecom-supply-chain",
-        "ecom-trade",
-        "ecom-user"
-      ]
+      "type": "code",
+      "appId": "ecom-console",
+      "localPath": "/Users/xu/IdeaProjects/ecom/console",
+      "techStack": "static-html-css-js"
+    },
+    {
+      "type": "codegraph",
+      "appId": "ecom-console",
+      "localPath": "/Users/xu/IdeaProjects/ecom/console/.codegraph",
+      "status": "failed",
+      "indexedAt": null,
+      "stats": {
+        "files": 0,
+        "nodes": 0,
+        "edges": 0
+      }
     }
   ]
 }

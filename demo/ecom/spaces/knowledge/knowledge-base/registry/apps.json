@@ -1,496 +1,443 @@
 {
-  "versionId": "kb-20260712T071350Z",
-  "generatedAt": "2026-07-12T07:13:50.593Z",
+  "schemaVersion": 1,
+  "versionId": "kb-20260716212321",
+  "generatedAt": "2026-07-16T21:30:27",
+  "knowledgeRoot": "spaces/knowledge/knowledge-base",
   "apps": [
     {
-      "appId": "console",
-      "name": "console",
-      "domains": [
-        "console"
-      ],
-      "tags": [
-        "frontend",
-        "console",
-        "运营后台",
-        "管理端",
-        "后台页面"
-      ],
-      "aliases": [
-        "运营后台",
-        "管理后台",
-        "运营端",
-        "管理端",
-        "后台页面",
-        "页面入口",
-        "结果展示"
-      ],
+      "appId": "ecom-aftersales",
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "console",
-        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/console",
-        "defaultBranch": "main"
+        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
+        "envPath": ".workflow/apps/ecom-aftersales/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/console/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/console"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-aftersales",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-aftersales",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 330
+        }
+      },
+      "responsibility": "售后单、退款金额、原因与审批状态",
+      "capabilities": [
+        "aftersales-core"
+      ]
     },
     {
-      "appId": "ecom-aftersales",
-      "name": "ecom-aftersales",
-      "domains": [
-        "aftersales"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "appId": "ecom-console",
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-aftersales",
-        "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
-        "defaultBranch": "main"
+        "localPath": "/Users/xu/IdeaProjects/ecom/console",
+        "envPath": "manual:/Users/xu/IdeaProjects/ecom/console",
+        "techStack": "static-html-css-js"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-aftersales/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-aftersales"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-console",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-console",
+        "status": "failed",
+        "indexPath": "/Users/xu/IdeaProjects/ecom/console/.codegraph",
+        "indexedAt": null,
+        "stats": {
+          "files": 0,
+          "nodes": 0,
+          "edges": 0
+        }
+      },
+      "responsibility": "运营后台演示入口，承载商品上架、营销活动操作、交易演示按钮和结果展示",
+      "capabilities": [
+        "console-campaign-stock-guard"
+      ]
     },
     {
       "appId": "ecom-content",
-      "name": "ecom-content",
-      "domains": [
-        "content"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-content",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-content/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-content/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-content"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-content",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-content",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 330
+        }
+      },
+      "responsibility": "商品内容素材绑定、审核与驳回",
+      "capabilities": [
+        "content-core"
+      ]
     },
     {
       "appId": "ecom-customer-service",
-      "name": "ecom-customer-service",
-      "domains": [
-        "customer-service"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-customer-service",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-customer-service/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-customer-service/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-customer-service"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-customer-service",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-customer-service",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 326
+        }
+      },
+      "responsibility": "客服工单、用户问题与处理状态",
+      "capabilities": [
+        "customer-service-core"
+      ]
     },
     {
       "appId": "ecom-finance",
-      "name": "ecom-finance",
-      "domains": [
-        "finance"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-finance",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-finance/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-finance/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-finance"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-finance",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-finance",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 330
+        }
+      },
+      "responsibility": "支付结算记录、商家结算周期与结算状态",
+      "capabilities": [
+        "finance-core"
+      ]
     },
     {
       "appId": "ecom-fulfillment",
-      "name": "ecom-fulfillment",
-      "domains": [
-        "fulfillment"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-fulfillment",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-fulfillment/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-fulfillment/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-fulfillment"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-fulfillment",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-fulfillment",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 329
+        }
+      },
+      "responsibility": "履约单、包裹拆分、发货与妥投状态",
+      "capabilities": [
+        "fulfillment-core"
+      ]
     },
     {
       "appId": "ecom-inventory",
-      "name": "ecom-inventory",
-      "domains": [
-        "inventory"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-inventory",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-inventory/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-inventory/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-inventory"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-inventory",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-inventory",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 194,
+          "edges": 334
+        }
+      },
+      "responsibility": "库存行、可售数量与预占扣减释放",
+      "capabilities": [
+        "inventory-core"
+      ]
     },
     {
       "appId": "ecom-logistics",
-      "name": "ecom-logistics",
-      "domains": [
-        "logistics"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-logistics",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-logistics/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-logistics/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-logistics"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-logistics",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-logistics",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 194,
+          "edges": 333
+        }
+      },
+      "responsibility": "运单创建、承运信息与签收状态",
+      "capabilities": [
+        "logistics-core"
+      ]
     },
     {
       "appId": "ecom-marketing",
-      "name": "ecom-marketing",
-      "domains": [
-        "marketing"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-marketing",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-marketing/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-marketing/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-marketing"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-marketing",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-marketing",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 197,
+          "edges": 347
+        }
+      },
+      "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+      "capabilities": [
+        "marketing-core"
+      ]
     },
     {
       "appId": "ecom-merchant",
-      "name": "ecom-merchant",
-      "domains": [
-        "merchant"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-merchant",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-merchant/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-merchant/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-merchant"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-merchant",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-merchant",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 326
+        }
+      },
+      "responsibility": "商家店铺资质、审核与店铺资料",
+      "capabilities": [
+        "merchant-core"
+      ]
     },
     {
       "appId": "ecom-payment",
-      "name": "ecom-payment",
-      "domains": [
-        "payment"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-payment",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-payment/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-payment/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-payment"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-payment",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-payment",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 325
+        }
+      },
+      "responsibility": "支付单创建、支付成功标记与退款支付记录",
+      "capabilities": [
+        "payment-core"
+      ]
     },
     {
       "appId": "ecom-product",
-      "name": "ecom-product",
-      "domains": [
-        "product"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-product",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-product/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-product/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-product"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-product",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-product",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 328
+        }
+      },
+      "responsibility": "商品 SKU 与售卖状态管理",
+      "capabilities": [
+        "product-core"
+      ]
     },
     {
       "appId": "ecom-supply-chain",
-      "name": "ecom-supply-chain",
-      "domains": [
-        "supply-chain"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-supply-chain",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-supply-chain/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-supply-chain/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-supply-chain"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-supply-chain",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-supply-chain",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 330
+        }
+      },
+      "responsibility": "采购单、质检与补货计划",
+      "capabilities": [
+        "supply-chain-core"
+      ]
     },
     {
       "appId": "ecom-trade",
-      "name": "ecom-trade",
-      "domains": [
-        "trade"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-trade",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-trade/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-trade/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-trade"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-trade",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-trade",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 18,
+          "nodes": 251,
+          "edges": 526
+        }
+      },
+      "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+      "capabilities": [
+        "trade-core"
+      ]
     },
     {
       "appId": "ecom-user",
-      "name": "ecom-user",
-      "domains": [
-        "user"
-      ],
-      "tags": [
-        "backend",
-        "java",
-        "dubbo",
-        "http"
-      ],
+      "domain": "ecom",
       "codeRepo": {
-        "provider": "local-git-service",
-        "repoPath": "ecom-user",
         "localPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
-        "defaultBranch": "main"
+        "envPath": ".workflow/apps/ecom-user/env.json",
+        "techStack": "java-lightweight-http+dubbo+maven"
       },
       "knowledgeRepo": {
-        "provider": "local",
-        "repoPath": "spaces/knowledge/knowledge-base",
-        "kbPath": "apps/ecom-user/app-knowledge-base",
-        "globalGitNexusGraphPath": "global/gitnexus-graph",
-        "globalGitNexusIndexPath": "global/gitnexus-indexes/ecom-user"
+        "domainPath": "domains/ecom",
+        "appFactsPath": "app-facts/ecom-user",
+        "contextFile": "domains/ecom/CONTEXT.md"
       },
-      "freshness": {
-        "sourceCommitSha": "3238c43ec3cb810c50cb8a913fdc7e94c4568183",
-        "lastGeneratedAt": "2026-07-12T07:13:50.593Z",
-        "status": "fresh",
-        "updateMethod": "template-fallback"
-      }
+      "codegraph": {
+        "ref": "domains/ecom/codegraph-indexes.json#ecom-user",
+        "status": "indexed",
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user/.codegraph",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 326
+        }
+      },
+      "responsibility": "用户资料、会员等级与收货地址管理",
+      "capabilities": [
+        "user-core"
+      ]
     }
   ]
 }

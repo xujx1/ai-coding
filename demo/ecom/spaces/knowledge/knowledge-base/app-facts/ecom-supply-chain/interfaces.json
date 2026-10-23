@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-supply-chain",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.supplychain.api.SupplyChainDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "ecom-trade",
+      "terms": [
+        "供应链"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-purchase-order",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "供应链"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "供应链"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "供应链"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/approve-quality-check",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "供应链"
+      ],
+      "handler": "BusinessService.approveQualityCheck",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/reject-quality-check",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "供应链"
+      ],
+      "handler": "BusinessService.rejectQualityCheck",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-replenishment-plan",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "供应链"
+      ],
+      "handler": "BusinessService.createReplenishmentPlan",
+      "evidence": "confirmed"
+    }
+  ]
+}

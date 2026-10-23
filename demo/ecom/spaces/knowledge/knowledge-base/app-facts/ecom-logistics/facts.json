@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-logistics",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "运单创建、承运信息与签收状态",
+  "capabilities": [
+    {
+      "capabilityId": "logistics-core",
+      "name": "运单创建、承运信息与签收状态",
+      "terms": [
+        "物流"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-waybill",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/mark-picked-up",
+        "HTTP /business/mark-in-transit"
+      ],
+      "dataEntities": [
+        "logistics_waybills"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Logistics Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Logistics Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Logistics Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Logistics Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "summary": "入口 HTTP /business/create-waybill"
+    },
+    {
+      "type": "code",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "summary": "入口 HTTP /business/mark-picked-up"
+    },
+    {
+      "type": "code",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "summary": "入口 HTTP /business/mark-in-transit"
+    },
+    {
+      "type": "code",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "summary": "入口 HTTP /business/mark-signed"
+    }
+  ]
+}

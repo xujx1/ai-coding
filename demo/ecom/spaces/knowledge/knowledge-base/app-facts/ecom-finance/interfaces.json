@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-finance",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.finance.api.FinanceDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "ecom-trade",
+      "terms": [
+        "结算"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/record-payment",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "结算"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "结算"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "结算"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-reconciliation-task",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "结算"
+      ],
+      "handler": "BusinessService.createReconciliationTask",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-merchant-settlement",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "结算"
+      ],
+      "handler": "BusinessService.createMerchantSettlement",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-invoice",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "结算"
+      ],
+      "handler": "BusinessService.createInvoice",
+      "evidence": "confirmed"
+    }
+  ]
+}

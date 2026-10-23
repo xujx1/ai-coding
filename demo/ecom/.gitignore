@@ -1,0 +1,6 @@
+
+
+# dev-workflow local configuration
+/.mrd-to-code-config.json
+/.mrd-to-code-workspace.json
+/.workflow/resolved-config.json

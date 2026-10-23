@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-product",
+  "terms": [
+    {
+      "raw": "商品",
+      "normalized": "商品",
+      "aliases": [
+        "商品",
+        "product"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-product/src/main/java/com/ecommerce/product/api/ProductDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

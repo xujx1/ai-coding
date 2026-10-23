@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-marketing",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/enable-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.enableCampaign"
+    },
+    {
+      "ref": "HTTP /business/disable-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.disableCampaign"
+    },
+    {
+      "ref": "HTTP /business/reserve-promotion",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.reservePromotion"
+    },
+    {
+      "ref": "HTTP /business/confirm-use",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.confirmUse"
+    },
+    {
+      "ref": "HTTP /business/cancel-reservation",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.cancelReservation"
+    },
+    {
+      "ref": "HTTP /business/delete-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.deleteCampaign"
+    },
+    {
+      "ref": "com.ecommerce.marketing.api.MarketingDubboService",
+      "kind": "rpc",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/api/MarketingDubboService.java",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "capabilities": [
+        "营销活动-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "MarketingDubboService"
+    }
+  ]
+}

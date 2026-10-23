@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-aftersales",
+  "entities": [
+    {
+      "name": "售后",
+      "terms": [
+        "售后"
+      ],
+      "tables": [
+        "aftersales_cases"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR(64)"
+        },
+        {
+          "name": "order_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "order_line_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "amount_cent",
+          "type": "BIGINT"
+        },
+        {
+          "name": "reason",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "payload_json",
+          "type": "JSON"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP"
+        }
+      ],
+      "seedHints": [
+        "使用 aftersales_cases 的 id/业务键创建最小数据"
+      ],
+      "cleanupHints": [
+        "按 id 或业务键清理，先清理依赖子表再清理主表"
+      ],
+      "evidence": "confirmed"
+    }
+  ]
+}

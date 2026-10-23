@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-inventory",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.inventory.api.InventoryDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "ecom-trade",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/set-stock",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/reserve-stock",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "handler": "BusinessService.reserveStock",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/release-reservation",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "handler": "BusinessService.releaseReservation",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/deduct-reservation",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "handler": "BusinessService.deductReservation",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/return-stock",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "handler": "BusinessService.returnStock",
+      "evidence": "confirmed"
+    }
+  ]
+}

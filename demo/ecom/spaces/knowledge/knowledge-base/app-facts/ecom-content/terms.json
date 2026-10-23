@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-content",
+  "terms": [
+    {
+      "raw": "内容",
+      "normalized": "内容",
+      "aliases": [
+        "内容",
+        "content"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-content/src/main/java/com/ecommerce/content/api/ContentDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

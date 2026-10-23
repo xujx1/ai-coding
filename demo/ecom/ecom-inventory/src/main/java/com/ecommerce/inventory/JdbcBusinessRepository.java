@@ -47,6 +47,19 @@ public final class JdbcBusinessRepository implements BusinessRepository {
                       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                     )
                     """);
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS inventory_campaign_protections (
+                      id VARCHAR(128) PRIMARY KEY,
+                      campaign_id VARCHAR(64) NOT NULL,
+                      sku_id VARCHAR(255) NOT NULL,
+                      protected_quantity INT NOT NULL,
+                      status VARCHAR(32) NOT NULL,
+                      payload_json JSON NOT NULL,
+                      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                      UNIQUE KEY uk_campaign_sku (campaign_id, sku_id)
+                    )
+                    """);
         } catch (SQLException error) {
             throw new IllegalStateException("Failed to initialize MySQL table inventory_stocks", error);
         }
@@ -98,6 +111,66 @@ public final class JdbcBusinessRepository implements BusinessRepository {
         }
     }
 
+    @Override
+    public Optional<BusinessRecord> findBySkuId(String skuId) {
+        try (Connection connection = connect(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM inventory_stocks WHERE sku_id=? ORDER BY updated_at DESC LIMIT 1")) {
+            statement.setString(1, skuId);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                return Optional.of(readRecord(rs));
+            }
+        } catch (SQLException error) {
+            throw new IllegalStateException("Failed to query stock by sku " + skuId, error);
+        }
+    }
+
+    @Override
+    public BusinessRecord saveCampaignProtection(BusinessRecord record) {
+        String sql = "INSERT INTO inventory_campaign_protections (id, campaign_id, sku_id, protected_quantity, status, payload_json) VALUES (?, ?, ?, ?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE protected_quantity=VALUES(protected_quantity), status=VALUES(status), payload_json=VALUES(payload_json)";
+        try (Connection connection = connect(); PreparedStatement statement = connection.prepareStatement(sql)) {
+            int index = 1;
+            statement.setString(index++, record.id());
+            statement.setString(index++, String.valueOf(record.attributes().get("campaignId")));
+            statement.setString(index++, String.valueOf(record.attributes().get("skuId")));
+            statement.setInt(index++, ((Number) record.attributes().get("protectedStock")).intValue());
+            statement.setString(index++, record.status());
+            statement.setString(index, JsonSupport.toJson(record.attributes()));
+            statement.executeUpdate();
+            return record;
+        } catch (SQLException error) {
+            throw new IllegalStateException("Failed to save campaign protection " + record.id(), error);
+        }
+    }
+
+    @Override
+    public Optional<BusinessRecord> findCampaignProtection(String campaignId, String skuId) {
+        try (Connection connection = connect(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM inventory_campaign_protections WHERE campaign_id=? AND sku_id=?")) {
+            statement.setString(1, campaignId);
+            statement.setString(2, skuId);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                return Optional.of(readProtection(rs));
+            }
+        } catch (SQLException error) {
+            throw new IllegalStateException("Failed to query campaign protection " + campaignId + ":" + skuId, error);
+        }
+    }
+
+    @Override
+    public List<BusinessRecord> listCampaignProtectionsBySkuId(String skuId) {
+        try (Connection connection = connect(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM inventory_campaign_protections WHERE sku_id=?")) {
+            statement.setString(1, skuId);
+            try (ResultSet rs = statement.executeQuery()) {
+                List<BusinessRecord> records = new ArrayList<>();
+                while (rs.next()) records.add(readProtection(rs));
+                return records;
+            }
+        } catch (SQLException error) {
+            throw new IllegalStateException("Failed to list campaign protections for sku " + skuId, error);
+        }
+    }
+
     private BusinessRecord readRecord(ResultSet rs) throws SQLException {
         Map<String, Object> attributes = new LinkedHashMap<>();
         attributes.put("stockId", rs.getString("id"));
@@ -105,6 +178,14 @@ public final class JdbcBusinessRepository implements BusinessRepository {
         attributes.put("warehouseId", rs.getString("warehouse_id"));
         attributes.put("quantity", rs.getInt("quantity"));
         attributes.put("availableQuantity", rs.getInt("available_quantity"));
+        return new BusinessRecord(rs.getString("id"), rs.getString("status"), attributes);
+    }
+
+    private BusinessRecord readProtection(ResultSet rs) throws SQLException {
+        Map<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("campaignId", rs.getString("campaign_id"));
+        attributes.put("skuId", rs.getString("sku_id"));
+        attributes.put("protectedStock", rs.getInt("protected_quantity"));
         return new BusinessRecord(rs.getString("id"), rs.getString("status"), attributes);
     }
 

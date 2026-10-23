@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-supply-chain",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "采购单、质检与补货计划",
+  "capabilities": [
+    {
+      "capabilityId": "supply-chain-core",
+      "name": "采购单、质检与补货计划",
+      "terms": [
+        "供应链"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-purchase-order",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/approve-quality-check",
+        "HTTP /business/reject-quality-check"
+      ],
+      "dataEntities": [
+        "supply_chain_purchase_orders"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Supply Chain Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Supply Chain Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Supply Chain Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Supply Chain Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "summary": "入口 HTTP /business/create-purchase-order"
+    },
+    {
+      "type": "code",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "summary": "入口 HTTP /business/approve-quality-check"
+    },
+    {
+      "type": "code",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "summary": "入口 HTTP /business/reject-quality-check"
+    },
+    {
+      "type": "code",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "summary": "入口 HTTP /business/create-replenishment-plan"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-fulfillment",
+  "terms": [
+    {
+      "raw": "履约",
+      "normalized": "履约",
+      "aliases": [
+        "履约",
+        "fulfillment"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/api/FulfillmentDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

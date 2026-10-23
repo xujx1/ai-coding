@@ -1,0 +1,2 @@
+DELETE FROM product_skus
+WHERE id IN ('SKU-GUARD-1', 'SKU-GUARD-OFF', 'SKU-GUARD-LOW');

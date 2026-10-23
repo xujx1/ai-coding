@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-customer-service",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
+  "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service/.codegraph",
+  "status": "indexed",
+  "indexedAt": "2026-07-16T21:23:14",
+  "stats": {
+    "files": 15,
+    "nodes": 192,
+    "edges": 326
+  },
+  "error": ""
+}

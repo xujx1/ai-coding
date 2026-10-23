@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-user",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-user",
+      "kind": "http",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "terms": [
+        "用户"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "terms": [
+        "用户"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "terms": [
+        "用户"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/add-address",
+      "kind": "http",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "terms": [
+        "用户"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.addAddress"
+    },
+    {
+      "ref": "HTTP /business/upgrade-member",
+      "kind": "http",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "terms": [
+        "用户"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.upgradeMember"
+    },
+    {
+      "ref": "com.ecommerce.user.api.UserDubboService",
+      "kind": "rpc",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/api/UserDubboService.java",
+      "terms": [
+        "用户"
+      ],
+      "capabilities": [
+        "用户-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "UserDubboService"
+    }
+  ]
+}

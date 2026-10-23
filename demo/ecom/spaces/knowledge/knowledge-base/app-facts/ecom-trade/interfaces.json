@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-trade",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.trade.api.TradeDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "all-domain-apps",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-order",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/demo-checkout",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "handler": "TradeOrchestrationService.demoCheckout",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/demo-cancel",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "handler": "TradeOrchestrationService.demoCancel",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/demo-full-chain",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "handler": "TradeOrchestrationService.demoFullChain",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/confirm-paid",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "handler": "BusinessService.confirmPaid",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/cancel-order",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "handler": "BusinessService.cancelOrder",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/complete-order",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "handler": "BusinessService.completeOrder",
+      "evidence": "confirmed"
+    }
+  ]
+}

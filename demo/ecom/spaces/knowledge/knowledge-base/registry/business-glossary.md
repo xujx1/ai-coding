@@ -1,92 +1,24 @@
-# Business Glossary
+# ecom 业务术语汇总
 
-- 售后: ecom-aftersales
-- 退款: ecom-aftersales
-- 退货: ecom-aftersales
-- 换货: ecom-aftersales
-- 纠纷: ecom-aftersales
-- 仲裁: ecom-aftersales
-- 内容: ecom-content
-- 短视频: ecom-content
-- 直播: ecom-content
-- 图文: ecom-content
-- 评论: ecom-content
-- 达人: ecom-content
-- 种草: ecom-content
-- 客服: ecom-customer-service
-- 咨询: ecom-customer-service
-- 工单: ecom-customer-service
-- 纠纷: ecom-customer-service
-- 智能客服: ecom-customer-service
-- SLA: ecom-customer-service
-- 财务: ecom-finance
-- 结算: ecom-finance
-- 对账: ecom-finance
-- 分润: ecom-finance
-- 发票: ecom-finance
-- 税务: ecom-finance
-- 履约: ecom-fulfillment
-- 拆单: ecom-fulfillment
-- 寻源: ecom-fulfillment
-- 发货: ecom-fulfillment
-- 签收: ecom-fulfillment
-- WMS: ecom-fulfillment
-- 库存: ecom-inventory
-- 实物库存: ecom-inventory
-- 可用库存: ecom-inventory
-- 预占: ecom-inventory
-- 释放: ecom-inventory
-- 多仓: ecom-inventory
-- 物流: ecom-logistics
-- 运单: ecom-logistics
-- 轨迹: ecom-logistics
-- 配送: ecom-logistics
-- TMS: ecom-logistics
-- 物流商: ecom-logistics
-- 营销: ecom-marketing
-- 优惠券: ecom-marketing
-- 满减: ecom-marketing
-- 秒杀: ecom-marketing
-- 拼团: ecom-marketing
-- 积分: ecom-marketing
-- 活动: ecom-marketing
-- 商家: ecom-merchant
-- 店铺: ecom-merchant
-- 入驻: ecom-merchant
-- 资质: ecom-merchant
-- 审核: ecom-merchant
-- 店铺装修: ecom-merchant
-- 支付: ecom-payment
-- 收银台: ecom-payment
-- 支付单: ecom-payment
-- 回调: ecom-payment
-- 退款支付: ecom-payment
-- 支付渠道: ecom-payment
-- 商品: ecom-product
-- SPU: ecom-product
-- SKU: ecom-product
-- 类目: ecom-product
-- 属性: ecom-product
-- 品牌: ecom-product
-- 素材: ecom-product
-- 价格: ecom-product
-- 供应链: ecom-supply-chain
-- 采购: ecom-supply-chain
-- 供应商: ecom-supply-chain
-- SRM: ecom-supply-chain
-- 质检: ecom-supply-chain
-- 补货: ecom-supply-chain
-- 生产计划: ecom-supply-chain
-- 购物车: ecom-trade
-- 下单: ecom-trade
-- 订单: ecom-trade
-- 订单状态: ecom-trade
-- 取消订单: ecom-trade
-- 交易: ecom-trade
-- 用户: ecom-user
-- 会员: ecom-user
-- 账号: ecom-user
-- 地址: ecom-user
-- 实名: ecom-user
-- 画像: ecom-user
-- 等级: ecom-user
+| 术语 | 同义词/别名 | 业务含义 | 覆盖应用 | 关联能力 | 关联流程 | 证据等级 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 售后 | 售后, aftersales | 售后单、退款金额、原因与审批状态 | `ecom-aftersales` | aftersales-core | `refund-aftersales` | confirmed |
+| 内容 | 内容, content | 商品内容素材绑定、审核与驳回 | `ecom-content` | content-core | `catalog-publish` | confirmed |
+| 客服 | 客服, customer-service | 客服工单、用户问题与处理状态 | `ecom-customer-service` | customer-service-core | `refund-aftersales` | confirmed |
+| 结算 | 结算, finance | 支付结算记录、商家结算周期与结算状态 | `ecom-finance` | finance-core | `settlement-reconcile` | confirmed |
+| 履约 | 履约, fulfillment | 履约单、包裹拆分、发货与妥投状态 | `ecom-fulfillment` | fulfillment-core | `checkout-fulfillment` | confirmed |
+| 库存 | 库存, inventory | 库存行、可售数量与预占扣减释放 | `ecom-inventory` | inventory-core | `campaign-stock-guard`, `checkout-fulfillment` | confirmed |
+| 库存预占 | 库存预占, inventory | 库存行、可售数量与预占扣减释放 | `ecom-inventory` | inventory-core | `campaign-stock-guard`, `checkout-fulfillment` | confirmed |
+| 库存扣减 | 库存扣减, inventory | 库存行、可售数量与预占扣减释放 | `ecom-inventory` | inventory-core | `campaign-stock-guard`, `checkout-fulfillment` | confirmed |
+| 物流 | 物流, logistics | 运单创建、承运信息与签收状态 | `ecom-logistics` | logistics-core | `checkout-fulfillment` | confirmed |
+| 营销活动 | 营销活动, marketing | 营销活动、优惠额度、活动配额与预占核销 | `ecom-marketing` | marketing-core | `campaign-stock-guard`, `checkout-fulfillment` | confirmed |
+| 活动预占 | 活动预占, marketing | 营销活动、优惠额度、活动配额与预占核销 | `ecom-marketing` | marketing-core | `campaign-stock-guard`, `checkout-fulfillment` | confirmed |
+| 优惠核销 | 优惠核销, marketing | 营销活动、优惠额度、活动配额与预占核销 | `ecom-marketing` | marketing-core | `campaign-stock-guard`, `checkout-fulfillment` | confirmed |
+| 商家 | 商家, merchant | 商家店铺资质、审核与店铺资料 | `ecom-merchant` | merchant-core | `catalog-publish`, `settlement-reconcile` | confirmed |
+| 支付 | 支付, payment | 支付单创建、支付成功标记与退款支付记录 | `ecom-payment` | payment-core | `checkout-fulfillment`, `refund-aftersales`, `settlement-reconcile` | confirmed |
+| 商品 | 商品, product | 商品 SKU 与售卖状态管理 | `ecom-product` | product-core | `catalog-publish`, `campaign-stock-guard`, `checkout-fulfillment` | confirmed |
+| 供应链 | 供应链, supply-chain | 采购单、质检与补货计划 | `ecom-supply-chain` | supply-chain-core | `catalog-publish` | confirmed |
+| 订单 | 订单, trade | 交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程 | `ecom-trade` | trade-core | `campaign-stock-guard`, `checkout-fulfillment`, `refund-aftersales` | confirmed |
+| 交易编排 | 交易编排, trade | 交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程 | `ecom-trade` | trade-core | `campaign-stock-guard`, `checkout-fulfillment`, `refund-aftersales` | confirmed |
+| 订单支付履约 | 订单支付履约, trade | 交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程 | `ecom-trade` | trade-core | `campaign-stock-guard`, `checkout-fulfillment`, `refund-aftersales` | confirmed |
+| 用户 | 用户, user | 用户资料、会员等级与收货地址管理 | `ecom-user` | user-core | `checkout-fulfillment` | confirmed |

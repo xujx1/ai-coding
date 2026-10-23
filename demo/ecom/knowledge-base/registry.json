@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "knowledgeRoot": "knowledge-base",
+  "domains": [
+    {
+      "domain": "ecom",
+      "path": "knowledge-base/domains/ecom",
+      "appCount": 14,
+      "updatedAt": "2026-07-16T14:04:52"
+    }
+  ]
+}

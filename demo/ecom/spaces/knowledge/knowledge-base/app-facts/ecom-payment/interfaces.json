@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-payment",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.payment.api.PaymentDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "ecom-trade",
+      "terms": [
+        "支付"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-payment",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "支付"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "支付"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "支付"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/mark-paid",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "支付"
+      ],
+      "handler": "BusinessService.markPaid",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-refund-payment",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "支付"
+      ],
+      "handler": "BusinessService.createRefundPayment",
+      "evidence": "confirmed"
+    }
+  ]
+}

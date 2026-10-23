@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-customer-service",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.customerservice.api.CustomerServiceDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "ecom-trade",
+      "terms": [
+        "客服"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-ticket",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "客服"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "客服"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "客服"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/assign-ticket",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "客服"
+      ],
+      "handler": "BusinessService.assignTicket",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/resolve-ticket",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "客服"
+      ],
+      "handler": "BusinessService.resolveTicket",
+      "evidence": "confirmed"
+    }
+  ]
+}

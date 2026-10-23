@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-customer-service",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-ticket",
+      "kind": "http",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "terms": [
+        "客服"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "terms": [
+        "客服"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "terms": [
+        "客服"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/assign-ticket",
+      "kind": "http",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "terms": [
+        "客服"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.assignTicket"
+    },
+    {
+      "ref": "HTTP /business/resolve-ticket",
+      "kind": "http",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "terms": [
+        "客服"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.resolveTicket"
+    },
+    {
+      "ref": "com.ecommerce.customerservice.api.CustomerServiceDubboService",
+      "kind": "rpc",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/api/CustomerServiceDubboService.java",
+      "terms": [
+        "客服"
+      ],
+      "capabilities": [
+        "客服-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "CustomerServiceDubboService"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-payment",
+  "terms": [
+    {
+      "raw": "支付",
+      "normalized": "支付",
+      "aliases": [
+        "支付",
+        "payment"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-payment/src/main/java/com/ecommerce/payment/api/PaymentDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

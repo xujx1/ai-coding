@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-user",
+  "terms": [
+    {
+      "raw": "用户",
+      "normalized": "用户",
+      "aliases": [
+        "用户",
+        "user"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-user/src/main/java/com/ecommerce/user/api/UserDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

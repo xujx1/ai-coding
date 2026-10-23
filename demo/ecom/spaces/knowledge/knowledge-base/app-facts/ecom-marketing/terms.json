@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-marketing",
+  "terms": [
+    {
+      "raw": "营销活动",
+      "normalized": "营销活动",
+      "aliases": [
+        "营销活动",
+        "marketing"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-marketing/src/main/java/com/ecommerce/marketing/api/MarketingDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    },
+    {
+      "raw": "活动预占",
+      "normalized": "活动预占",
+      "aliases": [
+        "活动预占",
+        "marketing"
+      ],
+      "kind": "capability",
+      "sources": [
+        "ecom-marketing/src/main/java/com/ecommerce/marketing/api/MarketingDubboService.java"
+      ],
+      "confidence": 0.72,
+      "evidence": "inferred"
+    },
+    {
+      "raw": "优惠核销",
+      "normalized": "优惠核销",
+      "aliases": [
+        "优惠核销",
+        "marketing"
+      ],
+      "kind": "capability",
+      "sources": [
+        "ecom-marketing/src/main/java/com/ecommerce/marketing/api/MarketingDubboService.java"
+      ],
+      "confidence": 0.72,
+      "evidence": "inferred"
+    }
+  ]
+}

@@ -27,6 +27,19 @@ class BusinessServiceTest {
     }
 
     @Test
+    void disableSaleMarksSkuOffShelfButKeepsSkuFacts() {
+        BusinessService service = new BusinessService(new InMemoryBusinessRepository());
+        service.create(Map.of("skuId", "TEST-OFF", "priceCent", 12900L, "saleable", true));
+
+        Map<String, Object> changed = service.disableSale("TEST-OFF");
+
+        assertEquals("OFF_SHELF", changed.get("status"));
+        assertEquals("TEST-OFF", changed.get("skuId"));
+        assertEquals(12900L, changed.get("priceCent"));
+        assertEquals(true, changed.get("saleable"));
+    }
+
+    @Test
     void requirementValidationStillUsesDomainKnowledge() {
         Map<String, Object> result = DomainService.validateRequirement("商品 SPU SKU 类目 属性 品牌 素材 价格");
         assertTrue(Boolean.TRUE.equals(result.get("impacted")));

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-supply-chain",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
+  "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain/.codegraph",
+  "status": "indexed",
+  "indexedAt": "2026-07-16T21:23:14",
+  "stats": {
+    "files": 15,
+    "nodes": 193,
+    "edges": 330
+  },
+  "error": ""
+}

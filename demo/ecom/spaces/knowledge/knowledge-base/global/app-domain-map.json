@@ -1,92 +1,111 @@
 {
-  "console": {
-    "domain": "console",
-    "domainName": "运营后台",
-    "serviceName": "console",
-    "summary": "Provides the operator/admin console, management pages, buttons, forms, and result display for cross-domain business workflows."
-  },
-  "ecom-aftersales": {
-    "domain": "aftersales",
-    "domainName": "售后域",
-    "serviceName": "Aftersales Service",
-    "summary": "Handles refund, return, exchange, aftersales workflow, evidence, and dispute decisions."
-  },
-  "ecom-content": {
-    "domain": "content",
-    "domainName": "内容域",
-    "serviceName": "Content Service",
-    "summary": "Manages product content, posts, short videos, live sessions, comments, creators, and moderation workflow."
-  },
-  "ecom-customer-service": {
-    "domain": "customer-service",
-    "domainName": "客服域",
-    "serviceName": "Customer Service",
-    "summary": "Handles consultation, work orders, dispute tickets, aftersales support, and bot intent routing."
-  },
-  "ecom-finance": {
-    "domain": "finance",
-    "domainName": "财务结算域",
-    "serviceName": "Finance Settlement Service",
-    "summary": "Owns reconciliation, merchant settlement, revenue share, invoice facts, tax compliance, and ledger events."
-  },
-  "ecom-fulfillment": {
-    "domain": "fulfillment",
-    "domainName": "履约域",
-    "serviceName": "Fulfillment Service",
-    "summary": "Creates fulfillment orders, splits packages, sources warehouses, dispatches WMS tasks, and syncs delivery status."
-  },
-  "ecom-inventory": {
-    "domain": "inventory",
-    "domainName": "库存域",
-    "serviceName": "Inventory Service",
-    "summary": "Tracks physical stock, available stock, reserved stock, stock release, and multi-warehouse allocation."
-  },
-  "ecom-logistics": {
-    "domain": "logistics",
-    "domainName": "物流域",
-    "serviceName": "Logistics Service",
-    "summary": "Integrates carriers, creates waybills, tracks delivery traces, and reports delivery exceptions."
-  },
-  "ecom-marketing": {
-    "domain": "marketing",
-    "domainName": "营销域",
-    "serviceName": "Marketing Service",
-    "summary": "Manages campaigns, coupons, discount rules, flash sale, group-buy, points, and eligibility checks."
-  },
-  "ecom-merchant": {
-    "domain": "merchant",
-    "domainName": "店铺商家域",
-    "serviceName": "Merchant Shop Service",
-    "summary": "Supports merchant onboarding, qualification audit, shop profile, shop decoration, and merchant console facts."
-  },
-  "ecom-payment": {
-    "domain": "payment",
-    "domainName": "支付域",
-    "serviceName": "Payment Service",
-    "summary": "Provides payment order, cashier, channel callback, refund payment, and reconciliation facts."
-  },
-  "ecom-product": {
-    "domain": "product",
-    "domainName": "商品域",
-    "serviceName": "Product Service",
-    "summary": "Manages SPU, SKU, category attributes, brand data, product media, and base price facts."
-  },
-  "ecom-supply-chain": {
-    "domain": "supply-chain",
-    "domainName": "供应链域",
-    "serviceName": "Supply Chain Service",
-    "summary": "Coordinates procurement, suppliers, replenishment, quality inspection, production planning, and SRM facts."
-  },
-  "ecom-trade": {
-    "domain": "trade",
-    "domainName": "交易域",
-    "serviceName": "Trade Service",
-    "summary": "Owns cart, order creation, order state machine, order cancellation, and trade orchestration."
-  },
-  "ecom-user": {
-    "domain": "user",
-    "domainName": "用户域",
-    "serviceName": "User CRM Service",
-    "summary": "Owns account, authentication profile, membership level, user tags, identity verification, and address book."
-  }
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-16T21:30:27",
+  "apps": [
+    {
+      "appId": "ecom-aftersales",
+      "domain": "ecom",
+      "serviceName": "Aftersales Service",
+      "summary": "售后单、退款金额、原因与审批状态",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales"
+    },
+    {
+      "appId": "ecom-console",
+      "domain": "ecom",
+      "serviceName": "Ecom Dubbo Demo Console",
+      "summary": "运营后台静态页面，提供库存保护活动操作入口和结果展示",
+      "repoPath": "/Users/xu/IdeaProjects/ecom/console"
+    },
+    {
+      "appId": "ecom-content",
+      "domain": "ecom",
+      "serviceName": "Content Service",
+      "summary": "商品内容素材绑定、审核与驳回",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content"
+    },
+    {
+      "appId": "ecom-customer-service",
+      "domain": "ecom",
+      "serviceName": "Customer Service",
+      "summary": "客服工单、用户问题与处理状态",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service"
+    },
+    {
+      "appId": "ecom-finance",
+      "domain": "ecom",
+      "serviceName": "Finance Settlement Service",
+      "summary": "支付结算记录、商家结算周期与结算状态",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance"
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "domain": "ecom",
+      "serviceName": "Fulfillment Service",
+      "summary": "履约单、包裹拆分、发货与妥投状态",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment"
+    },
+    {
+      "appId": "ecom-inventory",
+      "domain": "ecom",
+      "serviceName": "Inventory Service",
+      "summary": "库存行、可售数量与预占扣减释放",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory"
+    },
+    {
+      "appId": "ecom-logistics",
+      "domain": "ecom",
+      "serviceName": "Logistics Service",
+      "summary": "运单创建、承运信息与签收状态",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics"
+    },
+    {
+      "appId": "ecom-marketing",
+      "domain": "ecom",
+      "serviceName": "Marketing Service",
+      "summary": "营销活动、优惠额度、活动配额与预占核销",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing"
+    },
+    {
+      "appId": "ecom-merchant",
+      "domain": "ecom",
+      "serviceName": "Merchant Shop Service",
+      "summary": "商家店铺资质、审核与店铺资料",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant"
+    },
+    {
+      "appId": "ecom-payment",
+      "domain": "ecom",
+      "serviceName": "Payment Service",
+      "summary": "支付单创建、支付成功标记与退款支付记录",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment"
+    },
+    {
+      "appId": "ecom-product",
+      "domain": "ecom",
+      "serviceName": "Product Service",
+      "summary": "商品 SKU 与售卖状态管理",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product"
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "domain": "ecom",
+      "serviceName": "Supply Chain Service",
+      "summary": "采购单、质检与补货计划",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain"
+    },
+    {
+      "appId": "ecom-trade",
+      "domain": "ecom",
+      "serviceName": "Trade Service",
+      "summary": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade"
+    },
+    {
+      "appId": "ecom-user",
+      "domain": "ecom",
+      "serviceName": "User CRM Service",
+      "summary": "用户资料、会员等级与收货地址管理",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user"
+    }
+  ]
 }

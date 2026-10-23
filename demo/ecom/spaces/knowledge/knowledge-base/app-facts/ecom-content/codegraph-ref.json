@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-content",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
+  "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content/.codegraph",
+  "status": "indexed",
+  "indexedAt": "2026-07-16T21:23:14",
+  "stats": {
+    "files": 15,
+    "nodes": 193,
+    "edges": 330
+  },
+  "error": ""
+}

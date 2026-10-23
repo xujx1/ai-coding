@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-supply-chain",
+  "terms": [
+    {
+      "raw": "供应链",
+      "normalized": "供应链",
+      "aliases": [
+        "供应链",
+        "supply-chain"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/api/SupplyChainDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

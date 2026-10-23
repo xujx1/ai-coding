@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-user",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "用户资料、会员等级与收货地址管理",
+  "capabilities": [
+    {
+      "capabilityId": "user-core",
+      "name": "用户资料、会员等级与收货地址管理",
+      "terms": [
+        "用户"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-user",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/add-address",
+        "HTTP /business/upgrade-member"
+      ],
+      "dataEntities": [
+        "user_profiles"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "User CRM Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "User CRM Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "User CRM Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "User CRM Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "summary": "入口 HTTP /business/create-user"
+    },
+    {
+      "type": "code",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "summary": "入口 HTTP /business/add-address"
+    },
+    {
+      "type": "code",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "summary": "入口 HTTP /business/upgrade-member"
+    },
+    {
+      "type": "code",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/api/UserDubboService.java",
+      "summary": "入口 com.ecommerce.user.api.UserDubboService"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-inventory",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/set-stock",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/reserve-stock",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.reserveStock"
+    },
+    {
+      "ref": "HTTP /business/release-reservation",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.releaseReservation"
+    },
+    {
+      "ref": "HTTP /business/deduct-reservation",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.deductReservation"
+    },
+    {
+      "ref": "HTTP /business/return-stock",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.returnStock"
+    },
+    {
+      "ref": "com.ecommerce.inventory.api.InventoryDubboService",
+      "kind": "rpc",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/api/InventoryDubboService.java",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "capabilities": [
+        "库存-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "InventoryDubboService"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-marketing",
+  "entities": [
+    {
+      "name": "营销活动",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "tables": [
+        "marketing_campaigns"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR(64)"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "sku_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "discount_cent",
+          "type": "BIGINT"
+        },
+        {
+          "name": "quota",
+          "type": "INT"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "payload_json",
+          "type": "JSON"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP"
+        }
+      ],
+      "seedHints": [
+        "使用 marketing_campaigns 的 id/业务键创建最小数据"
+      ],
+      "cleanupHints": [
+        "按 id 或业务键清理，先清理依赖子表再清理主表"
+      ],
+      "evidence": "confirmed"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-payment",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "支付单创建、支付成功标记与退款支付记录",
+  "capabilities": [
+    {
+      "capabilityId": "payment-core",
+      "name": "支付单创建、支付成功标记与退款支付记录",
+      "terms": [
+        "支付"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-payment",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/mark-paid",
+        "HTTP /business/create-refund-payment"
+      ],
+      "dataEntities": [
+        "payment_orders"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Payment Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Payment Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Payment Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Payment Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "summary": "入口 HTTP /business/create-payment"
+    },
+    {
+      "type": "code",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "summary": "入口 HTTP /business/mark-paid"
+    },
+    {
+      "type": "code",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "summary": "入口 HTTP /business/create-refund-payment"
+    },
+    {
+      "type": "code",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/api/PaymentDubboService.java",
+      "summary": "入口 com.ecommerce.payment.api.PaymentDubboService"
+    }
+  ]
+}

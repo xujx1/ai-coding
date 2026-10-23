@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-customer-service",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "客服工单、用户问题与处理状态",
+  "capabilities": [
+    {
+      "capabilityId": "customer-service-core",
+      "name": "客服工单、用户问题与处理状态",
+      "terms": [
+        "客服"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-ticket",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/assign-ticket",
+        "HTTP /business/resolve-ticket"
+      ],
+      "dataEntities": [
+        "customer_service_tickets"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Customer Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Customer Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Customer Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Customer Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "summary": "入口 HTTP /business/create-ticket"
+    },
+    {
+      "type": "code",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "summary": "入口 HTTP /business/assign-ticket"
+    },
+    {
+      "type": "code",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "summary": "入口 HTTP /business/resolve-ticket"
+    },
+    {
+      "type": "code",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/api/CustomerServiceDubboService.java",
+      "summary": "入口 com.ecommerce.customerservice.api.CustomerServiceDubboService"
+    }
+  ]
+}

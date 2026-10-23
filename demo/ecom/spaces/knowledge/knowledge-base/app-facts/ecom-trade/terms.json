@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-trade",
+  "terms": [
+    {
+      "raw": "订单",
+      "normalized": "订单",
+      "aliases": [
+        "订单",
+        "trade"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-trade/src/main/java/com/ecommerce/trade/api/TradeDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    },
+    {
+      "raw": "交易编排",
+      "normalized": "交易编排",
+      "aliases": [
+        "交易编排",
+        "trade"
+      ],
+      "kind": "capability",
+      "sources": [
+        "ecom-trade/src/main/java/com/ecommerce/trade/api/TradeDubboService.java"
+      ],
+      "confidence": 0.72,
+      "evidence": "inferred"
+    },
+    {
+      "raw": "订单支付履约",
+      "normalized": "订单支付履约",
+      "aliases": [
+        "订单支付履约",
+        "trade"
+      ],
+      "kind": "capability",
+      "sources": [
+        "ecom-trade/src/main/java/com/ecommerce/trade/api/TradeDubboService.java"
+      ],
+      "confidence": 0.72,
+      "evidence": "inferred"
+    }
+  ]
+}

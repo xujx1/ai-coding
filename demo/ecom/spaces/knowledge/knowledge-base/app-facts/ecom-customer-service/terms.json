@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-customer-service",
+  "terms": [
+    {
+      "raw": "客服",
+      "normalized": "客服",
+      "aliases": [
+        "客服",
+        "customer-service"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-customer-service/src/main/java/com/ecommerce/customerservice/api/CustomerServiceDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

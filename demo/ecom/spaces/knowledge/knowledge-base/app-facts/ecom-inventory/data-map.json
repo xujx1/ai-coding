@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-inventory",
+  "entities": [
+    {
+      "name": "库存",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "tables": [
+        "inventory_stocks"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR(64)"
+        },
+        {
+          "name": "sku_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "warehouse_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "quantity",
+          "type": "INT"
+        },
+        {
+          "name": "available_quantity",
+          "type": "INT"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "payload_json",
+          "type": "JSON"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP"
+        }
+      ],
+      "seedHints": [
+        "使用 inventory_stocks 的 id/业务键创建最小数据"
+      ],
+      "cleanupHints": [
+        "按 id 或业务键清理，先清理依赖子表再清理主表"
+      ],
+      "evidence": "confirmed"
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-trade",
+  "dependencies": [
+    {
+      "toAppId": "ecom-aftersales",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> aftersales",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-content",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> content",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-customer-service",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> customer-service",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-finance",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> finance",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-fulfillment",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> fulfillment",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-inventory",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> inventory",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-logistics",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> logistics",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-marketing",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> marketing",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-merchant",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> merchant",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-payment",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> payment",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-product",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> product",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-supply-chain",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> supply-chain",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "toAppId": "ecom-user",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> user",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    }
+  ]
+}

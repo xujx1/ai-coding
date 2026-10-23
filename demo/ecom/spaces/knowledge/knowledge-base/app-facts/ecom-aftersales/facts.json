@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-aftersales",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "售后单、退款金额、原因与审批状态",
+  "capabilities": [
+    {
+      "capabilityId": "aftersales-core",
+      "name": "售后单、退款金额、原因与审批状态",
+      "terms": [
+        "售后"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-refund-case",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/approve-case",
+        "HTTP /business/reject-case"
+      ],
+      "dataEntities": [
+        "aftersales_cases"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Aftersales Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Aftersales Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Aftersales Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Aftersales Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "summary": "入口 HTTP /business/create-refund-case"
+    },
+    {
+      "type": "code",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "summary": "入口 HTTP /business/approve-case"
+    },
+    {
+      "type": "code",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "summary": "入口 HTTP /business/reject-case"
+    },
+    {
+      "type": "code",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "summary": "入口 HTTP /business/mark-returned"
+    }
+  ]
+}

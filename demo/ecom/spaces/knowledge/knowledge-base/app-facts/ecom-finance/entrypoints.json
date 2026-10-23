@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-finance",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/record-payment",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "terms": [
+        "结算"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "terms": [
+        "结算"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "terms": [
+        "结算"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/create-reconciliation-task",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "terms": [
+        "结算"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.createReconciliationTask"
+    },
+    {
+      "ref": "HTTP /business/create-merchant-settlement",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "terms": [
+        "结算"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.createMerchantSettlement"
+    },
+    {
+      "ref": "HTTP /business/create-invoice",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "terms": [
+        "结算"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.createInvoice"
+    },
+    {
+      "ref": "com.ecommerce.finance.api.FinanceDubboService",
+      "kind": "rpc",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/api/FinanceDubboService.java",
+      "terms": [
+        "结算"
+      ],
+      "capabilities": [
+        "结算-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "FinanceDubboService"
+    }
+  ]
+}

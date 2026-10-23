@@ -1,0 +1,82 @@
+{
+  "domain": "ecom",
+  "apps": [
+    {
+      "appId": "ecom-aftersales",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
+      "responsibility": "售后单、退款金额、原因与审批状态"
+    },
+    {
+      "appId": "ecom-content",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
+      "responsibility": "商品内容素材绑定、审核与驳回"
+    },
+    {
+      "appId": "ecom-customer-service",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
+      "responsibility": "客服工单、用户问题与处理状态"
+    },
+    {
+      "appId": "ecom-finance",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
+      "responsibility": "支付结算记录、商家结算周期与结算状态"
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
+      "responsibility": "履约单、包裹拆分、发货与妥投状态"
+    },
+    {
+      "appId": "ecom-inventory",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
+      "responsibility": "库存行、可售数量与预占扣减释放"
+    },
+    {
+      "appId": "ecom-logistics",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
+      "responsibility": "运单创建、承运信息与签收状态"
+    },
+    {
+      "appId": "ecom-marketing",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
+      "responsibility": "营销活动、优惠额度、活动配额与预占核销"
+    },
+    {
+      "appId": "ecom-merchant",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
+      "responsibility": "商家店铺资质、审核与店铺资料"
+    },
+    {
+      "appId": "ecom-payment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
+      "responsibility": "支付单创建、支付成功标记与退款支付记录"
+    },
+    {
+      "appId": "ecom-product",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
+      "responsibility": "商品 SKU 与售卖状态管理"
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
+      "responsibility": "采购单、质检与补货计划"
+    },
+    {
+      "appId": "ecom-trade",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
+      "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程"
+    },
+    {
+      "appId": "ecom-user",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
+      "responsibility": "用户资料、会员等级与收货地址管理"
+    }
+  ],
+  "coreFlows": [
+    "商品上架",
+    "营销活动库存保护",
+    "下单支付履约",
+    "退款售后",
+    "结算对账"
+  ]
+}

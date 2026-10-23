@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-finance",
+  "entities": [
+    {
+      "name": "结算",
+      "terms": [
+        "结算"
+      ],
+      "tables": [
+        "finance_settlements"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR(64)"
+        },
+        {
+          "name": "payment_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "merchant_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "amount_cent",
+          "type": "BIGINT"
+        },
+        {
+          "name": "period",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "payload_json",
+          "type": "JSON"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP"
+        }
+      ],
+      "seedHints": [
+        "使用 finance_settlements 的 id/业务键创建最小数据"
+      ],
+      "cleanupHints": [
+        "按 id 或业务键清理，先清理依赖子表再清理主表"
+      ],
+      "evidence": "confirmed"
+    }
+  ]
+}

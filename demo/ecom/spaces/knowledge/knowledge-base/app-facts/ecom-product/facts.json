@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-product",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "商品 SKU 与售卖状态管理",
+  "capabilities": [
+    {
+      "capabilityId": "product-core",
+      "name": "商品 SKU 与售卖状态管理",
+      "terms": [
+        "商品"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-sku",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/enable-sale",
+        "HTTP /business/disable-sale"
+      ],
+      "dataEntities": [
+        "product_skus"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Product Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Product Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Product Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Product Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "summary": "入口 HTTP /business/create-sku"
+    },
+    {
+      "type": "code",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "summary": "入口 HTTP /business/enable-sale"
+    },
+    {
+      "type": "code",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "summary": "入口 HTTP /business/disable-sale"
+    },
+    {
+      "type": "code",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/api/ProductDubboService.java",
+      "summary": "入口 com.ecommerce.product.api.ProductDubboService"
+    }
+  ]
+}

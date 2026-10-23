@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "generatedAt": "2026-07-16T22:33:59",
+  "apps": [
+    {
+      "appId": "ecom-aftersales",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 330
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-console",
+      "repoPath": "/Users/xu/IdeaProjects/ecom/console",
+      "indexPath": "/Users/xu/IdeaProjects/ecom/console/.codegraph",
+      "indexedAt": null,
+      "status": "failed",
+      "stats": {
+        "files": 0,
+        "nodes": 0,
+        "edges": 0
+      },
+      "error": "unable to open database file; codegraph index db was in use"
+    },
+    {
+      "appId": "ecom-content",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 330
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-customer-service",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 326
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-finance",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 330
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 329
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-inventory",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 194,
+        "edges": 334
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-logistics",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 194,
+        "edges": 333
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-marketing",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 197,
+        "edges": 347
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-merchant",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 326
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-payment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 325
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-product",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 328
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 193,
+        "edges": 330
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-trade",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 18,
+        "nodes": 251,
+        "edges": 526
+      },
+      "error": ""
+    },
+    {
+      "appId": "ecom-user",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user/.codegraph",
+      "indexedAt": "2026-07-16T21:23:14",
+      "status": "indexed",
+      "stats": {
+        "files": 15,
+        "nodes": 192,
+        "edges": 326
+      },
+      "error": ""
+    }
+  ]
+}

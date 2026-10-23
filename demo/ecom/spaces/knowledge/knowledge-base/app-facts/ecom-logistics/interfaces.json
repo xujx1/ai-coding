@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-logistics",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.logistics.api.LogisticsDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "ecom-trade",
+      "terms": [
+        "物流"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-waybill",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "物流"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "物流"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "物流"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/mark-picked-up",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "物流"
+      ],
+      "handler": "BusinessService.markPickedUp",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/mark-in-transit",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "物流"
+      ],
+      "handler": "BusinessService.markInTransit",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/mark-signed",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "物流"
+      ],
+      "handler": "BusinessService.markSigned",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/report-exception",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "物流"
+      ],
+      "handler": "BusinessService.reportException",
+      "evidence": "confirmed"
+    }
+  ]
+}

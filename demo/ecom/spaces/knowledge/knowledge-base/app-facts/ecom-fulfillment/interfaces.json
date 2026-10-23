@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-fulfillment",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.fulfillment.api.FulfillmentDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "ecom-trade",
+      "terms": [
+        "履约"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-fulfillment",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "履约"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "履约"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "履约"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/split-package",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "履约"
+      ],
+      "handler": "BusinessService.splitPackage",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/ship-package",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "履约"
+      ],
+      "handler": "BusinessService.shipPackage",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/mark-delivered",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "履约"
+      ],
+      "handler": "BusinessService.markDelivered",
+      "evidence": "confirmed"
+    }
+  ]
+}

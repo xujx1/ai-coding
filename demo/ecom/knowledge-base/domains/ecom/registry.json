@@ -1,0 +1,540 @@
+{
+  "version": 1,
+  "domain": "ecom",
+  "domainPath": "knowledge-base/domains/ecom",
+  "generatedAt": "2026-07-16T14:04:52",
+  "evidencePolicy": {
+    "implementationAllowed": [
+      "confirmed",
+      "manual"
+    ],
+    "advisoryOnly": [
+      "inferred"
+    ]
+  },
+  "apps": [
+    {
+      "appId": "ecom-aftersales",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
+      "role": "aftersales",
+      "httpPort": 4213,
+      "dubboPort": 4313,
+      "responsibilities": [
+        "aftersales-order",
+        "refund-request",
+        "return-package",
+        "dispute-case"
+      ],
+      "entrypoints": [
+        "com.ecommerce.aftersales.AppServer",
+        "com.ecommerce.aftersales.BusinessService",
+        "com.ecommerce.aftersales.api.AftersalesDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "trade",
+          "payment",
+          "fulfillment"
+        ],
+        "downstream": [
+          "inventory",
+          "finance",
+          "customer-service"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_aftersales_cases?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "aftersales_cases"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-content",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
+      "role": "content",
+      "httpPort": 4220,
+      "dubboPort": 4320,
+      "responsibilities": [
+        "post",
+        "video",
+        "live-room",
+        "comment",
+        "creator-profile"
+      ],
+      "entrypoints": [
+        "com.ecommerce.content.AppServer",
+        "com.ecommerce.content.BusinessService",
+        "com.ecommerce.content.api.ContentDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "product",
+          "merchant",
+          "user"
+        ],
+        "downstream": [
+          "marketing",
+          "customer-service"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_content_items?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "content_items"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-customer-service",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
+      "role": "customer service",
+      "httpPort": 4221,
+      "dubboPort": 4321,
+      "responsibilities": [
+        "ticket",
+        "conversation",
+        "work-order",
+        "service-sla"
+      ],
+      "entrypoints": [
+        "com.ecommerce.customerservice.AppServer",
+        "com.ecommerce.customerservice.BusinessService",
+        "com.ecommerce.customerservice.api.CustomerServiceDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "user",
+          "trade",
+          "aftersales",
+          "logistics"
+        ],
+        "downstream": []
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_customer_service_tickets?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "customer_service_tickets"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-finance",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
+      "role": "finance",
+      "httpPort": 4222,
+      "dubboPort": 4322,
+      "responsibilities": [
+        "settlement-bill",
+        "reconciliation-task",
+        "invoice",
+        "ledger-entry"
+      ],
+      "entrypoints": [
+        "com.ecommerce.finance.AppServer",
+        "com.ecommerce.finance.BusinessService",
+        "com.ecommerce.finance.api.FinanceDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "payment",
+          "trade",
+          "marketing",
+          "merchant"
+        ],
+        "downstream": [
+          "supply-chain"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_finance_settlements?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "finance_settlements"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
+      "role": "fulfillment",
+      "httpPort": 4216,
+      "dubboPort": 4316,
+      "responsibilities": [
+        "fulfillment-order",
+        "package",
+        "shipment-plan",
+        "wms-task"
+      ],
+      "entrypoints": [
+        "com.ecommerce.fulfillment.AppServer",
+        "com.ecommerce.fulfillment.BusinessService",
+        "com.ecommerce.fulfillment.api.FulfillmentDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "trade",
+          "inventory",
+          "user"
+        ],
+        "downstream": [
+          "logistics",
+          "aftersales"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_fulfillment_orders?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "fulfillment_orders"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-inventory",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
+      "role": "inventory",
+      "httpPort": 4215,
+      "dubboPort": 4315,
+      "responsibilities": [
+        "stock-item",
+        "stock-reservation",
+        "warehouse-stock",
+        "inventory-ledger"
+      ],
+      "entrypoints": [
+        "com.ecommerce.inventory.AppServer",
+        "com.ecommerce.inventory.BusinessService",
+        "com.ecommerce.inventory.api.InventoryDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "product",
+          "trade",
+          "aftersales"
+        ],
+        "downstream": [
+          "fulfillment",
+          "supply-chain"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_inventory_stocks?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "inventory_stocks"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-logistics",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
+      "role": "logistics",
+      "httpPort": 4217,
+      "dubboPort": 4317,
+      "responsibilities": [
+        "waybill",
+        "carrier",
+        "tracking-event",
+        "delivery-exception"
+      ],
+      "entrypoints": [
+        "com.ecommerce.logistics.AppServer",
+        "com.ecommerce.logistics.BusinessService",
+        "com.ecommerce.logistics.api.LogisticsDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "fulfillment"
+        ],
+        "downstream": [
+          "customer-service"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_logistics_waybills?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "logistics_waybills"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-marketing",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
+      "role": "marketing",
+      "httpPort": 4214,
+      "dubboPort": 4314,
+      "responsibilities": [
+        "campaign",
+        "coupon-template",
+        "coupon-instance",
+        "promotion-rule",
+        "points-ledger"
+      ],
+      "entrypoints": [
+        "com.ecommerce.marketing.AppServer",
+        "com.ecommerce.marketing.BusinessService",
+        "com.ecommerce.marketing.api.MarketingDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "product",
+          "user"
+        ],
+        "downstream": [
+          "trade",
+          "finance"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_marketing_campaigns?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "marketing_campaigns"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-merchant",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
+      "role": "merchant",
+      "httpPort": 4219,
+      "dubboPort": 4319,
+      "responsibilities": [
+        "merchant",
+        "shop",
+        "qualification",
+        "shop-theme"
+      ],
+      "entrypoints": [
+        "com.ecommerce.merchant.AppServer",
+        "com.ecommerce.merchant.BusinessService",
+        "com.ecommerce.merchant.api.MerchantDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "finance"
+        ],
+        "downstream": [
+          "product",
+          "content",
+          "customer-service"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_merchant_shops?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "merchant_shops"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-payment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
+      "role": "payment",
+      "httpPort": 4212,
+      "dubboPort": 4312,
+      "responsibilities": [
+        "payment-order",
+        "payment-channel",
+        "refund-payment-order"
+      ],
+      "entrypoints": [
+        "com.ecommerce.payment.AppServer",
+        "com.ecommerce.payment.BusinessService",
+        "com.ecommerce.payment.api.PaymentDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "trade",
+          "aftersales"
+        ],
+        "downstream": [
+          "finance"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_payment_orders?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "payment_orders"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-product",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
+      "role": "product",
+      "httpPort": 4210,
+      "dubboPort": 4310,
+      "responsibilities": [
+        "spu",
+        "sku",
+        "category",
+        "brand",
+        "product-asset"
+      ],
+      "entrypoints": [
+        "com.ecommerce.product.AppServer",
+        "com.ecommerce.product.BusinessService",
+        "com.ecommerce.product.api.ProductDubboService"
+      ],
+      "dependencies": {
+        "upstream": [],
+        "downstream": [
+          "search",
+          "trade",
+          "marketing",
+          "inventory"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_product_skus?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "product_skus"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
+      "role": "supply chain",
+      "httpPort": 4223,
+      "dubboPort": 4323,
+      "responsibilities": [
+        "purchase-order",
+        "supplier",
+        "quality-check",
+        "replenishment-plan"
+      ],
+      "entrypoints": [
+        "com.ecommerce.supplychain.AppServer",
+        "com.ecommerce.supplychain.BusinessService",
+        "com.ecommerce.supplychain.api.SupplyChainDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "inventory",
+          "finance"
+        ],
+        "downstream": [
+          "inventory",
+          "merchant"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_supply_chain_purchase_orders?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "supply_chain_purchase_orders"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-trade",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
+      "role": "trade",
+      "httpPort": 4211,
+      "dubboPort": 4311,
+      "responsibilities": [
+        "cart",
+        "order",
+        "order-line",
+        "trade-state"
+      ],
+      "entrypoints": [
+        "com.ecommerce.trade.AppServer",
+        "com.ecommerce.trade.BusinessService",
+        "com.ecommerce.trade.api.TradeDubboService"
+      ],
+      "dependencies": {
+        "upstream": [
+          "product",
+          "user",
+          "marketing",
+          "inventory"
+        ],
+        "downstream": [
+          "payment",
+          "fulfillment",
+          "aftersales",
+          "finance"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_trade_orders?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "trade_orders"
+        ]
+      },
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-user",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
+      "role": "user",
+      "httpPort": 4218,
+      "dubboPort": 4318,
+      "responsibilities": [
+        "user-account",
+        "member-profile",
+        "address",
+        "identity-record"
+      ],
+      "entrypoints": [
+        "com.ecommerce.user.AppServer",
+        "com.ecommerce.user.BusinessService",
+        "com.ecommerce.user.api.UserDubboService"
+      ],
+      "dependencies": {
+        "upstream": [],
+        "downstream": [
+          "trade",
+          "marketing",
+          "fulfillment",
+          "customer-service"
+        ]
+      },
+      "data": {
+        "dbUrl": "jdbc:mysql://localhost:3306/ecom_user_profiles?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+        "tables": [
+          "user_profiles"
+        ]
+      },
+      "evidence": "confirmed"
+    }
+  ],
+  "flows": [
+    {
+      "name": "商品上架",
+      "apps": "merchant -> product -> content -> marketing/inventory",
+      "evidence": "confirmed"
+    },
+    {
+      "name": "营销活动库存保护",
+      "apps": "product -> inventory -> marketing -> trade",
+      "evidence": "confirmed"
+    },
+    {
+      "name": "下单支付履约",
+      "apps": "user/product/marketing/inventory -> trade -> payment -> fulfillment -> logistics -> finance",
+      "evidence": "confirmed"
+    },
+    {
+      "name": "退款售后",
+      "apps": "trade/payment/fulfillment -> aftersales -> inventory/finance/customer-service",
+      "evidence": "confirmed"
+    },
+    {
+      "name": "结算对账",
+      "apps": "payment/trade/marketing/merchant -> finance -> supply-chain",
+      "evidence": "confirmed"
+    }
+  ]
+}

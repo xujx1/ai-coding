@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-trade",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-order",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/demo-checkout",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "TradeOrchestrationService.demoCheckout"
+    },
+    {
+      "ref": "HTTP /business/demo-cancel",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "TradeOrchestrationService.demoCancel"
+    },
+    {
+      "ref": "HTTP /business/demo-full-chain",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "TradeOrchestrationService.demoFullChain"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/confirm-paid",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.confirmPaid"
+    },
+    {
+      "ref": "HTTP /business/cancel-order",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.cancelOrder"
+    },
+    {
+      "ref": "HTTP /business/complete-order",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.completeOrder"
+    },
+    {
+      "ref": "com.ecommerce.trade.api.TradeDubboService",
+      "kind": "rpc",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/api/TradeDubboService.java",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "capabilities": [
+        "订单-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "TradeDubboService"
+    }
+  ]
+}

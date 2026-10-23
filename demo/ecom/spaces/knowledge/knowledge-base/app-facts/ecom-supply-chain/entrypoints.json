@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-supply-chain",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-purchase-order",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "terms": [
+        "供应链"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "terms": [
+        "供应链"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "terms": [
+        "供应链"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/approve-quality-check",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "terms": [
+        "供应链"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.approveQualityCheck"
+    },
+    {
+      "ref": "HTTP /business/reject-quality-check",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "terms": [
+        "供应链"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.rejectQualityCheck"
+    },
+    {
+      "ref": "HTTP /business/create-replenishment-plan",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "terms": [
+        "供应链"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.createReplenishmentPlan"
+    },
+    {
+      "ref": "com.ecommerce.supplychain.api.SupplyChainDubboService",
+      "kind": "rpc",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/api/SupplyChainDubboService.java",
+      "terms": [
+        "供应链"
+      ],
+      "capabilities": [
+        "供应链-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "SupplyChainDubboService"
+    }
+  ]
+}

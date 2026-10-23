@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-content",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "商品内容素材绑定、审核与驳回",
+  "capabilities": [
+    {
+      "capabilityId": "content-core",
+      "name": "商品内容素材绑定、审核与驳回",
+      "terms": [
+        "内容"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-post",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/bind-product",
+        "HTTP /business/approve-content"
+      ],
+      "dataEntities": [
+        "content_items"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Content Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Content Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Content Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Content Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "summary": "入口 HTTP /business/create-post"
+    },
+    {
+      "type": "code",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "summary": "入口 HTTP /business/bind-product"
+    },
+    {
+      "type": "code",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "summary": "入口 HTTP /business/approve-content"
+    },
+    {
+      "type": "code",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "summary": "入口 HTTP /business/reject-content"
+    }
+  ]
+}

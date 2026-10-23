@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-content",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.content.api.ContentDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "ecom-trade",
+      "terms": [
+        "内容"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-post",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "内容"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "内容"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "内容"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/bind-product",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "内容"
+      ],
+      "handler": "BusinessService.bindProduct",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/approve-content",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "内容"
+      ],
+      "handler": "BusinessService.approveContent",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/reject-content",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "内容"
+      ],
+      "handler": "BusinessService.rejectContent",
+      "evidence": "confirmed"
+    }
+  ]
+}

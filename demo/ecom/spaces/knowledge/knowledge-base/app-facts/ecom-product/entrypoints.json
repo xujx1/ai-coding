@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-product",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-sku",
+      "kind": "http",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "terms": [
+        "商品"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "terms": [
+        "商品"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "terms": [
+        "商品"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/enable-sale",
+      "kind": "http",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "terms": [
+        "商品"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.enableSale"
+    },
+    {
+      "ref": "HTTP /business/disable-sale",
+      "kind": "http",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "terms": [
+        "商品"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.disableSale"
+    },
+    {
+      "ref": "com.ecommerce.product.api.ProductDubboService",
+      "kind": "rpc",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/api/ProductDubboService.java",
+      "terms": [
+        "商品"
+      ],
+      "capabilities": [
+        "商品-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "ProductDubboService"
+    }
+  ]
+}

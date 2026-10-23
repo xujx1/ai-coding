@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-supply-chain",
+  "entities": [
+    {
+      "name": "供应链",
+      "terms": [
+        "供应链"
+      ],
+      "tables": [
+        "supply_chain_purchase_orders"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR(64)"
+        },
+        {
+          "name": "supplier_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "sku_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "quantity",
+          "type": "INT"
+        },
+        {
+          "name": "quality_check_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "payload_json",
+          "type": "JSON"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP"
+        }
+      ],
+      "seedHints": [
+        "使用 supply_chain_purchase_orders 的 id/业务键创建最小数据"
+      ],
+      "cleanupHints": [
+        "按 id 或业务键清理，先清理依赖子表再清理主表"
+      ],
+      "evidence": "confirmed"
+    }
+  ]
+}

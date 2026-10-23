@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-fulfillment",
+  "entities": [
+    {
+      "name": "履约",
+      "terms": [
+        "履约"
+      ],
+      "tables": [
+        "fulfillment_orders"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR(64)"
+        },
+        {
+          "name": "order_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "warehouse_id",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "package_count",
+          "type": "INT"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "payload_json",
+          "type": "JSON"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP"
+        }
+      ],
+      "seedHints": [
+        "使用 fulfillment_orders 的 id/业务键创建最小数据"
+      ],
+      "cleanupHints": [
+        "按 id 或业务键清理，先清理依赖子表再清理主表"
+      ],
+      "evidence": "confirmed"
+    }
+  ]
+}

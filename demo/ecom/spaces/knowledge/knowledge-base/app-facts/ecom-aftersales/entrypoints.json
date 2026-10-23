@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-aftersales",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-refund-case",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "terms": [
+        "售后"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "terms": [
+        "售后"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "terms": [
+        "售后"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/approve-case",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "terms": [
+        "售后"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.approveCase"
+    },
+    {
+      "ref": "HTTP /business/reject-case",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "terms": [
+        "售后"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.rejectCase"
+    },
+    {
+      "ref": "HTTP /business/mark-returned",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "terms": [
+        "售后"
+      ],
+      "capabilities": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.markReturned"
+    },
+    {
+      "ref": "com.ecommerce.aftersales.api.AftersalesDubboService",
+      "kind": "rpc",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/api/AftersalesDubboService.java",
+      "terms": [
+        "售后"
+      ],
+      "capabilities": [
+        "售后-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "AftersalesDubboService"
+    }
+  ]
+}

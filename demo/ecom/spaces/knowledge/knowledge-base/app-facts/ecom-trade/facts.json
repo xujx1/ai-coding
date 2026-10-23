@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-trade",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+  "capabilities": [
+    {
+      "capabilityId": "trade-core",
+      "name": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-order",
+        "HTTP /business/demo-checkout",
+        "HTTP /business/demo-cancel",
+        "HTTP /business/demo-full-chain",
+        "HTTP /business/list"
+      ],
+      "dataEntities": [
+        "trade_orders"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Trade Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Trade Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Trade Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Trade Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "summary": "入口 HTTP /business/create-order"
+    },
+    {
+      "type": "code",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "summary": "入口 HTTP /business/demo-checkout"
+    },
+    {
+      "type": "code",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "summary": "入口 HTTP /business/demo-cancel"
+    },
+    {
+      "type": "code",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "summary": "入口 HTTP /business/demo-full-chain"
+    },
+    {
+      "type": "code",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    }
+  ]
+}

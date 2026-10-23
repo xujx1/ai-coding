@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-marketing",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+  "capabilities": [
+    {
+      "capabilityId": "marketing-core",
+      "name": "营销活动、优惠额度、活动配额与预占核销",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-campaign",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/enable-campaign",
+        "HTTP /business/disable-campaign"
+      ],
+      "dataEntities": [
+        "marketing_campaigns"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Marketing Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Marketing Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Marketing Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Marketing Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "summary": "入口 HTTP /business/create-campaign"
+    },
+    {
+      "type": "code",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "summary": "入口 HTTP /business/enable-campaign"
+    },
+    {
+      "type": "code",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "summary": "入口 HTTP /business/disable-campaign"
+    },
+    {
+      "type": "code",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "summary": "入口 HTTP /business/reserve-promotion"
+    }
+  ]
+}

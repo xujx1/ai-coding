@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-logistics",
+  "terms": [
+    {
+      "raw": "物流",
+      "normalized": "物流",
+      "aliases": [
+        "物流",
+        "logistics"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-logistics/src/main/java/com/ecommerce/logistics/api/LogisticsDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

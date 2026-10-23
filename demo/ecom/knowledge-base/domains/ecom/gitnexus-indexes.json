@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "domain": "ecom",
+  "generatedAt": "2026-07-16T14:04:52",
+  "indexes": [
+    {
+      "appId": "ecom-aftersales",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-content",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-customer-service",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-finance",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-inventory",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-logistics",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-marketing",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-merchant",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-payment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-product",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-trade",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    },
+    {
+      "appId": "ecom-user",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
+      "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user/.gitnexus",
+      "status": "degraded",
+      "indexedAt": null,
+      "reason": "GitNexus CLI was unavailable/hung during smoke run; static scan used."
+    }
+  ]
+}

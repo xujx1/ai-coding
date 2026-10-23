@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-logistics",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-waybill",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "terms": [
+        "物流"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "terms": [
+        "物流"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "terms": [
+        "物流"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/mark-picked-up",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "terms": [
+        "物流"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.markPickedUp"
+    },
+    {
+      "ref": "HTTP /business/mark-in-transit",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "terms": [
+        "物流"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.markInTransit"
+    },
+    {
+      "ref": "HTTP /business/mark-signed",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "terms": [
+        "物流"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.markSigned"
+    },
+    {
+      "ref": "HTTP /business/report-exception",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "terms": [
+        "物流"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.reportException"
+    },
+    {
+      "ref": "com.ecommerce.logistics.api.LogisticsDubboService",
+      "kind": "rpc",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/api/LogisticsDubboService.java",
+      "terms": [
+        "物流"
+      ],
+      "capabilities": [
+        "物流-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "LogisticsDubboService"
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-marketing",
+  "interfaces": [
+    {
+      "ref": "com.ecommerce.marketing.api.MarketingDubboService",
+      "type": "rpc",
+      "direction": "provider",
+      "peerAppId": "ecom-trade",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/create-campaign",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "handler": "BusinessService.create",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/list",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "handler": "BusinessService.list",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/get",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "handler": "BusinessService.get",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/enable-campaign",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "handler": "BusinessService.enableCampaign",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/disable-campaign",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "handler": "BusinessService.disableCampaign",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/reserve-promotion",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "handler": "BusinessService.reservePromotion",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/confirm-use",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "handler": "BusinessService.confirmUse",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/cancel-reservation",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "handler": "BusinessService.cancelReservation",
+      "evidence": "confirmed"
+    },
+    {
+      "ref": "/business/delete-campaign",
+      "type": "http",
+      "direction": "provider",
+      "peerAppId": "internal/demo-client",
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ],
+      "handler": "BusinessService.deleteCampaign",
+      "evidence": "confirmed"
+    }
+  ]
+}

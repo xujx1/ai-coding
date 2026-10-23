@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-inventory",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "库存行、可售数量与预占扣减释放",
+  "capabilities": [
+    {
+      "capabilityId": "inventory-core",
+      "name": "库存行、可售数量与预占扣减释放",
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ],
+      "entrypoints": [
+        "HTTP /business/set-stock",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/reserve-stock",
+        "HTTP /business/release-reservation"
+      ],
+      "dataEntities": [
+        "inventory_stocks"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Inventory Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Inventory Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Inventory Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Inventory Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "summary": "入口 HTTP /business/set-stock"
+    },
+    {
+      "type": "code",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "summary": "入口 HTTP /business/reserve-stock"
+    },
+    {
+      "type": "code",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "summary": "入口 HTTP /business/release-reservation"
+    },
+    {
+      "type": "code",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "summary": "入口 HTTP /business/deduct-reservation"
+    }
+  ]
+}

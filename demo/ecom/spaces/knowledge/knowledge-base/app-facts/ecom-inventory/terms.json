@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-inventory",
+  "terms": [
+    {
+      "raw": "库存",
+      "normalized": "库存",
+      "aliases": [
+        "库存",
+        "inventory"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-inventory/src/main/java/com/ecommerce/inventory/api/InventoryDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    },
+    {
+      "raw": "库存预占",
+      "normalized": "库存预占",
+      "aliases": [
+        "库存预占",
+        "inventory"
+      ],
+      "kind": "capability",
+      "sources": [
+        "ecom-inventory/src/main/java/com/ecommerce/inventory/api/InventoryDubboService.java"
+      ],
+      "confidence": 0.72,
+      "evidence": "inferred"
+    },
+    {
+      "raw": "库存扣减",
+      "normalized": "库存扣减",
+      "aliases": [
+        "库存扣减",
+        "inventory"
+      ],
+      "kind": "capability",
+      "sources": [
+        "ecom-inventory/src/main/java/com/ecommerce/inventory/api/InventoryDubboService.java"
+      ],
+      "confidence": 0.72,
+      "evidence": "inferred"
+    }
+  ]
+}

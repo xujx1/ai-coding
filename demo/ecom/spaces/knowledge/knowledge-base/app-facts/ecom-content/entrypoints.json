@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-content",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-post",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "terms": [
+        "内容"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "terms": [
+        "内容"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "terms": [
+        "内容"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/bind-product",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "terms": [
+        "内容"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.bindProduct"
+    },
+    {
+      "ref": "HTTP /business/approve-content",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "terms": [
+        "内容"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.approveContent"
+    },
+    {
+      "ref": "HTTP /business/reject-content",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "terms": [
+        "内容"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.rejectContent"
+    },
+    {
+      "ref": "com.ecommerce.content.api.ContentDubboService",
+      "kind": "rpc",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/api/ContentDubboService.java",
+      "terms": [
+        "内容"
+      ],
+      "capabilities": [
+        "内容-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "ContentDubboService"
+    }
+  ]
+}

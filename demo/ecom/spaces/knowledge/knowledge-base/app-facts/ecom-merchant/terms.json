@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-merchant",
+  "terms": [
+    {
+      "raw": "商家",
+      "normalized": "商家",
+      "aliases": [
+        "商家",
+        "merchant"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-merchant/src/main/java/com/ecommerce/merchant/api/MerchantDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

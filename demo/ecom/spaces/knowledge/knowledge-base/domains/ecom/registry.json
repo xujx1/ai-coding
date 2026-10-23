@@ -1,0 +1,4065 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "knowledgeRoot": "spaces/knowledge/knowledge-base",
+  "domainPath": "spaces/knowledge/knowledge-base/domains/ecom",
+  "generatedAt": "2026-07-16T22:33:59",
+  "freshness": {
+    "status": "fresh",
+    "lastGeneratedAt": "2026-07-16T22:33:59"
+  },
+  "apps": [
+    {
+      "appId": "ecom-aftersales",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
+      "responsibility": "售后单、退款金额、原因与审批状态",
+      "ownedTerms": [
+        "售后"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-refund-case",
+          "kind": "http",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/approve-case",
+          "kind": "http",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/reject-case",
+          "kind": "http",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/mark-returned",
+          "kind": "http",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.aftersales.api.AftersalesDubboService",
+          "kind": "rpc",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/api/AftersalesDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "aftersales_cases"
+        ],
+        "schemaDoc": "data-map.md#ecom-aftersales"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 330
+        }
+      }
+    },
+    {
+      "appId": "ecom-content",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
+      "responsibility": "商品内容素材绑定、审核与驳回",
+      "ownedTerms": [
+        "内容"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-post",
+          "kind": "http",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/bind-product",
+          "kind": "http",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/approve-content",
+          "kind": "http",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/reject-content",
+          "kind": "http",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.content.api.ContentDubboService",
+          "kind": "rpc",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/api/ContentDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "content_items"
+        ],
+        "schemaDoc": "data-map.md#ecom-content"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 330
+        }
+      }
+    },
+    {
+      "appId": "ecom-console",
+      "repoPath": "/Users/xu/IdeaProjects/ecom/console",
+      "responsibility": "运营后台演示入口，新增创建受库存保护的活动按钮并展示商品、库存、营销结果",
+      "ownedTerms": [
+        "运营后台",
+        "库存保护活动"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "UI stockGuardCampaign",
+          "kind": "ui",
+          "path": "index.html",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "UI campaignDelete",
+          "kind": "ui",
+          "path": "index.html",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [],
+        "schemaDoc": "data-map.md#ecom-console"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ecom/console/.codegraph",
+        "status": "failed",
+        "indexedAt": null,
+        "stats": {
+          "files": 0,
+          "nodes": 0,
+          "edges": 0
+        },
+        "error": "unable to open database file; codegraph index db was in use"
+      }
+    },
+    {
+      "appId": "ecom-customer-service",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
+      "responsibility": "客服工单、用户问题与处理状态",
+      "ownedTerms": [
+        "客服"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-ticket",
+          "kind": "http",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/assign-ticket",
+          "kind": "http",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/resolve-ticket",
+          "kind": "http",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.customerservice.api.CustomerServiceDubboService",
+          "kind": "rpc",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/api/CustomerServiceDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "customer_service_tickets"
+        ],
+        "schemaDoc": "data-map.md#ecom-customer-service"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 326
+        }
+      }
+    },
+    {
+      "appId": "ecom-finance",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
+      "responsibility": "支付结算记录、商家结算周期与结算状态",
+      "ownedTerms": [
+        "结算"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/record-payment",
+          "kind": "http",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/create-reconciliation-task",
+          "kind": "http",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/create-merchant-settlement",
+          "kind": "http",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/create-invoice",
+          "kind": "http",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.finance.api.FinanceDubboService",
+          "kind": "rpc",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/api/FinanceDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "finance_settlements"
+        ],
+        "schemaDoc": "data-map.md#ecom-finance"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 330
+        }
+      }
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
+      "responsibility": "履约单、包裹拆分、发货与妥投状态",
+      "ownedTerms": [
+        "履约"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-fulfillment",
+          "kind": "http",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/split-package",
+          "kind": "http",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/ship-package",
+          "kind": "http",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/mark-delivered",
+          "kind": "http",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.fulfillment.api.FulfillmentDubboService",
+          "kind": "rpc",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/api/FulfillmentDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "fulfillment_orders"
+        ],
+        "schemaDoc": "data-map.md#ecom-fulfillment"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 329
+        }
+      }
+    },
+    {
+      "appId": "ecom-inventory",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
+      "responsibility": "库存行、可售数量、活动库存保护与幂等释放",
+      "ownedTerms": [
+        "库存",
+        "库存预占",
+        "库存扣减",
+        "活动库存保护"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/set-stock",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/query-available",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/protect-campaign-stock",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/release-campaign-stock",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/reserve-stock",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/release-reservation",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/deduct-reservation",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/return-stock",
+          "kind": "http",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.inventory.api.InventoryDubboService",
+          "kind": "rpc",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/api/InventoryDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "inventory_stocks",
+          "inventory_campaign_protections"
+        ],
+        "schemaDoc": "data-map.md#ecom-inventory"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 194,
+          "edges": 334
+        }
+      }
+    },
+    {
+      "appId": "ecom-logistics",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
+      "responsibility": "运单创建、承运信息与签收状态",
+      "ownedTerms": [
+        "物流"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-waybill",
+          "kind": "http",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/mark-picked-up",
+          "kind": "http",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/mark-in-transit",
+          "kind": "http",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/mark-signed",
+          "kind": "http",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/report-exception",
+          "kind": "http",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.logistics.api.LogisticsDubboService",
+          "kind": "rpc",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/api/LogisticsDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "logistics_waybills"
+        ],
+        "schemaDoc": "data-map.md#ecom-logistics"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 194,
+          "edges": 333
+        }
+      }
+    },
+    {
+      "appId": "ecom-marketing",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
+      "responsibility": "营销活动、优惠额度、活动配额、库存保护编排与核销",
+      "ownedTerms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销",
+        "库存保护活动"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-campaign",
+          "kind": "http",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/enable-campaign",
+          "kind": "http",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/disable-campaign",
+          "kind": "http",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/delete-campaign",
+          "kind": "http",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/reserve-promotion",
+          "kind": "http",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/confirm-use",
+          "kind": "http",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/cancel-reservation",
+          "kind": "http",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "marketing_campaigns"
+        ],
+        "schemaDoc": "data-map.md#ecom-marketing"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 197,
+          "edges": 347
+        }
+      }
+    },
+    {
+      "appId": "ecom-merchant",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
+      "responsibility": "商家店铺资质、审核与店铺资料",
+      "ownedTerms": [
+        "商家"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-merchant",
+          "kind": "http",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/approve-merchant",
+          "kind": "http",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/disable-shop",
+          "kind": "http",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.merchant.api.MerchantDubboService",
+          "kind": "rpc",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/api/MerchantDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "merchant_shops"
+        ],
+        "schemaDoc": "data-map.md#ecom-merchant"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 326
+        }
+      }
+    },
+    {
+      "appId": "ecom-payment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
+      "responsibility": "支付单创建、支付成功标记与退款支付记录",
+      "ownedTerms": [
+        "支付"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-payment",
+          "kind": "http",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/mark-paid",
+          "kind": "http",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/create-refund-payment",
+          "kind": "http",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.payment.api.PaymentDubboService",
+          "kind": "rpc",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/api/PaymentDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "payment_orders"
+        ],
+        "schemaDoc": "data-map.md#ecom-payment"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 325
+        }
+      }
+    },
+    {
+      "appId": "ecom-product",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
+      "responsibility": "商品 SKU 与售卖状态管理",
+      "ownedTerms": [
+        "商品"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-sku",
+          "kind": "http",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/enable-sale",
+          "kind": "http",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/disable-sale",
+          "kind": "http",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.product.api.ProductDubboService",
+          "kind": "rpc",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/api/ProductDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "product_skus"
+        ],
+        "schemaDoc": "data-map.md#ecom-product"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 328
+        }
+      }
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
+      "responsibility": "采购单、质检与补货计划",
+      "ownedTerms": [
+        "供应链"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-purchase-order",
+          "kind": "http",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/approve-quality-check",
+          "kind": "http",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/reject-quality-check",
+          "kind": "http",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/create-replenishment-plan",
+          "kind": "http",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.supplychain.api.SupplyChainDubboService",
+          "kind": "rpc",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/api/SupplyChainDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "supply_chain_purchase_orders"
+        ],
+        "schemaDoc": "data-map.md#ecom-supply-chain"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 193,
+          "edges": 330
+        }
+      }
+    },
+    {
+      "appId": "ecom-trade",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
+      "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+      "ownedTerms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-order",
+          "kind": "http",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/demo-checkout",
+          "kind": "http",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/demo-cancel",
+          "kind": "http",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/demo-full-chain",
+          "kind": "http",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/confirm-paid",
+          "kind": "http",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/cancel-order",
+          "kind": "http",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "trade_orders"
+        ],
+        "schemaDoc": "data-map.md#ecom-trade"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 18,
+          "nodes": 251,
+          "edges": 526
+        }
+      }
+    },
+    {
+      "appId": "ecom-user",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
+      "responsibility": "用户资料、会员等级与收货地址管理",
+      "ownedTerms": [
+        "用户"
+      ],
+      "entrypoints": [
+        {
+          "symbol": "HTTP /business/create-user",
+          "kind": "http",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/list",
+          "kind": "http",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/get",
+          "kind": "http",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/add-address",
+          "kind": "http",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "HTTP /business/upgrade-member",
+          "kind": "http",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+          "evidence": "confirmed"
+        },
+        {
+          "symbol": "com.ecommerce.user.api.UserDubboService",
+          "kind": "rpc",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/api/UserDubboService.java",
+          "evidence": "confirmed"
+        }
+      ],
+      "dataOwnership": {
+        "tables": [
+          "user_profiles"
+        ],
+        "schemaDoc": "data-map.md#ecom-user"
+      },
+      "codegraph": {
+        "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user/.codegraph",
+        "status": "indexed",
+        "indexedAt": "2026-07-16T21:23:14",
+        "stats": {
+          "files": 15,
+          "nodes": 192,
+          "edges": 326
+        }
+      }
+    }
+  ],
+  "flows": [
+    {
+      "flowId": "catalog-publish",
+      "name": "商品上架",
+      "nodes": [
+        {
+          "appId": "ecom-merchant",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-content",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-supply-chain",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "flowId": "campaign-stock-guard",
+      "name": "营销活动库存保护",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "flowId": "checkout-fulfillment",
+      "name": "下单支付履约",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "flowId": "refund-aftersales",
+      "name": "退款售后",
+      "nodes": [
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-aftersales",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-customer-service",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "flowId": "settlement-reconcile",
+      "name": "结算对账",
+      "nodes": [
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-merchant",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-finance",
+          "entrypoint": "见 entrypoints.md",
+          "interfaceRef": "Dubbo/HTTP",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "termCoverage": [
+    {
+      "term": "售后",
+      "aliases": [
+        "售后",
+        "aftersales"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-aftersales",
+          "responsibility": "售后单、退款金额、原因与审批状态",
+          "capabilities": [
+            "aftersales-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-refund-case",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/approve-case"
+          ],
+          "dataEntities": [
+            "aftersales_cases"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "内容",
+      "aliases": [
+        "内容",
+        "content"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-content",
+          "responsibility": "商品内容素材绑定、审核与驳回",
+          "capabilities": [
+            "content-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-post",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/bind-product"
+          ],
+          "dataEntities": [
+            "content_items"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "客服",
+      "aliases": [
+        "客服",
+        "customer-service"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-customer-service",
+          "responsibility": "客服工单、用户问题与处理状态",
+          "capabilities": [
+            "customer-service-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-ticket",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/assign-ticket"
+          ],
+          "dataEntities": [
+            "customer_service_tickets"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "结算",
+      "aliases": [
+        "结算",
+        "finance"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-finance",
+          "responsibility": "支付结算记录、商家结算周期与结算状态",
+          "capabilities": [
+            "finance-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/record-payment",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/create-reconciliation-task"
+          ],
+          "dataEntities": [
+            "finance_settlements"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "settlement-reconcile"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "履约",
+      "aliases": [
+        "履约",
+        "fulfillment"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-fulfillment",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "capabilities": [
+            "fulfillment-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-fulfillment",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/split-package"
+          ],
+          "dataEntities": [
+            "fulfillment_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存",
+      "aliases": [
+        "库存",
+        "inventory"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-inventory",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "capabilities": [
+            "inventory-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/set-stock",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/reserve-stock"
+          ],
+          "dataEntities": [
+            "inventory_stocks"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "campaign-stock-guard",
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存预占",
+      "aliases": [
+        "库存预占",
+        "inventory"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-inventory",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "capabilities": [
+            "inventory-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/set-stock",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/reserve-stock"
+          ],
+          "dataEntities": [
+            "inventory_stocks"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "campaign-stock-guard",
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存扣减",
+      "aliases": [
+        "库存扣减",
+        "inventory"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-inventory",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "capabilities": [
+            "inventory-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/set-stock",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/reserve-stock"
+          ],
+          "dataEntities": [
+            "inventory_stocks"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "campaign-stock-guard",
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "物流",
+      "aliases": [
+        "物流",
+        "logistics"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-logistics",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "capabilities": [
+            "logistics-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-waybill",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/mark-picked-up"
+          ],
+          "dataEntities": [
+            "logistics_waybills"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "营销活动",
+      "aliases": [
+        "营销活动",
+        "marketing"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-marketing",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "capabilities": [
+            "marketing-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-campaign",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/enable-campaign"
+          ],
+          "dataEntities": [
+            "marketing_campaigns"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "campaign-stock-guard",
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "活动预占",
+      "aliases": [
+        "活动预占",
+        "marketing"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-marketing",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "capabilities": [
+            "marketing-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-campaign",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/enable-campaign"
+          ],
+          "dataEntities": [
+            "marketing_campaigns"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "campaign-stock-guard",
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "优惠核销",
+      "aliases": [
+        "优惠核销",
+        "marketing"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-marketing",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "capabilities": [
+            "marketing-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-campaign",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/enable-campaign"
+          ],
+          "dataEntities": [
+            "marketing_campaigns"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "campaign-stock-guard",
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商家",
+      "aliases": [
+        "商家",
+        "merchant"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-merchant",
+          "responsibility": "商家店铺资质、审核与店铺资料",
+          "capabilities": [
+            "merchant-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-merchant",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/approve-merchant"
+          ],
+          "dataEntities": [
+            "merchant_shops"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "catalog-publish",
+        "settlement-reconcile"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "支付",
+      "aliases": [
+        "支付",
+        "payment"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-payment",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "capabilities": [
+            "payment-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-payment",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/mark-paid"
+          ],
+          "dataEntities": [
+            "payment_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "checkout-fulfillment",
+        "refund-aftersales",
+        "settlement-reconcile"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商品",
+      "aliases": [
+        "商品",
+        "product"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-product",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "capabilities": [
+            "product-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-sku",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/enable-sale"
+          ],
+          "dataEntities": [
+            "product_skus"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "catalog-publish",
+        "campaign-stock-guard",
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "供应链",
+      "aliases": [
+        "供应链",
+        "supply-chain"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-supply-chain",
+          "responsibility": "采购单、质检与补货计划",
+          "capabilities": [
+            "supply-chain-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-purchase-order",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/approve-quality-check"
+          ],
+          "dataEntities": [
+            "supply_chain_purchase_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单",
+      "aliases": [
+        "订单",
+        "trade"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-trade",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "capabilities": [
+            "trade-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-order",
+            "HTTP /business/demo-checkout",
+            "HTTP /business/demo-cancel",
+            "HTTP /business/demo-full-chain"
+          ],
+          "dataEntities": [
+            "trade_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "campaign-stock-guard",
+        "checkout-fulfillment",
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "交易编排",
+      "aliases": [
+        "交易编排",
+        "trade"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-trade",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "capabilities": [
+            "trade-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-order",
+            "HTTP /business/demo-checkout",
+            "HTTP /business/demo-cancel",
+            "HTTP /business/demo-full-chain"
+          ],
+          "dataEntities": [
+            "trade_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "campaign-stock-guard",
+        "checkout-fulfillment",
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单支付履约",
+      "aliases": [
+        "订单支付履约",
+        "trade"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-trade",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "capabilities": [
+            "trade-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-order",
+            "HTTP /business/demo-checkout",
+            "HTTP /business/demo-cancel",
+            "HTTP /business/demo-full-chain"
+          ],
+          "dataEntities": [
+            "trade_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "campaign-stock-guard",
+        "checkout-fulfillment",
+        "refund-aftersales"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "用户",
+      "aliases": [
+        "用户",
+        "user"
+      ],
+      "apps": [
+        {
+          "appId": "ecom-user",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "capabilities": [
+            "user-core"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-user",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/add-address"
+          ],
+          "dataEntities": [
+            "user_profiles"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "flowIds": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "termEntrypoints": [
+    {
+      "term": "售后",
+      "appId": "ecom-aftersales",
+      "entrypoint": "HTTP /business/create-refund-case",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "售后",
+      "appId": "ecom-aftersales",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "售后",
+      "appId": "ecom-aftersales",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "售后",
+      "appId": "ecom-aftersales",
+      "entrypoint": "HTTP /business/approve-case",
+      "kind": "http",
+      "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "内容",
+      "appId": "ecom-content",
+      "entrypoint": "HTTP /business/create-post",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "内容",
+      "appId": "ecom-content",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "内容",
+      "appId": "ecom-content",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "内容",
+      "appId": "ecom-content",
+      "entrypoint": "HTTP /business/bind-product",
+      "kind": "http",
+      "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "客服",
+      "appId": "ecom-customer-service",
+      "entrypoint": "HTTP /business/create-ticket",
+      "kind": "http",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "客服",
+      "appId": "ecom-customer-service",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "客服",
+      "appId": "ecom-customer-service",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "客服",
+      "appId": "ecom-customer-service",
+      "entrypoint": "HTTP /business/assign-ticket",
+      "kind": "http",
+      "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "结算",
+      "appId": "ecom-finance",
+      "entrypoint": "HTTP /business/record-payment",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "结算",
+      "appId": "ecom-finance",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "结算",
+      "appId": "ecom-finance",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "结算",
+      "appId": "ecom-finance",
+      "entrypoint": "HTTP /business/create-reconciliation-task",
+      "kind": "http",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "履约",
+      "appId": "ecom-fulfillment",
+      "entrypoint": "HTTP /business/create-fulfillment",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "履约",
+      "appId": "ecom-fulfillment",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "履约",
+      "appId": "ecom-fulfillment",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "履约",
+      "appId": "ecom-fulfillment",
+      "entrypoint": "HTTP /business/split-package",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/set-stock",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/reserve-stock",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存预占",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/set-stock",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存预占",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存预占",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存预占",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/reserve-stock",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存扣减",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/set-stock",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存扣减",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存扣减",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存扣减",
+      "appId": "ecom-inventory",
+      "entrypoint": "HTTP /business/reserve-stock",
+      "kind": "http",
+      "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "物流",
+      "appId": "ecom-logistics",
+      "entrypoint": "HTTP /business/create-waybill",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "物流",
+      "appId": "ecom-logistics",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "物流",
+      "appId": "ecom-logistics",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "物流",
+      "appId": "ecom-logistics",
+      "entrypoint": "HTTP /business/mark-picked-up",
+      "kind": "http",
+      "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "营销活动",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/create-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "营销活动",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "营销活动",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "营销活动",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/enable-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "活动预占",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/create-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "活动预占",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "活动预占",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "活动预占",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/enable-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "优惠核销",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/create-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "优惠核销",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "优惠核销",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "优惠核销",
+      "appId": "ecom-marketing",
+      "entrypoint": "HTTP /business/enable-campaign",
+      "kind": "http",
+      "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商家",
+      "appId": "ecom-merchant",
+      "entrypoint": "HTTP /business/create-merchant",
+      "kind": "http",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商家",
+      "appId": "ecom-merchant",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商家",
+      "appId": "ecom-merchant",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商家",
+      "appId": "ecom-merchant",
+      "entrypoint": "HTTP /business/approve-merchant",
+      "kind": "http",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "支付",
+      "appId": "ecom-payment",
+      "entrypoint": "HTTP /business/create-payment",
+      "kind": "http",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "支付",
+      "appId": "ecom-payment",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "支付",
+      "appId": "ecom-payment",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "支付",
+      "appId": "ecom-payment",
+      "entrypoint": "HTTP /business/mark-paid",
+      "kind": "http",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商品",
+      "appId": "ecom-product",
+      "entrypoint": "HTTP /business/create-sku",
+      "kind": "http",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商品",
+      "appId": "ecom-product",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商品",
+      "appId": "ecom-product",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商品",
+      "appId": "ecom-product",
+      "entrypoint": "HTTP /business/enable-sale",
+      "kind": "http",
+      "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "供应链",
+      "appId": "ecom-supply-chain",
+      "entrypoint": "HTTP /business/create-purchase-order",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "供应链",
+      "appId": "ecom-supply-chain",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "供应链",
+      "appId": "ecom-supply-chain",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "供应链",
+      "appId": "ecom-supply-chain",
+      "entrypoint": "HTTP /business/approve-quality-check",
+      "kind": "http",
+      "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/create-order",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/demo-checkout",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/demo-cancel",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/demo-full-chain",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "交易编排",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/create-order",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "交易编排",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/demo-checkout",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "交易编排",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/demo-cancel",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "交易编排",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/demo-full-chain",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单支付履约",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/create-order",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单支付履约",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/demo-checkout",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单支付履约",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/demo-cancel",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单支付履约",
+      "appId": "ecom-trade",
+      "entrypoint": "HTTP /business/demo-full-chain",
+      "kind": "http",
+      "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "用户",
+      "appId": "ecom-user",
+      "entrypoint": "HTTP /business/create-user",
+      "kind": "http",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "用户",
+      "appId": "ecom-user",
+      "entrypoint": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "用户",
+      "appId": "ecom-user",
+      "entrypoint": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "evidence": "confirmed"
+    },
+    {
+      "term": "用户",
+      "appId": "ecom-user",
+      "entrypoint": "HTTP /business/add-address",
+      "kind": "http",
+      "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java",
+      "evidence": "confirmed"
+    }
+  ],
+  "termFlows": [
+    {
+      "term": "售后",
+      "flowId": "refund-aftersales",
+      "nodes": [
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-aftersales",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "售后单、退款金额、原因与审批状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-customer-service",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "客服工单、用户问题与处理状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "内容",
+      "flowId": "catalog-publish",
+      "nodes": [
+        {
+          "appId": "ecom-merchant",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商家店铺资质、审核与店铺资料",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-content",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品内容素材绑定、审核与驳回",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-supply-chain",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "采购单、质检与补货计划",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "客服",
+      "flowId": "refund-aftersales",
+      "nodes": [
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-aftersales",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "售后单、退款金额、原因与审批状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-customer-service",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "客服工单、用户问题与处理状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "结算",
+      "flowId": "settlement-reconcile",
+      "nodes": [
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-merchant",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商家店铺资质、审核与店铺资料",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-finance",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付结算记录、商家结算周期与结算状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "履约",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存预占",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存预占",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存扣减",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "库存扣减",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "物流",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "营销活动",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "营销活动",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "活动预占",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "活动预占",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "优惠核销",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "优惠核销",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商家",
+      "flowId": "catalog-publish",
+      "nodes": [
+        {
+          "appId": "ecom-merchant",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商家店铺资质、审核与店铺资料",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-content",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品内容素材绑定、审核与驳回",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-supply-chain",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "采购单、质检与补货计划",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商家",
+      "flowId": "settlement-reconcile",
+      "nodes": [
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-merchant",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商家店铺资质、审核与店铺资料",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-finance",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付结算记录、商家结算周期与结算状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "支付",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "支付",
+      "flowId": "refund-aftersales",
+      "nodes": [
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-aftersales",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "售后单、退款金额、原因与审批状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-customer-service",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "客服工单、用户问题与处理状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "支付",
+      "flowId": "settlement-reconcile",
+      "nodes": [
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-merchant",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商家店铺资质、审核与店铺资料",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-finance",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付结算记录、商家结算周期与结算状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商品",
+      "flowId": "catalog-publish",
+      "nodes": [
+        {
+          "appId": "ecom-merchant",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商家店铺资质、审核与店铺资料",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-content",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品内容素材绑定、审核与驳回",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-supply-chain",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "采购单、质检与补货计划",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商品",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "商品",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "供应链",
+      "flowId": "catalog-publish",
+      "nodes": [
+        {
+          "appId": "ecom-merchant",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商家店铺资质、审核与店铺资料",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-content",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品内容素材绑定、审核与驳回",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-supply-chain",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "采购单、质检与补货计划",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单",
+      "flowId": "refund-aftersales",
+      "nodes": [
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-aftersales",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "售后单、退款金额、原因与审批状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-customer-service",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "客服工单、用户问题与处理状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "交易编排",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "交易编排",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "交易编排",
+      "flowId": "refund-aftersales",
+      "nodes": [
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-aftersales",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "售后单、退款金额、原因与审批状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-customer-service",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "客服工单、用户问题与处理状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单支付履约",
+      "flowId": "campaign-stock-guard",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单支付履约",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "订单支付履约",
+      "flowId": "refund-aftersales",
+      "nodes": [
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-aftersales",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "售后单、退款金额、原因与审批状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-customer-service",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "客服工单、用户问题与处理状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "term": "用户",
+      "flowId": "checkout-fulfillment",
+      "nodes": [
+        {
+          "appId": "ecom-product",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "商品 SKU 与售卖状态管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-user",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "用户资料、会员等级与收货地址管理",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-marketing",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "营销活动、优惠额度、活动配额与预占核销",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-inventory",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "库存行、可售数量与预占扣减释放",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-trade",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-payment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "支付单创建、支付成功标记与退款支付记录",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-fulfillment",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "履约单、包裹拆分、发货与妥投状态",
+          "evidence": "confirmed"
+        },
+        {
+          "appId": "ecom-logistics",
+          "entrypoint": "见 entrypoints.md",
+          "responsibility": "运单创建、承运信息与签收状态",
+          "evidence": "confirmed"
+        }
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "dependencies": [
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-aftersales",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> aftersales",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-content",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> content",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-customer-service",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> customer-service",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-finance",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> finance",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-fulfillment",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> fulfillment",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-inventory",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> inventory",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-logistics",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> logistics",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-marketing",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> marketing",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-merchant",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> merchant",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-payment",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> payment",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-product",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> product",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-supply-chain",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> supply-chain",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    },
+    {
+      "fromAppId": "ecom-trade",
+      "toAppId": "ecom-user",
+      "type": "rpc",
+      "ref": "RemoteDomainClient -> user",
+      "terms": [
+        "交易编排"
+      ],
+      "evidence": "confirmed"
+    }
+  ]
+}

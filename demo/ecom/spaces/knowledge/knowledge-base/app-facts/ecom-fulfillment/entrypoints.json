@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-fulfillment",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-fulfillment",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "terms": [
+        "履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "terms": [
+        "履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "terms": [
+        "履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/split-package",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "terms": [
+        "履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.splitPackage"
+    },
+    {
+      "ref": "HTTP /business/ship-package",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "terms": [
+        "履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.shipPackage"
+    },
+    {
+      "ref": "HTTP /business/mark-delivered",
+      "kind": "http",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "terms": [
+        "履约"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.markDelivered"
+    },
+    {
+      "ref": "com.ecommerce.fulfillment.api.FulfillmentDubboService",
+      "kind": "rpc",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/api/FulfillmentDubboService.java",
+      "terms": [
+        "履约"
+      ],
+      "capabilities": [
+        "履约-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "FulfillmentDubboService"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-finance",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
+  "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance/.codegraph",
+  "status": "indexed",
+  "indexedAt": "2026-07-16T21:23:14",
+  "stats": {
+    "files": 15,
+    "nodes": 193,
+    "edges": 330
+  },
+  "error": ""
+}

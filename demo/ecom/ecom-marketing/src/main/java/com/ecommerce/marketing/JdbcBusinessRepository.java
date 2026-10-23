@@ -41,12 +41,18 @@ public final class JdbcBusinessRepository implements BusinessRepository {
                       sku_id VARCHAR(255) NOT NULL,
                       discount_cent BIGINT NOT NULL,
                       quota INT NOT NULL,
+                      protected_stock INT NULL,
                       status VARCHAR(32) NOT NULL,
                       payload_json JSON NOT NULL,
                       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                     )
                     """);
+            try {
+                statement.executeUpdate("ALTER TABLE marketing_campaigns ADD COLUMN protected_stock INT NULL");
+            } catch (SQLException ignored) {
+                // Column already exists in upgraded local demo databases.
+            }
         } catch (SQLException error) {
             throw new IllegalStateException("Failed to initialize MySQL table marketing_campaigns", error);
         }
@@ -54,8 +60,8 @@ public final class JdbcBusinessRepository implements BusinessRepository {
 
     @Override
     public BusinessRecord save(BusinessRecord record) {
-        String sql = "INSERT INTO marketing_campaigns (id, name, sku_id, discount_cent, quota, status, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?) "
-                + "ON DUPLICATE KEY UPDATE name=VALUES(name), sku_id=VALUES(sku_id), discount_cent=VALUES(discount_cent), quota=VALUES(quota), status=VALUES(status), payload_json=VALUES(payload_json)";
+        String sql = "INSERT INTO marketing_campaigns (id, name, sku_id, discount_cent, quota, protected_stock, status, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE name=VALUES(name), sku_id=VALUES(sku_id), discount_cent=VALUES(discount_cent), quota=VALUES(quota), protected_stock=VALUES(protected_stock), status=VALUES(status), payload_json=VALUES(payload_json)";
         try (Connection connection = connect(); PreparedStatement statement = connection.prepareStatement(sql)) {
             int index = 1;
             statement.setString(index++, record.id());
@@ -63,6 +69,11 @@ public final class JdbcBusinessRepository implements BusinessRepository {
             statement.setString(index++, String.valueOf(record.attributes().get("skuId")));
             statement.setLong(index++, ((Number) record.attributes().get("discountCent")).longValue());
             statement.setInt(index++, ((Number) record.attributes().get("quota")).intValue());
+            if (record.attributes().containsKey("protectedStock")) {
+                statement.setInt(index++, ((Number) record.attributes().get("protectedStock")).intValue());
+            } else {
+                statement.setObject(index++, null);
+            }
             statement.setString(index++, record.status());
             statement.setString(index, JsonSupport.toJson(record.attributes()));
             statement.executeUpdate();
@@ -105,6 +116,8 @@ public final class JdbcBusinessRepository implements BusinessRepository {
         attributes.put("skuId", rs.getString("sku_id"));
         attributes.put("discountCent", rs.getLong("discount_cent"));
         attributes.put("quota", rs.getInt("quota"));
+        Object protectedStock = rs.getObject("protected_stock");
+        if (protectedStock != null) attributes.put("protectedStock", ((Number) protectedStock).intValue());
         return new BusinessRecord(rs.getString("id"), rs.getString("status"), attributes);
     }
 

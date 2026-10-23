@@ -1,0 +1,2 @@
+-- 测试标签: campaign-stock-guard-it-20260716
+-- 营销活动在本轮通过 API 创建，不需要直接 SQL seed。

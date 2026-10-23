@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-fulfillment",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "履约单、包裹拆分、发货与妥投状态",
+  "capabilities": [
+    {
+      "capabilityId": "fulfillment-core",
+      "name": "履约单、包裹拆分、发货与妥投状态",
+      "terms": [
+        "履约"
+      ],
+      "entrypoints": [
+        "HTTP /business/create-fulfillment",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/split-package",
+        "HTTP /business/ship-package"
+      ],
+      "dataEntities": [
+        "fulfillment_orders"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Fulfillment Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Fulfillment Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Fulfillment Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Fulfillment Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "summary": "入口 HTTP /business/create-fulfillment"
+    },
+    {
+      "type": "code",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "summary": "入口 HTTP /business/split-package"
+    },
+    {
+      "type": "code",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "summary": "入口 HTTP /business/ship-package"
+    },
+    {
+      "type": "code",
+      "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java",
+      "summary": "入口 HTTP /business/mark-delivered"
+    }
+  ]
+}

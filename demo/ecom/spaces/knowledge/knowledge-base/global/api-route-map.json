@@ -1,240 +1,695 @@
 {
-  "console": [
-    "/health",
-    "/business/create-sku",
-    "/business/enable-sale",
-    "/business/create-campaign",
-    "/business/enable-campaign",
-    "/business/delete-campaign",
-    "/business/demo-checkout",
-    "/business/demo-cancel",
-    "/business/demo-full-chain"
-  ],
-  "ecom-aftersales": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/aftersales",
-    "/aftersales/:caseId/approve",
-    "/refunds",
-    "/business/create-refund-case",
-    "/business/list",
-    "/business/get",
-    "/business/approve-case",
-    "/business/reject-case",
-    "/business/mark-returned",
-    "/business"
-  ],
-  "ecom-content": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/posts",
-    "/videos",
-    "/comments/moderation",
-    "/business/create-post",
-    "/business/list",
-    "/business/get",
-    "/business/bind-product",
-    "/business/approve-content",
-    "/business/reject-content",
-    "/business"
-  ],
-  "ecom-customer-service": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/tickets",
-    "/conversations",
-    "/bot/intents",
-    "/business/create-ticket",
-    "/business/list",
-    "/business/get",
-    "/business/assign-ticket",
-    "/business/resolve-ticket",
-    "/business"
-  ],
-  "ecom-finance": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/settlements",
-    "/reconciliation/tasks",
-    "/invoices",
-    "/business/record-payment",
-    "/business/list",
-    "/business/get",
-    "/business/create-reconciliation-task",
-    "/business/create-merchant-settlement",
-    "/business/create-invoice",
-    "/business"
-  ],
-  "ecom-fulfillment": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/fulfillments",
-    "/fulfillments/:id/split",
-    "/shipments/:id/status",
-    "/business/create-fulfillment",
-    "/business/list",
-    "/business/get",
-    "/business/split-package",
-    "/business/ship-package",
-    "/business/mark-delivered",
-    "/business"
-  ],
-  "ecom-inventory": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/stocks/:skuId",
-    "/reservations",
-    "/reservations/:reservationId/release",
-    "/business/set-stock",
-    "/business/list",
-    "/business/get",
-    "/business/reserve-stock",
-    "/business/release-reservation",
-    "/business/deduct-reservation",
-    "/business/return-stock",
-    "/business"
-  ],
-  "ecom-logistics": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/waybills",
-    "/tracks/:waybillNo",
-    "/delivery-exceptions",
-    "/business/create-waybill",
-    "/business/list",
-    "/business/get",
-    "/business/mark-picked-up",
-    "/business/mark-in-transit",
-    "/business/mark-signed",
-    "/business/report-exception",
-    "/business"
-  ],
-  "ecom-marketing": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/campaigns",
-    "/coupons/claim",
-    "/promotions/preview",
-    "/business/create-campaign",
-    "/business/list",
-    "/business/get",
-    "/business/enable-campaign",
-    "/business/disable-campaign",
-    "/business/reserve-promotion",
-    "/business/confirm-use",
-    "/business/cancel-reservation",
-    "/business/delete-campaign",
-    "/business"
-  ],
-  "ecom-merchant": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/merchants",
-    "/merchants/:merchantId/audits",
-    "/shops/:shopId",
-    "/business/create-merchant",
-    "/business/list",
-    "/business/get",
-    "/business/approve-merchant",
-    "/business/disable-shop",
-    "/business"
-  ],
-  "ecom-payment": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/payments",
-    "/payments/:paymentId/callbacks",
-    "/refund-payments",
-    "/business/create-payment",
-    "/business/list",
-    "/business/get",
-    "/business/mark-paid",
-    "/business/create-refund-payment",
-    "/business"
-  ],
-  "ecom-product": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/products",
-    "/products/:spuId/skus",
-    "/categories/:categoryId/attributes",
-    "/business/create-sku",
-    "/business/list",
-    "/business/get",
-    "/business/enable-sale",
-    "/business/disable-sale",
-    "/business"
-  ],
-  "ecom-supply-chain": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/purchase-orders",
-    "/suppliers",
-    "/replenishment/plans",
-    "/business/create-purchase-order",
-    "/business/list",
-    "/business/get",
-    "/business/approve-quality-check",
-    "/business/reject-quality-check",
-    "/business/create-replenishment-plan",
-    "/business"
-  ],
-  "ecom-trade": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/carts/:userId",
-    "/orders",
-    "/orders/:orderId/state",
-    "/business/create-order",
-    "/business/demo-checkout",
-    "/business/demo-cancel",
-    "/business/demo-full-chain",
-    "/business/list",
-    "/business/get",
-    "/business/confirm-paid",
-    "/business/cancel-order",
-    "/business/complete-order",
-    "/business"
-  ],
-  "ecom-user": [
-    "/health",
-    "/knowledge",
-    "/sample",
-    "/validate-requirement",
-    "/users/:userId",
-    "/users/:userId/addresses",
-    "/members/:userId/level",
-    "/business/create-user",
-    "/business/list",
-    "/business/get",
-    "/business/add-address",
-    "/business/upgrade-member",
-    "/business"
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-16T21:30:27",
+  "apps": [
+    {
+      "appId": "ecom-aftersales",
+      "http": [
+        {
+          "route": "/business/create-refund-case",
+          "handler": "BusinessService.create",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java"
+        },
+        {
+          "route": "/business/approve-case",
+          "handler": "BusinessService.approveCase",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java"
+        },
+        {
+          "route": "/business/reject-case",
+          "handler": "BusinessService.rejectCase",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java"
+        },
+        {
+          "route": "/business/mark-returned",
+          "handler": "BusinessService.markReturned",
+          "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "AftersalesDubboService",
+        "path": "ecom-aftersales/src/main/java/com/ecommerce/aftersales/api/AftersalesDubboService.java",
+        "fqn": "com.ecommerce.aftersales.api.AftersalesDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-console",
+      "http": [
+        {
+          "route": "button 创建库存保护活动",
+          "handler": "app.js run(stockGuardCampaign)",
+          "path": "/Users/xu/IdeaProjects/ecom/console/app.js"
+        }
+      ],
+      "rpc": null,
+      "methods": [
+        "run",
+        "post",
+        "show"
+      ]
+    },
+    {
+      "appId": "ecom-content",
+      "http": [
+        {
+          "route": "/business/create-post",
+          "handler": "BusinessService.create",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java"
+        },
+        {
+          "route": "/business/bind-product",
+          "handler": "BusinessService.bindProduct",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java"
+        },
+        {
+          "route": "/business/approve-content",
+          "handler": "BusinessService.approveContent",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java"
+        },
+        {
+          "route": "/business/reject-content",
+          "handler": "BusinessService.rejectContent",
+          "path": "ecom-content/src/main/java/com/ecommerce/content/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "ContentDubboService",
+        "path": "ecom-content/src/main/java/com/ecommerce/content/api/ContentDubboService.java",
+        "fqn": "com.ecommerce.content.api.ContentDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-customer-service",
+      "http": [
+        {
+          "route": "/business/create-ticket",
+          "handler": "BusinessService.create",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java"
+        },
+        {
+          "route": "/business/assign-ticket",
+          "handler": "BusinessService.assignTicket",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java"
+        },
+        {
+          "route": "/business/resolve-ticket",
+          "handler": "BusinessService.resolveTicket",
+          "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "CustomerServiceDubboService",
+        "path": "ecom-customer-service/src/main/java/com/ecommerce/customerservice/api/CustomerServiceDubboService.java",
+        "fqn": "com.ecommerce.customerservice.api.CustomerServiceDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-finance",
+      "http": [
+        {
+          "route": "/business/record-payment",
+          "handler": "BusinessService.create",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java"
+        },
+        {
+          "route": "/business/create-reconciliation-task",
+          "handler": "BusinessService.createReconciliationTask",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java"
+        },
+        {
+          "route": "/business/create-merchant-settlement",
+          "handler": "BusinessService.createMerchantSettlement",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java"
+        },
+        {
+          "route": "/business/create-invoice",
+          "handler": "BusinessService.createInvoice",
+          "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "FinanceDubboService",
+        "path": "ecom-finance/src/main/java/com/ecommerce/finance/api/FinanceDubboService.java",
+        "fqn": "com.ecommerce.finance.api.FinanceDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "http": [
+        {
+          "route": "/business/create-fulfillment",
+          "handler": "BusinessService.create",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java"
+        },
+        {
+          "route": "/business/split-package",
+          "handler": "BusinessService.splitPackage",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java"
+        },
+        {
+          "route": "/business/ship-package",
+          "handler": "BusinessService.shipPackage",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java"
+        },
+        {
+          "route": "/business/mark-delivered",
+          "handler": "BusinessService.markDelivered",
+          "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "FulfillmentDubboService",
+        "path": "ecom-fulfillment/src/main/java/com/ecommerce/fulfillment/api/FulfillmentDubboService.java",
+        "fqn": "com.ecommerce.fulfillment.api.FulfillmentDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-inventory",
+      "http": [
+        {
+          "route": "/business/set-stock",
+          "handler": "BusinessService.create",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java"
+        },
+        {
+          "route": "/business/reserve-stock",
+          "handler": "BusinessService.reserveStock",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java"
+        },
+        {
+          "route": "/business/release-reservation",
+          "handler": "BusinessService.releaseReservation",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java"
+        },
+        {
+          "route": "/business/deduct-reservation",
+          "handler": "BusinessService.deductReservation",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java"
+        },
+        {
+          "route": "/business/return-stock",
+          "handler": "BusinessService.returnStock",
+          "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "InventoryDubboService",
+        "path": "ecom-inventory/src/main/java/com/ecommerce/inventory/api/InventoryDubboService.java",
+        "fqn": "com.ecommerce.inventory.api.InventoryDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-logistics",
+      "http": [
+        {
+          "route": "/business/create-waybill",
+          "handler": "BusinessService.create",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java"
+        },
+        {
+          "route": "/business/mark-picked-up",
+          "handler": "BusinessService.markPickedUp",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java"
+        },
+        {
+          "route": "/business/mark-in-transit",
+          "handler": "BusinessService.markInTransit",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java"
+        },
+        {
+          "route": "/business/mark-signed",
+          "handler": "BusinessService.markSigned",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java"
+        },
+        {
+          "route": "/business/report-exception",
+          "handler": "BusinessService.reportException",
+          "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "LogisticsDubboService",
+        "path": "ecom-logistics/src/main/java/com/ecommerce/logistics/api/LogisticsDubboService.java",
+        "fqn": "com.ecommerce.logistics.api.LogisticsDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-marketing",
+      "http": [
+        {
+          "route": "/business/create-campaign",
+          "handler": "BusinessService.create",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java"
+        },
+        {
+          "route": "/business/enable-campaign",
+          "handler": "BusinessService.enableCampaign",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java"
+        },
+        {
+          "route": "/business/disable-campaign",
+          "handler": "BusinessService.disableCampaign",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java"
+        },
+        {
+          "route": "/business/reserve-promotion",
+          "handler": "BusinessService.reservePromotion",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java"
+        },
+        {
+          "route": "/business/confirm-use",
+          "handler": "BusinessService.confirmUse",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java"
+        },
+        {
+          "route": "/business/cancel-reservation",
+          "handler": "BusinessService.cancelReservation",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java"
+        },
+        {
+          "route": "/business/delete-campaign",
+          "handler": "BusinessService.deleteCampaign",
+          "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "MarketingDubboService",
+        "path": "ecom-marketing/src/main/java/com/ecommerce/marketing/api/MarketingDubboService.java",
+        "fqn": "com.ecommerce.marketing.api.MarketingDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-merchant",
+      "http": [
+        {
+          "route": "/business/create-merchant",
+          "handler": "BusinessService.create",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java"
+        },
+        {
+          "route": "/business/approve-merchant",
+          "handler": "BusinessService.approveMerchant",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java"
+        },
+        {
+          "route": "/business/disable-shop",
+          "handler": "BusinessService.disableShop",
+          "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "MerchantDubboService",
+        "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/api/MerchantDubboService.java",
+        "fqn": "com.ecommerce.merchant.api.MerchantDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-payment",
+      "http": [
+        {
+          "route": "/business/create-payment",
+          "handler": "BusinessService.create",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java"
+        },
+        {
+          "route": "/business/mark-paid",
+          "handler": "BusinessService.markPaid",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java"
+        },
+        {
+          "route": "/business/create-refund-payment",
+          "handler": "BusinessService.createRefundPayment",
+          "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "PaymentDubboService",
+        "path": "ecom-payment/src/main/java/com/ecommerce/payment/api/PaymentDubboService.java",
+        "fqn": "com.ecommerce.payment.api.PaymentDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-product",
+      "http": [
+        {
+          "route": "/business/create-sku",
+          "handler": "BusinessService.create",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java"
+        },
+        {
+          "route": "/business/enable-sale",
+          "handler": "BusinessService.enableSale",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java"
+        },
+        {
+          "route": "/business/disable-sale",
+          "handler": "BusinessService.disableSale",
+          "path": "ecom-product/src/main/java/com/ecommerce/product/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "ProductDubboService",
+        "path": "ecom-product/src/main/java/com/ecommerce/product/api/ProductDubboService.java",
+        "fqn": "com.ecommerce.product.api.ProductDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "http": [
+        {
+          "route": "/business/create-purchase-order",
+          "handler": "BusinessService.create",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java"
+        },
+        {
+          "route": "/business/approve-quality-check",
+          "handler": "BusinessService.approveQualityCheck",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java"
+        },
+        {
+          "route": "/business/reject-quality-check",
+          "handler": "BusinessService.rejectQualityCheck",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java"
+        },
+        {
+          "route": "/business/create-replenishment-plan",
+          "handler": "BusinessService.createReplenishmentPlan",
+          "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "SupplyChainDubboService",
+        "path": "ecom-supply-chain/src/main/java/com/ecommerce/supplychain/api/SupplyChainDubboService.java",
+        "fqn": "com.ecommerce.supplychain.api.SupplyChainDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-trade",
+      "http": [
+        {
+          "route": "/business/create-order",
+          "handler": "BusinessService.create",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java"
+        },
+        {
+          "route": "/business/demo-checkout",
+          "handler": "TradeOrchestrationService.demoCheckout",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java"
+        },
+        {
+          "route": "/business/demo-cancel",
+          "handler": "TradeOrchestrationService.demoCancel",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java"
+        },
+        {
+          "route": "/business/demo-full-chain",
+          "handler": "TradeOrchestrationService.demoFullChain",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java"
+        },
+        {
+          "route": "/business/confirm-paid",
+          "handler": "BusinessService.confirmPaid",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java"
+        },
+        {
+          "route": "/business/cancel-order",
+          "handler": "BusinessService.cancelOrder",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java"
+        },
+        {
+          "route": "/business/complete-order",
+          "handler": "BusinessService.completeOrder",
+          "path": "ecom-trade/src/main/java/com/ecommerce/trade/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "TradeDubboService",
+        "path": "ecom-trade/src/main/java/com/ecommerce/trade/api/TradeDubboService.java",
+        "fqn": "com.ecommerce.trade.api.TradeDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    },
+    {
+      "appId": "ecom-user",
+      "http": [
+        {
+          "route": "/business/create-user",
+          "handler": "BusinessService.create",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java"
+        },
+        {
+          "route": "/business/list",
+          "handler": "BusinessService.list",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java"
+        },
+        {
+          "route": "/business/get",
+          "handler": "BusinessService.get",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java"
+        },
+        {
+          "route": "/business/add-address",
+          "handler": "BusinessService.addAddress",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java"
+        },
+        {
+          "route": "/business/upgrade-member",
+          "handler": "BusinessService.upgradeMember",
+          "path": "ecom-user/src/main/java/com/ecommerce/user/AppServer.java"
+        }
+      ],
+      "rpc": {
+        "name": "UserDubboService",
+        "path": "ecom-user/src/main/java/com/ecommerce/user/api/UserDubboService.java",
+        "fqn": "com.ecommerce.user.api.UserDubboService"
+      },
+      "methods": [
+        "create",
+        "transition",
+        "get",
+        "list",
+        "knowledge"
+      ]
+    }
   ]
 }

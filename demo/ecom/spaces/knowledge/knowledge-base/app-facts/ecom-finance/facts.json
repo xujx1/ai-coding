@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "domain": "ecom",
+  "appId": "ecom-finance",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
+  "generatedAt": "2026-07-16T21:10:52",
+  "responsibility": "支付结算记录、商家结算周期与结算状态",
+  "capabilities": [
+    {
+      "capabilityId": "finance-core",
+      "name": "支付结算记录、商家结算周期与结算状态",
+      "terms": [
+        "结算"
+      ],
+      "entrypoints": [
+        "HTTP /business/record-payment",
+        "HTTP /business/list",
+        "HTTP /business/get",
+        "HTTP /business/create-reconciliation-task",
+        "HTTP /business/create-merchant-settlement"
+      ],
+      "dataEntities": [
+        "finance_settlements"
+      ],
+      "evidence": "confirmed"
+    }
+  ],
+  "evidenceSources": [
+    {
+      "type": "readme",
+      "path": "README.md",
+      "summary": "Finance Settlement Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "readme",
+      "path": "docs/knowledge.md",
+      "summary": "Finance Settlement Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "config",
+      "path": "knowledge/domain-context.json",
+      "summary": "Finance Settlement Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "schema",
+      "path": "src/main/resources/schema.sql",
+      "summary": "Finance Settlement Service 的应用说明或数据结构来源"
+    },
+    {
+      "type": "code",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "summary": "入口 HTTP /business/record-payment"
+    },
+    {
+      "type": "code",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "summary": "入口 HTTP /business/list"
+    },
+    {
+      "type": "code",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "summary": "入口 HTTP /business/get"
+    },
+    {
+      "type": "code",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "summary": "入口 HTTP /business/create-reconciliation-task"
+    },
+    {
+      "type": "code",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "summary": "入口 HTTP /business/create-merchant-settlement"
+    },
+    {
+      "type": "code",
+      "path": "ecom-finance/src/main/java/com/ecommerce/finance/AppServer.java",
+      "summary": "入口 HTTP /business/create-invoice"
+    }
+  ]
+}

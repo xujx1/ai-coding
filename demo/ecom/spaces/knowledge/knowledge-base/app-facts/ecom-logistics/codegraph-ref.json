@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-logistics",
+  "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
+  "indexPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics/.codegraph",
+  "status": "indexed",
+  "indexedAt": "2026-07-16T21:23:14",
+  "stats": {
+    "files": 15,
+    "nodes": 194,
+    "edges": 333
+  },
+  "error": ""
+}

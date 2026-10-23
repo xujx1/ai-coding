@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-aftersales",
+  "terms": [
+    {
+      "raw": "售后",
+      "normalized": "售后",
+      "aliases": [
+        "售后",
+        "aftersales"
+      ],
+      "kind": "entity",
+      "sources": [
+        "ecom-aftersales/src/main/java/com/ecommerce/aftersales/api/AftersalesDubboService.java"
+      ],
+      "confidence": 0.9,
+      "evidence": "confirmed"
+    }
+  ]
+}

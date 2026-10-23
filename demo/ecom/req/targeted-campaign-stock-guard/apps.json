@@ -1,0 +1,56 @@
+{
+  "domain": "ecom",
+  "source": "tech-design.md#affected_apps",
+  "apps": [
+    {
+      "appId": "ecom-console",
+      "repoPath": "/Users/xu/IdeaProjects/ecom/console",
+      "role": "primary",
+      "actions": ["code", "review", "test"],
+      "responsibility": "新增创建库存保护活动入口，调用商品/库存/营销接口并展示校验与活动结果",
+      "matchedTerms": ["运营后台", "库存保护活动"],
+      "matchedFlows": ["campaign-stock-guard"],
+      "evidence": "manual"
+    },
+    {
+      "appId": "ecom-marketing",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
+      "role": "primary",
+      "actions": ["code", "review", "test"],
+      "responsibility": "扩展活动创建/启用/删除能力，编排商品状态校验、库存校验、保护与释放，并返回结果摘要",
+      "matchedTerms": ["营销活动", "活动预占"],
+      "matchedFlows": ["campaign-stock-guard"],
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-inventory",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
+      "role": "secondary",
+      "actions": ["code", "review", "test"],
+      "responsibility": "新增活动库存保护表，提供可用库存查询、活动保护和幂等释放能力",
+      "matchedTerms": ["库存", "库存预占"],
+      "matchedFlows": ["campaign-stock-guard", "checkout-fulfillment"],
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-product",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
+      "role": "secondary",
+      "actions": ["code", "review", "test"],
+      "responsibility": "提供 SKU 售卖状态查询能力，返回 SKU 是否存在、是否上架和价格等摘要",
+      "matchedTerms": ["商品"],
+      "matchedFlows": ["catalog-publish", "campaign-stock-guard"],
+      "evidence": "confirmed"
+    },
+    {
+      "appId": "ecom-trade",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
+      "role": "verification",
+      "actions": ["impact-check"],
+      "responsibility": "交易演示链路保持不改代码，仅验证营销/库存变更不破坏下单与取消释放流程",
+      "matchedTerms": ["订单", "交易编排"],
+      "matchedFlows": ["checkout-fulfillment", "campaign-stock-guard"],
+      "evidence": "confirmed"
+    }
+  ]
+}

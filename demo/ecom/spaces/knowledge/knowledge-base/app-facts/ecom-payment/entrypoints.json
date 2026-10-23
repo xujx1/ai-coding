@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-payment",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-payment",
+      "kind": "http",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "terms": [
+        "支付"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "terms": [
+        "支付"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "terms": [
+        "支付"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/mark-paid",
+      "kind": "http",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "terms": [
+        "支付"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.markPaid"
+    },
+    {
+      "ref": "HTTP /business/create-refund-payment",
+      "kind": "http",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/AppServer.java",
+      "terms": [
+        "支付"
+      ],
+      "capabilities": [
+        "checkout-fulfillment"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.createRefundPayment"
+    },
+    {
+      "ref": "com.ecommerce.payment.api.PaymentDubboService",
+      "kind": "rpc",
+      "path": "ecom-payment/src/main/java/com/ecommerce/payment/api/PaymentDubboService.java",
+      "terms": [
+        "支付"
+      ],
+      "capabilities": [
+        "支付-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "PaymentDubboService"
+    }
+  ]
+}

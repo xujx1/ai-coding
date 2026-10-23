@@ -31,7 +31,7 @@ public final class AppServer {
         server.createContext("/business", AppServer::handleBusiness);
         server.createContext("/", exchange -> send(exchange, 404, Map.of(
                 "error", "Not found",
-                "routes", List.of("/health", "/knowledge", "/sample", "/validate-requirement", "/business/set-stock", "/business/list", "/business/get")
+                "routes", List.of("/health", "/knowledge", "/sample", "/validate-requirement", "/business/set-stock", "/business/list", "/business/get", "/business/query-available", "/business/protect-campaign-stock", "/business/release-campaign-stock")
         )));
         server.start();
         DubboSupport.startProvider(businessService);
@@ -51,6 +51,9 @@ public final class AppServer {
             case "/business/set-stock" -> send(exchange, 200, businessService.create(input));
             case "/business/list" -> send(exchange, 200, businessService.list());
             case "/business/get" -> send(exchange, 200, businessService.get(String.valueOf(input.getOrDefault("id", ""))));
+            case "/business/query-available" -> send(exchange, 200, businessService.queryAvailable(input));
+            case "/business/protect-campaign-stock" -> send(exchange, 200, businessService.protectCampaignStock(input));
+            case "/business/release-campaign-stock" -> send(exchange, 200, businessService.releaseCampaignStock(input));
             case "/business/reserve-stock" -> send(exchange, 200, businessService.reserveStock(String.valueOf(input.getOrDefault("stockId", input.getOrDefault("id", "")))));
             case "/business/release-reservation" -> send(exchange, 200, businessService.releaseReservation(String.valueOf(input.getOrDefault("stockId", input.getOrDefault("id", "")))));
             case "/business/deduct-reservation" -> send(exchange, 200, businessService.deductReservation(String.valueOf(input.getOrDefault("stockId", input.getOrDefault("id", "")))));

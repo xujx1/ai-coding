@@ -1,108 +1,437 @@
 {
-  "console": [],
-  "ecom-aftersales": [
-    "refund",
-    "return",
-    "exchange",
-    "aftersales-workflow",
-    "dispute-evidence"
-  ],
-  "ecom-content": [
-    "post",
-    "short-video",
-    "live-session",
-    "comment",
-    "creator",
-    "content-moderation"
-  ],
-  "ecom-customer-service": [
-    "consultation",
-    "work-order",
-    "dispute-ticket",
-    "bot-intent",
-    "service-sla"
-  ],
-  "ecom-finance": [
-    "reconciliation",
-    "merchant-settlement",
-    "revenue-share",
-    "invoice",
-    "tax-compliance",
-    "ledger"
-  ],
-  "ecom-fulfillment": [
-    "fulfillment-order",
-    "order-split",
-    "warehouse-sourcing",
-    "wms-dispatch",
-    "delivery-status-sync"
-  ],
-  "ecom-inventory": [
-    "physical-stock",
-    "available-stock",
-    "reserve-stock",
-    "release-stock",
-    "multi-warehouse-stock"
-  ],
-  "ecom-logistics": [
-    "carrier-integration",
-    "waybill",
-    "tracking",
-    "delivery-exception",
-    "tms-adapter"
-  ],
-  "ecom-marketing": [
-    "campaign",
-    "coupon",
-    "discount-rule",
-    "flash-sale",
-    "group-buy",
-    "points",
-    "eligibility-check"
-  ],
-  "ecom-merchant": [
-    "merchant-onboarding",
-    "qualification-audit",
-    "shop-profile",
-    "shop-decoration",
-    "merchant-console"
-  ],
-  "ecom-payment": [
-    "payment-order",
-    "cashier",
-    "channel-callback",
-    "refund-payment",
-    "payment-reconciliation"
-  ],
-  "ecom-product": [
-    "spu-management",
-    "sku-management",
-    "category-attributes",
-    "brand-catalog",
-    "product-media",
-    "base-price-facts"
-  ],
-  "ecom-supply-chain": [
-    "procurement",
-    "supplier",
-    "replenishment",
-    "quality-inspection",
-    "production-plan",
-    "srm"
-  ],
-  "ecom-trade": [
-    "cart",
-    "order-create",
-    "order-state-machine",
-    "order-cancel",
-    "trade-orchestration"
-  ],
-  "ecom-user": [
-    "account",
-    "member-level",
-    "user-profile",
-    "identity-verification",
-    "address-book",
-    "user-tags"
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-16T21:30:27",
+  "apps": [
+    {
+      "appId": "ecom-aftersales",
+      "domain": "ecom",
+      "serviceName": "Aftersales Service",
+      "capabilities": [
+        {
+          "capabilityId": "aftersales-core",
+          "name": "售后单、退款金额、原因与审批状态",
+          "terms": [
+            "售后"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-refund-case",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/approve-case",
+            "HTTP /business/reject-case"
+          ],
+          "dataEntities": [
+            "aftersales_cases"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "售后"
+      ]
+    },
+    {
+      "appId": "ecom-console",
+      "domain": "ecom",
+      "serviceName": "Ecom Dubbo Demo Console",
+      "capabilities": [
+        {
+          "capabilityId": "console-campaign-stock-guard",
+          "name": "创建库存保护活动入口和结果展示",
+          "terms": [
+            "运营后台",
+            "库存保护活动",
+            "商品校验",
+            "库存校验"
+          ],
+          "entrypoints": [
+            "index.html button[data-action]",
+            "app.js run(action)"
+          ],
+          "dataEntities": [],
+          "evidence": "manual"
+        }
+      ],
+      "terms": [
+        "运营后台",
+        "库存保护活动"
+      ]
+    },
+    {
+      "appId": "ecom-content",
+      "domain": "ecom",
+      "serviceName": "Content Service",
+      "capabilities": [
+        {
+          "capabilityId": "content-core",
+          "name": "商品内容素材绑定、审核与驳回",
+          "terms": [
+            "内容"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-post",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/bind-product",
+            "HTTP /business/approve-content"
+          ],
+          "dataEntities": [
+            "content_items"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "内容"
+      ]
+    },
+    {
+      "appId": "ecom-customer-service",
+      "domain": "ecom",
+      "serviceName": "Customer Service",
+      "capabilities": [
+        {
+          "capabilityId": "customer-service-core",
+          "name": "客服工单、用户问题与处理状态",
+          "terms": [
+            "客服"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-ticket",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/assign-ticket",
+            "HTTP /business/resolve-ticket"
+          ],
+          "dataEntities": [
+            "customer_service_tickets"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "客服"
+      ]
+    },
+    {
+      "appId": "ecom-finance",
+      "domain": "ecom",
+      "serviceName": "Finance Settlement Service",
+      "capabilities": [
+        {
+          "capabilityId": "finance-core",
+          "name": "支付结算记录、商家结算周期与结算状态",
+          "terms": [
+            "结算"
+          ],
+          "entrypoints": [
+            "HTTP /business/record-payment",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/create-reconciliation-task",
+            "HTTP /business/create-merchant-settlement"
+          ],
+          "dataEntities": [
+            "finance_settlements"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "结算"
+      ]
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "domain": "ecom",
+      "serviceName": "Fulfillment Service",
+      "capabilities": [
+        {
+          "capabilityId": "fulfillment-core",
+          "name": "履约单、包裹拆分、发货与妥投状态",
+          "terms": [
+            "履约"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-fulfillment",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/split-package",
+            "HTTP /business/ship-package"
+          ],
+          "dataEntities": [
+            "fulfillment_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "履约"
+      ]
+    },
+    {
+      "appId": "ecom-inventory",
+      "domain": "ecom",
+      "serviceName": "Inventory Service",
+      "capabilities": [
+        {
+          "capabilityId": "inventory-core",
+          "name": "库存行、可售数量与预占扣减释放",
+          "terms": [
+            "库存",
+            "库存预占",
+            "库存扣减"
+          ],
+          "entrypoints": [
+            "HTTP /business/set-stock",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/reserve-stock",
+            "HTTP /business/release-reservation"
+          ],
+          "dataEntities": [
+            "inventory_stocks"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "库存",
+        "库存预占",
+        "库存扣减"
+      ]
+    },
+    {
+      "appId": "ecom-logistics",
+      "domain": "ecom",
+      "serviceName": "Logistics Service",
+      "capabilities": [
+        {
+          "capabilityId": "logistics-core",
+          "name": "运单创建、承运信息与签收状态",
+          "terms": [
+            "物流"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-waybill",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/mark-picked-up",
+            "HTTP /business/mark-in-transit"
+          ],
+          "dataEntities": [
+            "logistics_waybills"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "物流"
+      ]
+    },
+    {
+      "appId": "ecom-marketing",
+      "domain": "ecom",
+      "serviceName": "Marketing Service",
+      "capabilities": [
+        {
+          "capabilityId": "marketing-core",
+          "name": "营销活动、优惠额度、活动配额与预占核销",
+          "terms": [
+            "营销活动",
+            "活动预占",
+            "优惠核销"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-campaign",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/enable-campaign",
+            "HTTP /business/disable-campaign"
+          ],
+          "dataEntities": [
+            "marketing_campaigns"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "营销活动",
+        "活动预占",
+        "优惠核销"
+      ]
+    },
+    {
+      "appId": "ecom-merchant",
+      "domain": "ecom",
+      "serviceName": "Merchant Shop Service",
+      "capabilities": [
+        {
+          "capabilityId": "merchant-core",
+          "name": "商家店铺资质、审核与店铺资料",
+          "terms": [
+            "商家"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-merchant",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/approve-merchant",
+            "HTTP /business/disable-shop"
+          ],
+          "dataEntities": [
+            "merchant_shops"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "商家"
+      ]
+    },
+    {
+      "appId": "ecom-payment",
+      "domain": "ecom",
+      "serviceName": "Payment Service",
+      "capabilities": [
+        {
+          "capabilityId": "payment-core",
+          "name": "支付单创建、支付成功标记与退款支付记录",
+          "terms": [
+            "支付"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-payment",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/mark-paid",
+            "HTTP /business/create-refund-payment"
+          ],
+          "dataEntities": [
+            "payment_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "支付"
+      ]
+    },
+    {
+      "appId": "ecom-product",
+      "domain": "ecom",
+      "serviceName": "Product Service",
+      "capabilities": [
+        {
+          "capabilityId": "product-core",
+          "name": "商品 SKU 与售卖状态管理",
+          "terms": [
+            "商品"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-sku",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/enable-sale",
+            "HTTP /business/disable-sale"
+          ],
+          "dataEntities": [
+            "product_skus"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "商品"
+      ]
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "domain": "ecom",
+      "serviceName": "Supply Chain Service",
+      "capabilities": [
+        {
+          "capabilityId": "supply-chain-core",
+          "name": "采购单、质检与补货计划",
+          "terms": [
+            "供应链"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-purchase-order",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/approve-quality-check",
+            "HTTP /business/reject-quality-check"
+          ],
+          "dataEntities": [
+            "supply_chain_purchase_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "供应链"
+      ]
+    },
+    {
+      "appId": "ecom-trade",
+      "domain": "ecom",
+      "serviceName": "Trade Service",
+      "capabilities": [
+        {
+          "capabilityId": "trade-core",
+          "name": "交易订单创建、支付确认、取消和完成，并编排跨应用 demo 流程",
+          "terms": [
+            "订单",
+            "交易编排",
+            "订单支付履约"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-order",
+            "HTTP /business/demo-checkout",
+            "HTTP /business/demo-cancel",
+            "HTTP /business/demo-full-chain",
+            "HTTP /business/list"
+          ],
+          "dataEntities": [
+            "trade_orders"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "订单",
+        "交易编排",
+        "订单支付履约"
+      ]
+    },
+    {
+      "appId": "ecom-user",
+      "domain": "ecom",
+      "serviceName": "User CRM Service",
+      "capabilities": [
+        {
+          "capabilityId": "user-core",
+          "name": "用户资料、会员等级与收货地址管理",
+          "terms": [
+            "用户"
+          ],
+          "entrypoints": [
+            "HTTP /business/create-user",
+            "HTTP /business/list",
+            "HTTP /business/get",
+            "HTTP /business/add-address",
+            "HTTP /business/upgrade-member"
+          ],
+          "dataEntities": [
+            "user_profiles"
+          ],
+          "evidence": "confirmed"
+        }
+      ],
+      "terms": [
+        "用户"
+      ]
+    }
   ]
 }

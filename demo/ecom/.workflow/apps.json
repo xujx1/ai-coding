@@ -1,0 +1,623 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-16T20:58:42",
+  "monorepoRoot": "/Users/xu/IdeaProjects/ai-coding/demo/ecom",
+  "apps": [
+    {
+      "appId": "ecom-aftersales",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-aftersales",
+      "envPath": ".workflow/apps/ecom-aftersales/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-aftersales",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-content",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-content",
+      "envPath": ".workflow/apps/ecom-content/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-content",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-customer-service",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-customer-service",
+      "envPath": ".workflow/apps/ecom-customer-service/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-customer-service",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-finance",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-finance",
+      "envPath": ".workflow/apps/ecom-finance/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-finance",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-fulfillment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-fulfillment",
+      "envPath": ".workflow/apps/ecom-fulfillment/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-fulfillment",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-inventory",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-inventory",
+      "envPath": ".workflow/apps/ecom-inventory/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-inventory",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-logistics",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-logistics",
+      "envPath": ".workflow/apps/ecom-logistics/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-logistics",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-marketing",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-marketing",
+      "envPath": ".workflow/apps/ecom-marketing/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-marketing",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-merchant",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-merchant",
+      "envPath": ".workflow/apps/ecom-merchant/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-merchant",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-payment",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-payment",
+      "envPath": ".workflow/apps/ecom-payment/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-payment",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-product",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-product",
+      "envPath": ".workflow/apps/ecom-product/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-product",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-supply-chain",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-supply-chain",
+      "envPath": ".workflow/apps/ecom-supply-chain/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-supply-chain",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-trade",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-trade",
+      "envPath": ".workflow/apps/ecom-trade/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-trade",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    },
+    {
+      "appId": "ecom-user",
+      "repoPath": "/Users/xu/IdeaProjects/ai-coding/demo/ecom/ecom-user",
+      "envPath": ".workflow/apps/ecom-user/env.json",
+      "project": {
+        "groupId": "com.ecommerce",
+        "artifactId": "ecom-user",
+        "modules": [],
+        "pomPath": "pom.xml"
+      },
+      "java": {
+        "detected": true,
+        "version": "25",
+        "vendor": "java version",
+        "home": "/Users/xu/project/jdk-25.jdk/Contents/Home",
+        "bin": "java",
+        "source": "path"
+      },
+      "maven": {
+        "detected": true,
+        "version": "3.9.9",
+        "home": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3",
+        "bin": "/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/bin/mvn",
+        "source": "manual"
+      },
+      "test_runtime": {
+        "mode": "mock-first",
+        "frameworks": [
+          "junit5"
+        ],
+        "test_dirs": [
+          "src/test"
+        ]
+      },
+      "startup": {
+        "startCommand": "",
+        "healthCheck": ""
+      },
+      "resources": {
+        "schemaFiles": [
+          "src/main/resources/schema.sql"
+        ]
+      }
+    }
+  ]
+}

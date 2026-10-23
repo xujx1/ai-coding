@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "appId": "ecom-merchant",
+  "entrypoints": [
+    {
+      "ref": "HTTP /business/create-merchant",
+      "kind": "http",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "terms": [
+        "商家"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.create"
+    },
+    {
+      "ref": "HTTP /business/list",
+      "kind": "http",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "terms": [
+        "商家"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.list"
+    },
+    {
+      "ref": "HTTP /business/get",
+      "kind": "http",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "terms": [
+        "商家"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.get"
+    },
+    {
+      "ref": "HTTP /business/approve-merchant",
+      "kind": "http",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "terms": [
+        "商家"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.approveMerchant"
+    },
+    {
+      "ref": "HTTP /business/disable-shop",
+      "kind": "http",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/AppServer.java",
+      "terms": [
+        "商家"
+      ],
+      "capabilities": [
+        "catalog-publish"
+      ],
+      "evidence": "confirmed",
+      "handler": "BusinessService.disableShop"
+    },
+    {
+      "ref": "com.ecommerce.merchant.api.MerchantDubboService",
+      "kind": "rpc",
+      "path": "ecom-merchant/src/main/java/com/ecommerce/merchant/api/MerchantDubboService.java",
+      "terms": [
+        "商家"
+      ],
+      "capabilities": [
+        "商家-dubbo"
+      ],
+      "evidence": "confirmed",
+      "handler": "MerchantDubboService"
+    }
+  ]
+}
