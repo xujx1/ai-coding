@@ -1,10 +1,10 @@
 import type { EventLog } from '../../events/EventLog.js';
 import type { PipelineEvent as LoggedPipelineEvent } from '../../events/types.js';
 import type { ContextManifest, ExecutionState, NodeState } from '../../persistence/executionTypes.js';
-import type { StateStore } from '../../persistence/stateStore.js';
 import type { RunPaths } from '../../runtime/paths.js';
 import type { PipelineEvent } from '../engine/pipelineEngine.js';
 import type { PipelineNode } from '../definitions/pipelineDefinition.js';
+import type { ApplicationCatalog } from '../../platform-sources/applicationCatalog.js';
 
 export interface StageRunnerContext {
   runId: string;
@@ -12,11 +12,11 @@ export interface StageRunnerContext {
   nodeId: string;
   stageId: string;
   node: PipelineNode;
+  applications: ApplicationCatalog;
   paths: RunPaths;
   executionState: ExecutionState;
   nodeState: NodeState;
   eventLog: EventLog;
-  store: StateStore;
   emit: (event: PipelineEvent) => void;
   writeArtifact: (
     relativePath: string,

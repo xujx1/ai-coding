@@ -22,6 +22,18 @@ import type { AgentState, PlanState } from '../../persistence/agentTypes.js';
 import type { ContextManifest, ExecutionState, NodeState, NodeStatus, ProjectState } from '../../persistence/executionTypes.js';
 import { getStateStore } from '../../persistence/stateStore.js';
 import { getEventLog } from '../../events/EventLog.js';
+import type { EventType } from '../../events/types.js';
+import { InMemoryApplicationCatalog, type ApplicationCatalog } from '../../platform-sources/applicationCatalog.js';
+import type { PipelineArtifactWriter } from '../../storage/pipelineArtifactWriter.js';
+import type { ArtifactObject } from '../../storage/contracts/artifactStore.js';
+import type { Lease, LeaseRepository } from '../../storage/contracts/leaseRepository.js';
+import type { StorageContext } from '../../storage/contracts/common.js';
+import { NodeLeaseExecutor } from '../../storage/nodeLeaseExecutor.js';
+import { createNodeTransitionIdempotency, type NodeTransitionService } from '../../storage/nodeTransition.js';
+import { retryOnConflict } from '../../storage/conflictRetry.js';
+import type { AgentStatePersistence } from '../../storage/agentStatePersistence.js';
+import type { LifecycleStatePersistence } from '../../storage/lifecycleStatePersistence.js';
+import type { RunStatePersistence } from '../../storage/runStatePersistence.js';
 import { getModelForStage, RegisteredModel, getModel, getCustomStageOverrides } from '../../models/registry.js';
 import { createLLMProvider, LLMProvider } from '../../models/providers.js';
 import { AgentEngine, AgentEvent } from '../../agents/core/index.js';
@@ -159,10 +171,12 @@ import {
   registerDeploymentArtifacts,
   saveLifecycleState,
   type EnvironmentRef,
+  type LifecycleState,
 } from '../../lifecycle/index.js';
 import {
   ensurePipelineLifecycleForExecution,
   recordPipelineLifecycleApprovalResolved,
+  recordPipelineLifecycleApprovalCancelled,
   recordPipelineLifecycleApprovalWaiting,
   recordPipelineLifecycleCompleted,
   recordPipelineLifecycleFailed,
@@ -189,6 +203,12 @@ export interface StartOptions {
   skipConfirmations?: boolean;
 }
 
+interface NodeTransitionDependencies {
+  service: NodeTransitionService;
+  context: StorageContext;
+  workerId: string;
+}
+
 export class PipelineEngine extends EventEmitter {
   private state: ExecutionState;
   private toolRegistry: ToolRegistry;
@@ -197,6 +217,9 @@ export class PipelineEngine extends EventEmitter {
   private running = false;
   private aborted = false;
   private skipConfirmations = false;
+  private pendingDurableArtifacts: Promise<ArtifactObject>[] = [];
+  private statePersistenceQueue: Promise<void> = Promise.resolve();
+  private statePersistenceError: unknown;
   private readonly stageRunnerRegistry: StageRunnerRegistry = {
     'upload-init': runUploadInitStage,
     'app-integration-test': runE2EVerificationStage,
@@ -204,13 +227,24 @@ export class PipelineEngine extends EventEmitter {
     ...createLegacyStageRunnerRegistry(),
   };
 
-  constructor(private runId: string) {
+  constructor(
+    private runId: string,
+    private readonly applications: ApplicationCatalog = new InMemoryApplicationCatalog(),
+    private readonly durableArtifacts?: PipelineArtifactWriter,
+    private readonly nodeLeaseExecutor?: NodeLeaseExecutor,
+    private readonly agentPersistence?: AgentStatePersistence,
+    private readonly lifecyclePersistence?: LifecycleStatePersistence,
+    private readonly runPersistence?: RunStatePersistence,
+    private readonly nodeTransitions?: NodeTransitionDependencies,
+  ) {
     super();
-    const store = getStateStore(runId);
-    let state = store.loadExecutionState();
+    // A repository-backed Pipeline must not discover or mutate a file snapshot
+    // before it hydrates its configured durable authority in start().
+    const store = this.runPersistence ? undefined : getStateStore(runId);
+    let state = store?.loadExecutionState() ?? null;
     if (!state) {
       // Initialize new state
-      const paths = ensureRunDirectories(runId);
+      if (!this.runPersistence) ensureRunDirectories(runId);
       const workflowSnapshot = captureWorkflowSnapshot(BUILTIN_MRD_TO_CODE_WORKFLOW_ID);
       state = {
         runId,
@@ -232,30 +266,32 @@ export class PipelineEngine extends EventEmitter {
           templateSnapshot: workflowSnapshot,
         }),
       };
-      store.saveExecutionState(state);
+      store?.saveExecutionState(state);
     }
     if (!state.modelOverrides || Object.keys(state.modelOverrides).length === 0) {
       const customStageOverrides = getCustomStageOverrides();
       if (Object.keys(customStageOverrides).length > 0) {
         state.modelOverrides = customStageOverrides;
-        store.saveExecutionState(state);
+        store?.saveExecutionState(state);
       }
     }
     if (reconcilePipelineNodes(state)) {
-      store.saveExecutionState(state);
+      store?.saveExecutionState(state);
     }
     if (recoverInterruptedState(state)) {
-      store.saveExecutionState(state);
+      store?.saveExecutionState(state);
     }
-    const agentStates = store.listAgentStates();
-    if (recoverInterruptedAgentStates(agentStates, (agent) => store.saveAgentState(agent))) {
+    const agentStates = store?.listAgentStates() ?? [];
+    if (store && recoverInterruptedAgentStates(agentStates, (agent) => store.saveAgentState(agent))) {
       agentStates.splice(0, agentStates.length, ...store.listAgentStates());
     }
     if (repairBranchChildAgentIdsFromPersistedAgents(state, agentStates)) {
-      store.saveExecutionState(state);
+      store?.saveExecutionState(state);
     }
-    state = ensurePipelineLifecycleForExecution(state, { workflowId: 'legacy-pipeline' });
-    store.saveExecutionState(state);
+    if (!this.lifecyclePersistence) {
+      state = ensurePipelineLifecycleForExecution(state, { workflowId: 'legacy-pipeline' }) as ExecutionState;
+    }
+    store?.saveExecutionState(state);
     this.state = state;
     this.toolRegistry = createToolRegistry();
   }
@@ -268,17 +304,159 @@ export class PipelineEngine extends EventEmitter {
     return this.currentAgent;
   }
 
+  private async hydrateRunState(): Promise<void> {
+    if (!this.runPersistence) return;
+    const persisted = await this.runPersistence.load(this.runId);
+    if (persisted) {
+      this.state = persisted;
+      return;
+    }
+    await this.runPersistence.save(this.state);
+  }
+
+  /** Queue repository writes so one Pipeline instance preserves its CAS order. */
+  private persistExecutionState(): void {
+    this.state.updatedAt = Date.now();
+    if (!this.runPersistence) {
+      getStateStore(this.runId).saveExecutionState(this.state);
+      return;
+    }
+    if (this.statePersistenceError) return;
+    const snapshot = structuredClone(this.state);
+    this.statePersistenceQueue = this.statePersistenceQueue.then(
+      () => this.runPersistence!.save(snapshot),
+    ).catch(error => {
+      this.statePersistenceError = error;
+    });
+  }
+
+  private async flushRunState(): Promise<void> {
+    await this.statePersistenceQueue;
+    if (this.statePersistenceError) throw this.statePersistenceError;
+  }
+
+  private async prepareLifecycleTransition(
+    update: (persistence: LifecycleStatePersistence) => void | Promise<void>,
+  ): Promise<{ state: LifecycleState; expectedVersion?: number } | undefined> {
+    if (!this.nodeTransitions || !this.lifecyclePersistence) return undefined;
+    let prepared: LifecycleState | undefined;
+    let expectedVersion: number | undefined;
+    const base = this.lifecyclePersistence;
+    const capture: LifecycleStatePersistence = {
+      load: async runId => {
+        const state = await base.load(runId);
+        if (state) expectedVersion = base.expectedVersion?.(state);
+        return state;
+      },
+      save: async state => { prepared = state; },
+    };
+    await update(capture);
+    return prepared ? { state: prepared, expectedVersion } : undefined;
+  }
+
+  private async commitAtomicNodeTransition(args: {
+    node: PipelineNode;
+    success: boolean;
+    error?: string;
+    eventType?: EventType;
+    eventData?: Record<string, unknown>;
+    lifecycle?: { state: LifecycleState; expectedVersion?: number };
+    prepareLifecycle?: () => Promise<{ state: LifecycleState; expectedVersion?: number } | undefined>;
+    committedArtifacts?: ArtifactObject[];
+    lease?: Lease;
+  }): Promise<void> {
+    if (!this.nodeTransitions || !this.runPersistence) {
+      throw new Error('Atomic node transition dependencies are not configured.');
+    }
+    await this.flushRunState();
+    this.state.updatedAt = Date.now();
+    const nodeState = this.state.nodes.find(node => node.id === args.node.id);
+    const terminalAt = nodeState?.completedAt ?? this.state.updatedAt;
+    const eventType = args.eventType ?? 'pipeline_node_end';
+    const event = {
+      id: `node-transition:${this.runId}:${args.node.id}:${eventType}:${terminalAt}`,
+      type: eventType,
+      runId: this.runId,
+      nodeId: args.node.id,
+      timestamp: terminalAt,
+      data: {
+        nodeId: args.node.id,
+        success: args.success,
+        ...(args.error ? { error: args.error } : {}),
+        ...args.eventData,
+      },
+    };
+    const attemptedState = structuredClone(this.state);
+    const baseState = this.runPersistence.currentSnapshot?.(this.runId);
+    let preparedLifecycle = args.lifecycle;
+    const result = await retryOnConflict(async attempt => {
+      if (attempt > 1) {
+        const latest = await this.runPersistence!.load(this.runId);
+        if (!latest || !baseState || !sameRunSnapshot(latest, baseState)) {
+          this.state = latest ?? this.state;
+          throw new UnsafeTransitionRebaseError(this.runId, args.node.id);
+        }
+        // Reapply the terminal outcome only after proving the reloaded state
+        // has no concurrent semantic change relative to our persisted base.
+        this.state = reapplyTerminalOutcome(latest, attemptedState);
+      }
+      preparedLifecycle = args.prepareLifecycle
+        ? await args.prepareLifecycle()
+        : preparedLifecycle;
+      const expectedVersion = this.runPersistence!.currentVersion?.(this.runId);
+      if (expectedVersion === undefined) {
+        throw new Error(`Run version is unavailable for atomic transition '${this.runId}:${args.node.id}'.`);
+      }
+      return this.nodeTransitions!.service.commit(this.nodeTransitions!.context, {
+        run: { state: structuredClone(this.state), expectedVersion },
+        lifecycle: preparedLifecycle,
+        committedArtifacts: uniqueArtifactObjects(args.committedArtifacts ?? []),
+        event,
+        idempotency: createNodeTransitionIdempotency(event),
+        workerId: this.nodeTransitions!.workerId,
+        lease: args.lease,
+      });
+    }, { maxAttempts: 3 });
+    if (result.runVersion !== undefined) {
+      this.runPersistence.acceptCommittedVersion?.(this.runId, result.runVersion, this.state);
+    }
+    if (preparedLifecycle && result.lifecycleVersion !== undefined) {
+      this.lifecyclePersistence?.acceptCommittedVersion?.(preparedLifecycle.state, result.lifecycleVersion);
+    }
+  }
+
+  private async commitPipelineTerminalTransition(
+    node: PipelineNode,
+    commit: (lease?: Lease) => Promise<void>,
+  ): Promise<void> {
+    if (!this.nodeLeaseExecutor) {
+      await commit(undefined);
+      return;
+    }
+    // Reacquire the last node's durable lease for the short finalization
+    // transaction. If another Worker has taken over, this Worker cannot make
+    // the run-level completion/failure visible with a stale fencing token.
+    await this.nodeLeaseExecutor.execute(this.runId, node.id, commit);
+  }
+
   /**
    * Start or resume the pipeline.
    */
   async start(opts: StartOptions = {}): Promise<void> {
     if (this.running) return;
+    await this.hydrateRunState();
     this.running = true;
     this.aborted = false;
     this.skipConfirmations = opts.skipConfirmations === true;
 
+    if (this.lifecyclePersistence) {
+      this.state = await ensurePipelineLifecycleForExecution(this.state, {
+        workflowId: 'legacy-pipeline',
+        persistence: this.lifecyclePersistence,
+      });
+    }
+
     const eventLog = getEventLog(this.runId);
-    const store = getStateStore(this.runId);
 
     this.state.status = 'running';
     this.state.error = undefined;
@@ -290,7 +468,7 @@ export class PipelineEngine extends EventEmitter {
       const fromNodeId = normalizeStageId(opts.fromNodeId);
       startIndex = PIPELINE_NODES.findIndex(n => n.id === fromNodeId);
       if (startIndex < 0) startIndex = 0;
-      this.resetNodesForRerun(startIndex);
+      await this.resetNodesForRerun(startIndex);
       eventLog.logEvent('pipeline_resumed', { fromNode: startIndex, fromNodeId, rerun: true });
     } else if (this.state.currentNodeIndex >= 0) {
       // Resume from next node after last completed
@@ -303,7 +481,7 @@ export class PipelineEngine extends EventEmitter {
     }
 
     eventLog.logEvent('pipeline_started', { fromNode: startIndex });
-    recordPipelineLifecycleStarted(this.state, { workflowId: 'legacy-pipeline' });
+    await recordPipelineLifecycleStarted(this.state, { workflowId: 'legacy-pipeline', persistence: this.lifecyclePersistence });
 
     for (let i = startIndex; i < PIPELINE_NODES.length; i++) {
       if (this.aborted) break;
@@ -326,37 +504,28 @@ export class PipelineEngine extends EventEmitter {
       if (!isBranchPipelineRootNode(node.id)) {
         this.markProjectsForNode(node.id, 'running');
       }
-      recordPipelineLifecycleNodeStarted({
+      await recordPipelineLifecycleNodeStarted({
         execution: this.state,
         node,
         nodeState,
+        persistence: this.lifecyclePersistence,
       });
-      store.saveExecutionState(this.state);
+      this.persistExecutionState();
 
       eventLog.logEvent('pipeline_node_start', { nodeId: node.id, nodeName: node.name }, undefined, node.id);
       this.emit('event', { type: 'stage_start', nodeId: node.id, nodeName: node.name, index: i } as PipelineEvent);
 
       try {
-        const output = await this.executeNode(node, nodeState);
-
-        // 节点执行成功后先持久化产物索引和轻量上下文，再进入确认门或回退判断。
-        nodeState.status = 'completed';
-        nodeState.completedAt = Date.now();
-        nodeState.output = output;
-        nodeState.outputArtifacts = collectOutputArtifacts(node, output, nodeState);
-        this.updateArtifactIndex(node.id, nodeState.outputArtifacts);
-        if (!isBranchPipelineRootNode(node.id)) {
-          this.markProjectsForNode(node.id, 'completed');
-        }
-        this.saveContextManifest(node.id, nodeState, output);
-        recordPipelineLifecycleNodeCompleted({
-          execution: this.state,
-          node,
-          nodeState,
-          outputArtifacts: nodeState.outputArtifacts,
-          paths: getRunPaths(this.runId),
-        });
-        store.saveExecutionState(this.state);
+        // The executable work and its terminal commit share one lease scope.
+        // Confirmation waits remain outside it, so human latency never holds
+        // a Worker lease.
+        const output = this.nodeLeaseExecutor
+          ? await this.nodeLeaseExecutor.execute(
+            this.runId,
+            node.id,
+            lease => this.executeNodeAndCommitTerminal(node, nodeState, lease),
+          )
+          : await this.executeNodeAndCommitTerminal(node, nodeState);
 
         eventLog.logEvent('pipeline_node_end', { nodeId: node.id, success: true }, undefined, node.id);
         this.emit('event', { type: 'stage_end', nodeId: node.id, success: true, output } as PipelineEvent);
@@ -364,10 +533,10 @@ export class PipelineEngine extends EventEmitter {
         const rollback = this.detectRollbackAfterNode(node.id);
         if (rollback) {
           // review/test 这类“后置节点发现问题”的场景，不新开分支，直接把指针回退到需要修复的节点。
-          this.applyRollback(rollback);
+          await this.applyRollback(rollback);
           const targetIndex = PIPELINE_NODES.findIndex(n => n.id === rollback.targetNodeId);
           i = Math.max(-1, targetIndex - 1);
-          store.saveExecutionState(this.state);
+          this.persistExecutionState();
           continue;
         }
 
@@ -378,21 +547,11 @@ export class PipelineEngine extends EventEmitter {
               project.status = 'completed';
             }
           });
-          store.saveExecutionState(this.state);
-        }
-
-        // Save artifact if specified. Multi-artifact stages may write files inside executeNode.
-        if (node.artifactOutput && typeof output === 'string') {
-          const artifactPath = path.join(getRunPaths(this.runId).artifactsDir, node.artifactOutput);
-          fs.writeFileSync(artifactPath, output, 'utf-8');
+          this.persistExecutionState();
         }
 
         // 确认门只负责暂停状态机并收集用户决策；业务产物已在 executeNode 内写入。
         if (node.hasConfirmationGate && !opts.skipConfirmations) {
-          nodeState.status = 'waiting_confirmation';
-          this.state.status = 'waiting_confirmation';
-          store.saveExecutionState(this.state);
-
           const firstOutputArtifact = isSpecOutput(output)
             ? Object.keys(output.artifacts)[0]
             : node.artifactOutputs?.[0] || node.artifactOutput;
@@ -401,19 +560,43 @@ export class PipelineEngine extends EventEmitter {
             : undefined;
           const confirmationContent = formatConfirmationContent(output);
           const confirmationData = buildConfirmationData(node, confirmationContent);
-
-          eventLog.logEvent('confirmation_waiting', {
+          const waitingEventData = {
             nodeId: node.id,
             title: confirmationData.title,
             content: confirmationContent.slice(0, 5000),
             artifactPath,
             ...confirmationData.extra,
-          }, undefined, node.id);
-          recordPipelineLifecycleApprovalWaiting({
-            execution: this.state,
-            nodeId: node.id,
-            artifactPaths: artifactPath ? [artifactPath] : nodeState.outputArtifacts,
-          });
+          };
+
+          nodeState.status = 'waiting_confirmation';
+          this.state.status = 'waiting_confirmation';
+          if (this.nodeTransitions) {
+            await this.commitPipelineTerminalTransition(node, lease =>
+              this.commitAtomicNodeTransition({
+                node,
+                success: true,
+                eventType: 'confirmation_waiting',
+                eventData: waitingEventData,
+                prepareLifecycle: () => this.prepareLifecycleTransition(persistence =>
+                  recordPipelineLifecycleApprovalWaiting({
+                    execution: this.state,
+                    nodeId: node.id,
+                    artifactPaths: artifactPath ? [artifactPath] : nodeState.outputArtifacts,
+                    persistence,
+                  })),
+                lease,
+              }));
+          } else {
+            this.persistExecutionState();
+            await recordPipelineLifecycleApprovalWaiting({
+              execution: this.state,
+              nodeId: node.id,
+              artifactPaths: artifactPath ? [artifactPath] : nodeState.outputArtifacts,
+              persistence: this.lifecyclePersistence,
+            });
+          }
+
+          eventLog.logEvent('confirmation_waiting', waitingEventData, undefined, node.id);
 
           this.emit('event', {
             type: 'confirmation_required',
@@ -426,57 +609,84 @@ export class PipelineEngine extends EventEmitter {
 
           // 等待期间进程可以重启；resolveConfirmation 会把用户决策写回 state，再从当前节点恢复。
           const { approved, feedback } = await this.waitForConfirmation(node.id);
-          eventLog.logEvent('confirmation_resolved', { nodeId: node.id, approved, feedback }, undefined, node.id);
-          recordPipelineLifecycleApprovalResolved({
-            execution: this.state,
-            nodeId: node.id,
-            approved,
-            feedback,
-          });
-          this.emit('event', { type: 'confirmation_resolved', nodeId: node.id, approved, feedback } as PipelineEvent);
-
-          if (!approved) {
-            if (feedback) {
-              // 用户拒绝但给了反馈：不推进下游，把反馈留在 nodeState，下一轮重新生成当前节点产物。
-              nodeState.confirmation = { waiting: false, approved: false, feedback };
-              nodeState.status = 'pending';
-              i--; // re-run this stage
-              this.state.status = 'running';
-              store.saveExecutionState(this.state);
-              continue;
-            } else {
-              // Cancelled
-              this.state.status = 'cancelled';
-              this.state.completedAt = Date.now();
-              store.saveExecutionState(this.state);
-              eventLog.logEvent('pipeline_cancelled', { reason: 'user_rejected' });
-              this.emit('event', { type: 'pipeline_cancelled', runId: this.runId } as PipelineEvent);
-              this.running = false;
-              return;
-            }
+          if (!approved && feedback) {
+            // 用户拒绝但给了反馈：不推进下游，把反馈留在 nodeState，下一轮重新生成当前节点产物。
+            nodeState.confirmation = { waiting: false, approved: false, feedback };
+            nodeState.status = 'pending';
+            this.state.status = 'running';
+          } else if (!approved) {
+            nodeState.confirmation = { waiting: false, approved: false };
+            this.state.status = 'cancelled';
+            this.state.completedAt = Date.now();
+          } else {
+            nodeState.confirmation = { waiting: false, approved: true };
+            nodeState.status = 'completed';
+            this.state.status = 'running';
+            this.saveContextManifest(node.id, nodeState, output);
           }
 
-          // Approved - clear feedback if any
-          nodeState.confirmation = { waiting: false, approved: true };
-          nodeState.status = 'completed';
-          this.state.status = 'running';
-          this.saveContextManifest(node.id, nodeState, output);
-          store.saveExecutionState(this.state);
+          const resolvedEventData = { nodeId: node.id, approved, feedback };
+          if (this.nodeTransitions) {
+            await this.commitPipelineTerminalTransition(node, lease =>
+              this.commitAtomicNodeTransition({
+                node,
+                success: approved,
+                eventType: !approved && !feedback ? 'pipeline_cancelled' : 'confirmation_resolved',
+                eventData: !approved && !feedback
+                  ? { ...resolvedEventData, reason: 'user_rejected' }
+                  : resolvedEventData,
+                prepareLifecycle: () => this.prepareLifecycleTransition(persistence =>
+                  !approved && !feedback
+                    ? recordPipelineLifecycleApprovalCancelled({ execution: this.state, nodeId: node.id, persistence })
+                    : recordPipelineLifecycleApprovalResolved({
+                      execution: this.state,
+                      nodeId: node.id,
+                      approved,
+                      feedback,
+                      persistence,
+                    })),
+                lease,
+              }));
+          } else {
+            if (!approved && !feedback) {
+              await recordPipelineLifecycleApprovalCancelled({
+                execution: this.state,
+                nodeId: node.id,
+                persistence: this.lifecyclePersistence,
+              });
+            } else {
+              await recordPipelineLifecycleApprovalResolved({
+                execution: this.state,
+                nodeId: node.id,
+                approved,
+                feedback,
+                persistence: this.lifecyclePersistence,
+              });
+            }
+            this.persistExecutionState();
+          }
+
+          eventLog.logEvent('confirmation_resolved', resolvedEventData, undefined, node.id);
+          this.emit('event', { type: 'confirmation_resolved', nodeId: node.id, approved, feedback } as PipelineEvent);
+
+          if (!approved && feedback) {
+            i--; // re-run this stage
+            continue;
+          }
+          if (!approved) {
+            eventLog.logEvent('pipeline_cancelled', { reason: 'user_rejected' });
+            this.emit('event', { type: 'pipeline_cancelled', runId: this.runId } as PipelineEvent);
+            this.running = false;
+            return;
+          }
         }
       } catch (err) {
-        nodeState.status = 'failed';
-        nodeState.error = (err as Error).message;
-        nodeState.failureCount = (nodeState.failureCount ?? 0) + 1;
-        if (!isBranchPipelineRootNode(node.id)) {
-          this.markProjectsForNode(node.id, 'failed');
+        if ((nodeState as NodeState).status !== 'failed') {
+          nodeState.status = 'failed';
+          nodeState.error = (err as Error).message;
+          nodeState.failureCount = (nodeState.failureCount ?? 0) + 1;
+          if (!isBranchPipelineRootNode(node.id)) this.markProjectsForNode(node.id, 'failed');
         }
-        recordPipelineLifecycleNodeFailed({
-          execution: this.state,
-          node,
-          nodeState,
-          error: (err as Error).message,
-        });
-        store.saveExecutionState(this.state);
 
         eventLog.logEvent('pipeline_node_end', { nodeId: node.id, success: false, error: (err as Error).message }, undefined, node.id);
         this.emit('event', { type: 'stage_end', nodeId: node.id, success: false, output: (err as Error).message } as PipelineEvent);
@@ -490,7 +700,7 @@ export class PipelineEngine extends EventEmitter {
           if (!isBranchPipelineRootNode(node.id)) {
             this.markProjectsForNode(node.id, 'running');
           }
-          store.saveExecutionState(this.state);
+          this.persistExecutionState();
           eventLog.logEvent('node_retry_scheduled', {
             nodeId: node.id,
             retryAttempt,
@@ -509,8 +719,21 @@ export class PipelineEngine extends EventEmitter {
         this.state.status = 'failed';
         this.state.error = (err as Error).message;
         this.state.completedAt = Date.now();
-        recordPipelineLifecycleFailed(this.state, (err as Error).message);
-        store.saveExecutionState(this.state);
+        if (this.nodeTransitions) {
+          await this.commitPipelineTerminalTransition(node, lease =>
+            this.commitAtomicNodeTransition({
+              node,
+              success: false,
+              error: (err as Error).message,
+              eventType: 'pipeline_failed',
+              prepareLifecycle: () => this.prepareLifecycleTransition(persistence =>
+                recordPipelineLifecycleFailed(this.state, (err as Error).message, { persistence })),
+              lease,
+            }));
+        } else {
+          await recordPipelineLifecycleFailed(this.state, (err as Error).message, { persistence: this.lifecyclePersistence });
+          this.persistExecutionState();
+        }
         eventLog.logEvent('pipeline_failed', { nodeId: node.id, error: (err as Error).message });
         this.emit('event', { type: 'pipeline_failed', runId: this.runId, error: (err as Error).message } as PipelineEvent);
         this.running = false;
@@ -523,8 +746,27 @@ export class PipelineEngine extends EventEmitter {
       this.state.status = 'completed';
       this.state.error = undefined;
       this.state.completedAt = Date.now();
-      recordPipelineLifecycleCompleted(this.state);
-      store.saveExecutionState(this.state);
+      this.queueDurableArtifact('archive', 'transcripts/events.ndjson', Buffer.from(
+        eventLog.getAllEvents().map(event => JSON.stringify(event)).join('\n') + '\n',
+      ));
+      const committedArtifacts = await this.flushDurableArtifacts();
+      if (this.nodeTransitions) {
+        const finalNode = PIPELINE_NODES.at(-1)!;
+        await this.commitPipelineTerminalTransition(finalNode, lease =>
+          this.commitAtomicNodeTransition({
+            node: finalNode,
+            success: true,
+            eventType: 'pipeline_completed',
+            prepareLifecycle: () => this.prepareLifecycleTransition(persistence =>
+              recordPipelineLifecycleCompleted(this.state, { persistence })),
+            committedArtifacts,
+            lease,
+          }));
+      } else {
+        await recordPipelineLifecycleCompleted(this.state, { persistence: this.lifecyclePersistence });
+        this.persistExecutionState();
+        await this.flushRunState();
+      }
       eventLog.logEvent('pipeline_completed', { runId: this.runId });
       this.emit('event', { type: 'pipeline_complete', runId: this.runId } as PipelineEvent);
     }
@@ -535,7 +777,7 @@ export class PipelineEngine extends EventEmitter {
   /**
    * Approve or reject a confirmation gate.
    */
-  resolveConfirmation(nodeId: string, approved: boolean, feedback?: string): void {
+  async resolveConfirmation(nodeId: string, approved: boolean, feedback?: string): Promise<void> {
     if (this.waitingForConfirmation && this.waitingForConfirmation.nodeId === nodeId) {
       const resolve = this.waitingForConfirmation.resolve;
       this.waitingForConfirmation = null;
@@ -549,14 +791,14 @@ export class PipelineEngine extends EventEmitter {
       return;
     }
 
-    const store = getStateStore(this.runId);
     const eventLog = getEventLog(this.runId);
     eventLog.logEvent('confirmation_resolved', { nodeId: normalizedNodeId, approved, feedback }, undefined, normalizedNodeId);
-    recordPipelineLifecycleApprovalResolved({
+    await recordPipelineLifecycleApprovalResolved({
       execution: this.state,
       nodeId: normalizedNodeId,
       approved,
       feedback,
+      persistence: this.lifecyclePersistence,
     });
     this.emit('event', { type: 'confirmation_resolved', nodeId: normalizedNodeId, approved, feedback } as PipelineEvent);
 
@@ -566,8 +808,9 @@ export class PipelineEngine extends EventEmitter {
       nodeState.error = '用户拒绝确认';
       this.state.status = 'cancelled';
       this.state.completedAt = Date.now();
-      recordPipelineLifecycleFailed(this.state, '用户拒绝确认');
-      store.saveExecutionState(this.state);
+      await recordPipelineLifecycleFailed(this.state, '用户拒绝确认', { persistence: this.lifecyclePersistence });
+      this.persistExecutionState();
+      await this.flushRunState();
       eventLog.logEvent('pipeline_cancelled', { reason: 'user_rejected' });
       this.emit('event', { type: 'pipeline_cancelled', runId: this.runId } as PipelineEvent);
       return;
@@ -580,14 +823,15 @@ export class PipelineEngine extends EventEmitter {
     this.state.status = 'running';
     this.state.currentNodeId = normalizedNodeId;
     this.state.currentNodeIndex = PIPELINE_NODES.findIndex(node => node.id === normalizedNodeId);
-    store.saveExecutionState(this.state);
+    this.persistExecutionState();
+    await this.flushRunState();
     this.resumeFromNode(normalizedNodeId);
   }
 
   /**
    * Abort/cancel the pipeline.
    */
-  abort(): void {
+  async abort(): Promise<void> {
     this.aborted = true;
     if (this.currentAgent) {
       this.currentAgent.abort();
@@ -596,7 +840,6 @@ export class PipelineEngine extends EventEmitter {
       this.waitingForConfirmation.resolve(false);
       this.waitingForConfirmation = null;
     }
-    const store = getStateStore(this.runId);
     this.state.status = 'cancelled';
     this.state.completedAt = Date.now();
     const currentNode = this.state.nodes[this.state.currentNodeIndex];
@@ -621,19 +864,20 @@ export class PipelineEngine extends EventEmitter {
       syncSessionWorkflowJoinFromBranches(this.state.workflowInstance);
       this.state.workflowInstance.updatedAt = new Date().toISOString();
     }
-    store.saveExecutionState(this.state);
+    this.persistExecutionState();
     this.running = false;
-    recordPipelineLifecycleFailed(this.state, '用户中断流程');
+    await recordPipelineLifecycleFailed(this.state, '用户中断流程', { persistence: this.lifecyclePersistence });
+    await this.flushRunState();
     this.emit('event', { type: 'pipeline_cancelled', runId: this.runId } as PipelineEvent);
   }
 
-  suspend(): void {
-    const store = getStateStore(this.runId);
+  async suspend(): Promise<void> {
     this.state.status = 'suspended';
     this.state.nodes.forEach(node => {
       if (node.status === 'running') node.status = 'suspended';
     });
-    store.saveExecutionState(this.state);
+    this.persistExecutionState();
+    await this.flushRunState();
     this.running = false;
   }
 
@@ -648,7 +892,7 @@ export class PipelineEngine extends EventEmitter {
       this.recordBranchChildAgent(nodeId, projectName, agentRunId);
     }
     this.state.currentAgentRunId = agentRunId;
-    getStateStore(this.runId).saveExecutionState(this.state);
+    this.persistExecutionState();
   }
 
   private recordBranchChildAgent(nodeId: string, projectName: string, agentRunId: string): void {
@@ -791,7 +1035,7 @@ export class PipelineEngine extends EventEmitter {
       project.status = status;
     });
     this.syncSessionBranchForProject(nodeId, status, projectName, error);
-    getStateStore(this.runId).saveExecutionState(this.state);
+    this.persistExecutionState();
   }
 
   private syncSessionBranchForProject(
@@ -952,12 +1196,13 @@ export class PipelineEngine extends EventEmitter {
     return null;
   }
 
-  private applyRollback(rollback: NonNullable<ExecutionState['rollback']>): void {
+  private async applyRollback(rollback: NonNullable<ExecutionState['rollback']>): Promise<void> {
     const eventLog = getEventLog(this.runId);
     eventLog.logEvent('node_rollback_requested', { ...rollback }, undefined, rollback.sourceNodeId);
-    recordPipelineLifecycleRollback({
+    await recordPipelineLifecycleRollback({
       execution: this.state,
       rollback,
+      persistence: this.lifecyclePersistence,
     });
     this.emit('event', { type: 'stage_progress', nodeId: rollback.sourceNodeId, event: { type: 'node_rollback_requested', ...rollback } } as PipelineEvent);
 
@@ -1031,6 +1276,90 @@ export class PipelineEngine extends EventEmitter {
 
   // ── Private: stage execution ──────────────────────────────────────────
 
+  private async executeNodeAndCommitTerminal(
+    node: PipelineNode,
+    nodeState: NodeState,
+    lease?: Lease,
+  ): Promise<unknown> {
+    let output: unknown;
+    try {
+      output = await this.executeNode(node, nodeState);
+    } catch (error) {
+      nodeState.status = 'failed';
+      nodeState.error = (error as Error).message;
+      nodeState.failureCount = (nodeState.failureCount ?? 0) + 1;
+      nodeState.completedAt = Date.now();
+      if (!isBranchPipelineRootNode(node.id)) this.markProjectsForNode(node.id, 'failed');
+      if (this.nodeTransitions) {
+        await this.commitAtomicNodeTransition({
+          node,
+          success: false,
+          error: (error as Error).message,
+          lease,
+          prepareLifecycle: () => this.prepareLifecycleTransition(persistence => recordPipelineLifecycleNodeFailed({
+            execution: this.state,
+            node,
+            nodeState: this.state.nodes.find(item => item.id === node.id) ?? nodeState,
+            error: (error as Error).message,
+            persistence,
+          })),
+        });
+      } else {
+        await recordPipelineLifecycleNodeFailed({
+          execution: this.state,
+          node,
+          nodeState,
+          error: (error as Error).message,
+          persistence: this.lifecyclePersistence,
+        });
+        this.persistExecutionState();
+      }
+      throw error;
+    }
+
+    nodeState.status = 'completed';
+    nodeState.completedAt = Date.now();
+    nodeState.output = output;
+    nodeState.outputArtifacts = collectOutputArtifacts(node, output, nodeState);
+    this.updateArtifactIndex(node.id, nodeState.outputArtifacts);
+    if (!isBranchPipelineRootNode(node.id)) this.markProjectsForNode(node.id, 'completed');
+    this.saveContextManifest(node.id, nodeState, output);
+
+    if (node.artifactOutput && typeof output === 'string') {
+      this.writeArtifact(getRunPaths(this.runId), node.id, node.artifactOutput, output, '节点输出产物');
+    }
+    this.mirrorWorkspaceArtifacts(getRunPaths(this.runId), node.id);
+    const committedArtifacts = await this.flushDurableArtifacts();
+
+    if (this.nodeTransitions) {
+      await this.commitAtomicNodeTransition({
+        node,
+        success: true,
+        lease,
+        prepareLifecycle: () => this.prepareLifecycleTransition(persistence => recordPipelineLifecycleNodeCompleted({
+          execution: this.state,
+          node,
+          nodeState: this.state.nodes.find(item => item.id === node.id) ?? nodeState,
+          outputArtifacts: this.state.nodes.find(item => item.id === node.id)?.outputArtifacts ?? [],
+          paths: getRunPaths(this.runId),
+          persistence,
+        })),
+        committedArtifacts,
+      });
+    } else {
+      await recordPipelineLifecycleNodeCompleted({
+        execution: this.state,
+        node,
+        nodeState,
+        outputArtifacts: nodeState.outputArtifacts,
+        paths: getRunPaths(this.runId),
+        persistence: this.lifecyclePersistence,
+      });
+      this.persistExecutionState();
+    }
+    return output;
+  }
+
   private async executeNode(node: PipelineNode, nodeState: NodeState): Promise<unknown> {
     const paths = getRunPaths(this.runId);
     const runner = this.stageRunnerRegistry[node.id];
@@ -1073,11 +1402,11 @@ export class PipelineEngine extends EventEmitter {
       nodeId: node.id,
       stageId: node.id,
       node,
+      applications: this.applications,
       paths,
       executionState: this.state,
       nodeState,
       eventLog: getEventLog(this.runId),
-      store: getStateStore(this.runId),
       emit: (event) => this.emit('event', event),
       writeArtifact: (relativePath, content, description) =>
         this.writeArtifact(paths, node.id, relativePath, content, description),
@@ -1109,11 +1438,11 @@ export class PipelineEngine extends EventEmitter {
       nodeId: node.id,
       stageId: node.id,
       node,
+      applications: this.applications,
       paths,
       executionState: this.state,
       nodeState,
       eventLog: getEventLog(this.runId),
-      store: getStateStore(this.runId),
       emit: (event) => this.emit('event', event),
       writeArtifact: (relativePath, content, description) =>
         this.writeArtifact(paths, node.id, relativePath, content, description),
@@ -1132,7 +1461,7 @@ export class PipelineEngine extends EventEmitter {
     const eventLog = getEventLog(this.runId);
 
     // Ensure project-manifest.json exists (compatibility fallback)
-    const manifest = ensureProjectManifest(paths);
+    const manifest = ensureProjectManifest(paths, this.applications);
     const recovered = this.tryRecoverMrdRenderFromArtifacts(node, paths, nodeState, manifest);
     if (recovered) return recovered;
 
@@ -1162,6 +1491,7 @@ export class PipelineEngine extends EventEmitter {
       projectDir: paths.projectDir,
       artifactsDir: paths.artifactsDir,
       runDir: paths.runDir,
+      persistence: this.agentPersistence,
       taskDescription: '需求应用归属确认',
       requireToolUse: shouldRequireToolUse(),
     });
@@ -1215,10 +1545,9 @@ export class PipelineEngine extends EventEmitter {
 
     let clarificationAnswers = '';
     if (!this.skipConfirmations && hasClarificationQuestions(questions)) {
-      const store = getStateStore(this.runId);
       nodeState.status = 'waiting_confirmation';
       this.state.status = 'waiting_confirmation';
-      store.saveExecutionState(this.state);
+      this.persistExecutionState();
 
       eventLog.logEvent('confirmation_waiting', {
         nodeId: node.id,
@@ -1228,10 +1557,11 @@ export class PipelineEngine extends EventEmitter {
         confirmationKind: 'mrd-clarify-questions',
         structuredPayload: requirementOwnership,
       }, agentId, node.id);
-      recordPipelineLifecycleApprovalWaiting({
+      await recordPipelineLifecycleApprovalWaiting({
         execution: this.state,
         nodeId: node.id,
         artifactPaths: ['artifacts/mrd-clarify-questions.md', REQUIREMENT_OWNERSHIP_ARTIFACT_PATH],
+        persistence: this.lifecyclePersistence,
       });
       this.emit('event', {
         type: 'confirmation_required',
@@ -1245,11 +1575,12 @@ export class PipelineEngine extends EventEmitter {
 
       const { approved, feedback } = await this.waitForConfirmation(node.id);
       eventLog.logEvent('confirmation_resolved', { nodeId: node.id, approved, feedback }, undefined, node.id);
-      recordPipelineLifecycleApprovalResolved({
+      await recordPipelineLifecycleApprovalResolved({
         execution: this.state,
         nodeId: node.id,
         approved,
         feedback,
+        persistence: this.lifecyclePersistence,
       });
       this.emit('event', { type: 'confirmation_resolved', nodeId: node.id, approved, feedback } as PipelineEvent);
 
@@ -1275,7 +1606,7 @@ export class PipelineEngine extends EventEmitter {
       );
       nodeState.status = 'running';
       this.state.status = 'running';
-      store.saveExecutionState(this.state);
+      this.persistExecutionState();
     } else if (this.skipConfirmations) {
       clarificationAnswers = '测试/跳过确认模式：按推荐默认决策继续。';
       requirementOwnership = buildRequirementOwnershipArtifact({
@@ -1311,6 +1642,7 @@ export class PipelineEngine extends EventEmitter {
         projectDir: paths.projectDir,
         artifactsDir: paths.artifactsDir,
         runDir: paths.runDir,
+        persistence: this.agentPersistence,
         taskDescription: '根据用户回答生成最终需求应用归属确认结果',
         requireToolUse: shouldRequireToolUse(),
       });
@@ -1487,7 +1819,7 @@ export class PipelineEngine extends EventEmitter {
       throw new Error('mrd-clarify requires artifacts/mrd.md from mrd-render');
     }
 
-    const manifest = ensureProjectManifest(paths);
+    const manifest = ensureProjectManifest(paths, this.applications);
     const mrdContent = fs.readFileSync(mrdPath, 'utf-8');
     const model = getModelForStage(node.id, 0, this.state.modelOverrides);
     const provider = createLLMProvider(model.providerId);
@@ -1508,6 +1840,7 @@ export class PipelineEngine extends EventEmitter {
       projectDir: paths.projectDir,
       artifactsDir: paths.artifactsDir,
       runDir: paths.runDir,
+      persistence: this.agentPersistence,
       taskDescription: '澄清全局 MRD',
     });
 
@@ -1643,6 +1976,7 @@ export class PipelineEngine extends EventEmitter {
       projectDir: paths.projectDir,
       artifactsDir: paths.artifactsDir,
       runDir: paths.runDir,
+      persistence: this.agentPersistence,
     });
 
     this.currentAgent = agent;
@@ -1670,7 +2004,7 @@ export class PipelineEngine extends EventEmitter {
 
     const specPromptNode = createSpecGeneratePromptNode();
     const baseSystemPrompt = loadPromptTemplate(specPromptNode.id);
-    const manifest = ensureProjectManifest(paths);
+    const manifest = ensureProjectManifest(paths, this.applications);
     const baseUserPrompt = buildSpecGeneratePrompt(
       specPromptNode,
       paths,
@@ -1730,6 +2064,7 @@ export class PipelineEngine extends EventEmitter {
         projectDir: project.root,
         artifactsDir: paths.artifactsDir,
         runDir: paths.runDir,
+        persistence: this.agentPersistence,
         projectName: project.name,
         taskDescription,
         requireToolUse: shouldRequireToolUse(),
@@ -1891,7 +2226,7 @@ export class PipelineEngine extends EventEmitter {
 
     const eventLog = getEventLog(this.runId);
     const baseSystemPrompt = loadPromptTemplate(node.id);
-    const manifest = ensureProjectManifest(paths);
+    const manifest = ensureProjectManifest(paths, this.applications);
     const baseUserPrompt = buildImplementationPlanPrompt(
       node,
       paths,
@@ -1946,6 +2281,7 @@ export class PipelineEngine extends EventEmitter {
         projectDir: project?.root || paths.projectDir,
         artifactsDir: paths.artifactsDir,
         runDir: paths.runDir,
+        persistence: this.agentPersistence,
         projectName: project?.name,
         taskDescription,
         requireToolUse: shouldRequireToolUse(),
@@ -3086,9 +3422,7 @@ export class PipelineEngine extends EventEmitter {
         );
       if (!report.includes('## 流水线执行指标')) {
         report = `${report.trimEnd()}\n\n${buildArchiveExecutionMetrics(paths, project.name)}\n`;
-        fs.mkdirSync(path.dirname(reportAbsPath), { recursive: true });
-        fs.writeFileSync(reportAbsPath, report, 'utf-8');
-        this.emitArtifactWritten(node.id, reportPath, Buffer.byteLength(report, 'utf-8'), '项目级归档报告（含执行指标）');
+        this.writeArtifact(paths, node.id, reportPath, report, '项目级归档报告（含执行指标）');
       }
       artifacts[reportPath] = report;
       if (!fs.existsSync(reportAbsPath)) {
@@ -3285,7 +3619,7 @@ export class PipelineEngine extends EventEmitter {
       const deploymentContext = node.id === 'deploy-related-apps' || node.id === 'execute-integration-tests'
         ? this.ensureCrossAppTestingDeploymentContext(paths)
         : undefined;
-      const runtime = createTestingWorkflowRuntime();
+      const runtime = createTestingWorkflowRuntime({ nodeLeaseExecutor: this.nodeLeaseExecutor, lifecyclePersistence: this.lifecyclePersistence });
       const result = await runtime.start({
         requirementId: lifecycle.requirementId,
         runId: this.runId,
@@ -3422,6 +3756,7 @@ export class PipelineEngine extends EventEmitter {
         projectDir: project.root,
         artifactsDir: paths.artifactsDir,
         runDir: paths.runDir,
+        persistence: this.agentPersistence,
         enablePlanMode,
         planGoal: prompt.slice(0, 200),
         projectName: project.name,
@@ -3497,13 +3832,12 @@ export class PipelineEngine extends EventEmitter {
       project.name,
     );
     if (!this.skipConfirmations) {
-      const store = getStateStore(this.runId);
       const eventLog = getEventLog(this.runId);
       if (options.nodeState) {
         options.nodeState.status = 'waiting_confirmation';
       }
       this.state.status = 'waiting_confirmation';
-      store.saveExecutionState(this.state);
+      this.persistExecutionState();
       eventLog.logEvent('confirmation_waiting', {
         nodeId: node.id,
         title: `Plan: ${first.plan?.title || getProjectTaskDescription(node.id, project.name)}`,
@@ -3511,11 +3845,12 @@ export class PipelineEngine extends EventEmitter {
         confirmationKind: 'plan',
         projectName: project.name,
       }, undefined, node.id);
-      recordPipelineLifecycleApprovalWaiting({
+      await recordPipelineLifecycleApprovalWaiting({
         execution: this.state,
         nodeId: node.id,
         gateType: 'high_risk_command',
         riskIds: [`plan:${project.name}:${node.id}`],
+        persistence: this.lifecyclePersistence,
       });
       this.emit('event', {
         type: 'confirmation_required',
@@ -3528,18 +3863,19 @@ export class PipelineEngine extends EventEmitter {
       const resolved = await this.waitForPlanConfirmation(node.id);
       approved = resolved.approved;
       eventLog.logEvent('confirmation_resolved', { nodeId: node.id, approved, feedback: resolved.feedback }, undefined, node.id);
-      recordPipelineLifecycleApprovalResolved({
+      await recordPipelineLifecycleApprovalResolved({
         execution: this.state,
         nodeId: node.id,
         approved,
         feedback: resolved.feedback,
+        persistence: this.lifecyclePersistence,
       });
       this.emit('event', { type: 'confirmation_resolved', nodeId: node.id, approved, feedback: resolved.feedback } as PipelineEvent);
       if (options.nodeState) {
         options.nodeState.status = 'running';
       }
       this.state.status = 'running';
-      store.saveExecutionState(this.state);
+      this.persistExecutionState();
     }
     if (!approved) {
       throw new Error(`${project.name} 计划未确认，停止执行 ${node.name}`);
@@ -3606,7 +3942,7 @@ export class PipelineEngine extends EventEmitter {
     branch.artifactIndex = branch.artifactIndex ?? {};
     branch.artifactIndex[branchNodeId] = uniqueArtifacts([...(branch.artifactIndex[branchNodeId] ?? []), artifactPath]);
     instance.updatedAt = new Date().toISOString();
-    getStateStore(this.runId).saveExecutionState(this.state);
+    this.persistExecutionState();
   }
 
   private setBranchArtifactsForProject(nodeId: string, projectName: string, artifactPaths: string[]): void {
@@ -3621,7 +3957,7 @@ export class PipelineEngine extends EventEmitter {
     branch.artifactIndex = branch.artifactIndex ?? {};
     branch.artifactIndex[branchNodeId] = normalizedArtifacts;
     instance.updatedAt = new Date().toISOString();
-    getStateStore(this.runId).saveExecutionState(this.state);
+    this.persistExecutionState();
   }
 
   private writeArtifact(
@@ -3637,6 +3973,32 @@ export class PipelineEngine extends EventEmitter {
     this.emitArtifactWritten(nodeId, relativePath, Buffer.byteLength(content, 'utf-8'), description);
   }
 
+  private mirrorWorkspaceArtifacts(paths: ReturnType<typeof getRunPaths>, nodeId: string): void {
+    if (!this.durableArtifacts || !fs.existsSync(paths.artifactsDir)) return;
+    const visit = (directory: string): void => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const fullPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) visit(fullPath);
+        else if (entry.isFile() && entry.name !== '.artifact-metadata.json' && entry.name !== 'lifecycle-state.json') {
+          const relativePath = path.relative(paths.artifactsDir, fullPath).split(path.sep).join('/');
+          this.queueDurableArtifact(nodeId, relativePath, fs.readFileSync(fullPath));
+        }
+      }
+    };
+    visit(paths.artifactsDir);
+  }
+
+  private queueDurableArtifact(nodeId: string, relativePath: string, body: Buffer): void {
+    if (!this.durableArtifacts) return;
+    this.pendingDurableArtifacts.push(this.durableArtifacts.write({ runId: this.runId, nodeId, relativePath, body }));
+  }
+
+  private async flushDurableArtifacts(): Promise<ArtifactObject[]> {
+    const pending = this.pendingDurableArtifacts;
+    this.pendingDurableArtifacts = [];
+    return Promise.all(pending);
+  }
+
   private emitArtifactWritten(
     nodeId: string,
     relativePath: string,
@@ -3650,7 +4012,7 @@ export class PipelineEngine extends EventEmitter {
       description,
     };
     this.appendArtifactIndex(nodeId, eventData.artifactPath);
-    getStateStore(this.runId).saveExecutionState(this.state);
+    this.persistExecutionState();
     getEventLog(this.runId).logEvent('artifact_written', eventData, undefined, nodeId);
     this.emit('event', {
       type: 'stage_progress',
@@ -3674,7 +4036,7 @@ export class PipelineEngine extends EventEmitter {
             nodeState.outputArtifacts.push(artifactPath);
           }
         }
-        getStateStore(this.runId).saveExecutionState(this.state);
+        this.persistExecutionState();
       }
     }
     this.emit('event', { type: 'stage_progress', nodeId, event } as PipelineEvent);
@@ -3844,6 +4206,7 @@ export class PipelineEngine extends EventEmitter {
         projectDir: paths.projectDir,
         artifactsDir: paths.artifactsDir,
         runDir: paths.runDir,
+        persistence: this.agentPersistence,
         enablePlanMode: node.planModeRequired && attempt === 0,
         planGoal: userPrompt.slice(0, 200),
       });
@@ -3905,6 +4268,7 @@ export class PipelineEngine extends EventEmitter {
           projectDir: paths.projectDir,
           artifactsDir: paths.artifactsDir,
           runDir: paths.runDir,
+          persistence: this.agentPersistence,
           enablePlanMode: false,
         });
         this.currentAgent = agent2;
@@ -3967,7 +4331,7 @@ export class PipelineEngine extends EventEmitter {
 
     const feedback = nodeState.confirmation.feedback;
     nodeState.confirmation = { waiting: false, approved: true, feedback };
-    getStateStore(this.runId).saveExecutionState(this.state);
+    this.persistExecutionState();
     return { approved: true, feedback };
   }
 
@@ -3983,9 +4347,9 @@ export class PipelineEngine extends EventEmitter {
     });
   }
 
-  private resetNodesForRerun(startIndex: number): void {
+  private async resetNodesForRerun(startIndex: number): Promise<void> {
     const rerunNodeIds = new Set(PIPELINE_NODES.slice(startIndex).map(node => node.id));
-    this.cancelPersistedAgentsForRerun(rerunNodeIds);
+    await this.cancelPersistedAgentsForRerun(rerunNodeIds);
     for (let i = startIndex; i < this.state.nodes.length; i++) {
       const current = this.state.nodes[i];
       this.state.nodes[i] = {
@@ -4028,17 +4392,22 @@ export class PipelineEngine extends EventEmitter {
     this.state.currentAgentRunId = undefined;
   }
 
-  private cancelPersistedAgentsForRerun(nodeIds: Set<string>): void {
-    const store = getStateStore(this.runId);
+  private async cancelPersistedAgentsForRerun(nodeIds: Set<string>): Promise<void> {
     const cancellable = new Set(['created', 'waking', 'running', 'waiting_tool', 'waiting_confirmation', 'compacting', 'suspended', 'waiting_fix']);
-    for (const agent of store.listAgentStates()) {
+    const store = this.agentPersistence ? undefined : getStateStore(this.runId);
+    const agents = this.agentPersistence?.listByRun
+      ? await this.agentPersistence.listByRun(this.runId)
+      : store?.listAgentStates() ?? [];
+    for (const agent of agents) {
       if (!nodeIds.has(agent.nodeId) || !cancellable.has(agent.status)) continue;
-      store.saveAgentState({
+      const cancelled: AgentState = {
         ...agent,
         status: 'cancelled',
         completedAt: Date.now(),
         error: 'Superseded by node rerun.',
-      });
+      };
+      if (this.agentPersistence) await this.agentPersistence.save(cancelled);
+      else store!.saveAgentState(cancelled);
       getEventLog(this.runId).logEvent('agent_end', {
         agentRunId: agent.agentRunId,
         nodeId: agent.nodeId,
@@ -4941,6 +5310,30 @@ function uniqueArtifacts(artifacts: string[]): string[] {
     .map(artifact => artifact.startsWith('artifacts/') ? artifact : `artifacts/${artifact}`)));
 }
 
+function uniqueArtifactObjects(artifacts: ArtifactObject[]): ArtifactObject[] {
+  return [...new Map(artifacts.map(artifact => [artifact.artifactId, artifact])).values()];
+}
+
+function sameRunSnapshot(left: ExecutionState, right: ExecutionState): boolean {
+  const comparable = (state: ExecutionState) => {
+    const copy = structuredClone(state);
+    copy.updatedAt = 0;
+    return copy;
+  };
+  return JSON.stringify(comparable(left)) === JSON.stringify(comparable(right));
+}
+
+function reapplyTerminalOutcome(_latest: ExecutionState, attempted: ExecutionState): ExecutionState {
+  return structuredClone(attempted);
+}
+
+class UnsafeTransitionRebaseError extends Error {
+  constructor(runId: string, nodeId: string) {
+    super(`Atomic transition '${runId}:${nodeId}' cannot be retried because the reloaded run changed semantically.`);
+    this.name = 'UnsafeTransitionRebaseError';
+  }
+}
+
 function artifactSummary(paths: ReturnType<typeof getRunPaths>, artifactPath: string): {
   path: string;
   summary: string;
@@ -5293,13 +5686,43 @@ function event_model_selected(runId: string, model: RegisteredModel, stageId: st
 
 const pipelines = new Map<string, PipelineEngine>();
 
-export function getPipeline(runId: string): PipelineEngine {
+export function getPipeline(runId: string, dependencies: {
+  applications?: ApplicationCatalog;
+  durableArtifacts?: PipelineArtifactWriter;
+  nodeLeases?: { leases: LeaseRepository; workerId: string; tenantId?: string; ttlMs?: number };
+  agentPersistence?: AgentStatePersistence;
+  lifecyclePersistence?: LifecycleStatePersistence;
+  runPersistence?: RunStatePersistence;
+  nodeTransitions?: NodeTransitionDependencies;
+} = {}): PipelineEngine {
   let p = pipelines.get(runId);
   if (!p) {
-    p = new PipelineEngine(runId);
+    const nodeLeaseExecutor = dependencies.nodeLeases
+      ? new NodeLeaseExecutor({
+        leases: dependencies.nodeLeases.leases,
+        workerId: dependencies.nodeLeases.workerId,
+        context: { tenantId: dependencies.nodeLeases.tenantId ?? 'default' },
+        ttlMs: dependencies.nodeLeases.ttlMs,
+      })
+      : undefined;
+    p = new PipelineEngine(
+      runId,
+      dependencies.applications,
+      dependencies.durableArtifacts,
+      nodeLeaseExecutor,
+      dependencies.agentPersistence,
+      dependencies.lifecyclePersistence,
+      dependencies.runPersistence,
+      dependencies.nodeTransitions,
+    );
     pipelines.set(runId, p);
   }
   return p;
+}
+
+/** Returns an already active in-process Pipeline without creating local state. */
+export function findPipeline(runId: string): PipelineEngine | undefined {
+  return pipelines.get(runId);
 }
 
 export function removePipeline(runId: string): void {

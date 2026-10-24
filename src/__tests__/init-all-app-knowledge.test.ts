@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { initAllAppKnowledge } from '../knowledge/initAllAppKnowledge.js';
+import { InMemoryApplicationCatalog } from '../platform-sources/applicationCatalog.js';
 
 test('initAllAppKnowledge writes app and global knowledge repository structure', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'init-all-app-knowledge-'));
@@ -33,7 +34,10 @@ test('initAllAppKnowledge writes app and global knowledge repository structure',
   });
 
   const result = await initAllAppKnowledge({
-    ecomRoot,
+    catalog: new InMemoryApplicationCatalog(['console', 'ecom-product', 'ecom-merchant'].map(appId => ({
+      appId, repoId: appId, name: appId, root: path.join(ecomRoot, appId), dependencies: appId === 'ecom-product' ? ['ecom-merchant'] : [],
+    }))),
+    repositoryBaseRoot: ecomRoot,
     knowledgeRoot,
     gitNexusHome,
     gitNexusBinPath,

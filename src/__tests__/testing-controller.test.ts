@@ -14,6 +14,12 @@ import {
   startTestingWorkflow,
   submitTestingReviewDecision,
 } from '../server/controllers/testingController.js';
+import { InMemoryTestingRepositoryResolver } from '../platform-sources/testingRepositoryResolver.js';
+
+const testingRepositoryResolver = new InMemoryTestingRepositoryResolver([{
+  repositoryId: 'controller-fixture', root: process.cwd(), repositoryType: 'integration',
+  commands: { test: 'npm test' }, capabilities: ['http'], applicationIds: ['checkout'],
+}]);
 
 test('testing controller starts workflow and exposes status artifacts dashboard and reports', async () => {
   const runId = 'testing-controller-run';
@@ -29,32 +35,32 @@ test('testing controller starts workflow and exposes status artifacts dashboard 
       autoApproveReviews: true,
       dryRunExecution: true,
     },
-  }));
+  }), testingRepositoryResolver);
   assert.equal(start.status, 200);
   assert.equal(start.body.workflow.status, 'completed');
 
-  const status = getTestingWorkflowStatus(fakeContext({
+  const status = await getTestingWorkflowStatus(fakeContext({
     params: { runId, workflowInstanceId: 'wf-testing-controller' },
-  }));
+  }), testingRepositoryResolver);
   assert.equal(status.body.workflow.status, 'completed');
 
-  const artifacts = listTestingArtifacts(fakeContext({ params: { runId } }));
+  const artifacts = await listTestingArtifacts(fakeContext({ params: { runId } }), testingRepositoryResolver);
   assert.equal(artifacts.body.artifacts.length > 0, true);
 
   const reportRef = artifacts.body.artifacts.find((ref: any) => ref.type === 'testing-execution-report');
   assert.ok(reportRef);
-  const report = getTestingExecutionReport(fakeContext({
+  const report = await getTestingExecutionReport(fakeContext({
     params: { runId, artifactId: reportRef.artifactId },
-  }));
+  }), testingRepositoryResolver);
   assert.equal(report.status, 200);
   assert.equal(report.body.report.artifactKind, 'testing-execution-report');
 
-  const artifact = getTestingArtifact(fakeContext({
+  const artifact = await getTestingArtifact(fakeContext({
     params: { runId, artifactId: reportRef.artifactId },
-  }));
+  }), testingRepositoryResolver);
   assert.equal(artifact.body.artifact.executionReportId, report.body.report.executionReportId);
 
-  const dashboard = getTestingDashboard(fakeContext({ params: { runId } }));
+  const dashboard = await getTestingDashboard(fakeContext({ params: { runId } }), testingRepositoryResolver);
   assert.equal(dashboard.body.dashboard.lifecycle.runId, runId);
   assert.equal(dashboard.body.dashboard.executionReports.length, 1);
 });
@@ -73,7 +79,7 @@ test('testing controller review endpoint resumes approved gate', async () => {
       autoApproveReviews: false,
       dryRunExecution: true,
     },
-  }));
+  }), testingRepositoryResolver);
   const token = start.body.workflow.pendingGate.resumeToken;
 
   const reviewed = await submitTestingReviewDecision(fakeContext({
@@ -83,7 +89,7 @@ test('testing controller review endpoint resumes approved gate', async () => {
       decision: 'approved',
       dryRunExecution: true,
     },
-  }));
+  }), testingRepositoryResolver);
 
   assert.equal(reviewed.status, 200);
   assert.equal(reviewed.body.workflow.pendingGate.nodeId, 'review_cases');

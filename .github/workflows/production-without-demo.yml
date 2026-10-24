@@ -1,0 +1,88 @@
+name: Production without Demo
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  production-without-demo:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ai_coding_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ai_coding_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ai_coding_test
+      DATABASE_SSL: "false"
+      S3_ENDPOINT: http://127.0.0.1:9000
+      S3_BUCKET: ai-coding-artifacts
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
+      RUN_S3_INTEGRATION: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Start real MinIO and create the artifact bucket
+        run: |
+          docker run --detach --rm --name ai-coding-minio \
+            --publish 9000:9000 \
+            --env MINIO_ROOT_USER="$S3_ACCESS_KEY_ID" \
+            --env MINIO_ROOT_PASSWORD="$S3_SECRET_ACCESS_KEY" \
+            quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z \
+            server /data --address :9000
+          for attempt in $(seq 1 30); do
+            curl --fail --silent "$S3_ENDPOINT/minio/health/ready" && break
+            sleep 1
+          done
+          node --input-type=module <<'NODE'
+          import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
+          const client = new S3Client({
+            endpoint: process.env.S3_ENDPOINT,
+            region: process.env.S3_REGION,
+            forcePathStyle: true,
+            credentials: {
+              accessKeyId: process.env.S3_ACCESS_KEY_ID,
+              secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+            },
+          });
+          await client.send(new CreateBucketCommand({ Bucket: process.env.S3_BUCKET }));
+          NODE
+      - name: Apply PostgreSQL schema
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f src/storage/postgres/migrations/001_initial_storage.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f src/storage/postgres/migrations/002_outbox_claims.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f src/storage/postgres/migrations/003_langgraph_checkpoint_import.sql
+      - name: Make Demo assets physically unavailable
+        run: mv demo /tmp/ai-coding-demo-unavailable
+      - name: Build, run non-Demo tests, and execute production HTTP smoke
+        run: npm run test:production-without-demo
+
+  ecom-demo-http-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Run explicit ecom Demo service E2E
+        run: AI_CODING_PROFILE=local AI_CODING_STORAGE_DRIVER=file AI_CODING_EVENT_BUS=memory AI_CODING_ARTIFACT_STORE=local node --test --test-name-pattern='^ecom-demo HTTP E2E' dist/__tests__/profile-http-e2e.test.js

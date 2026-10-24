@@ -1,10 +1,10 @@
 import { getRuntimeSettings, saveRuntimeSettings } from '../../settings/index.js';
 
-export function getSettings(c: any) {
-  return c.json(getRuntimeSettings());
+export async function getSettings(c: any) {
+  return c.json(await Promise.resolve(getRuntimeSettings()));
 }
 
 export async function patchSettings(c: any) {
   const body = await c.req.json().catch(() => ({}));
-  return c.json(saveRuntimeSettings(body));
+  return c.json(await saveRuntimeSettings(body));
 }

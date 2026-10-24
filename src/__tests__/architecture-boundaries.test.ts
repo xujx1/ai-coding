@@ -20,6 +20,7 @@ const FOUNDATION_MODULES = new Set([
   'runtime',
   'config',
   'integrations',
+  'storage',
 ]);
 const SHARED_LOWER_MODULES = new Set([
   'workflows',
@@ -87,6 +88,37 @@ test('testing agents use shared testing tools instead of private tool implementa
   assert.deepEqual(invalidImports, []);
 });
 
+test('product and workflow layers do not import concrete storage adapters', () => {
+  const violations: string[] = [];
+  for (const file of listTypeScriptFiles(SRC_ROOT)) {
+    const sourceTopLevel = topLevelModule(file);
+    if (!sourceTopLevel || sourceTopLevel === '__tests__' || sourceTopLevel === 'storage') continue;
+    if (!PRODUCT_MODULES.has(sourceTopLevel) && !SHARED_LOWER_MODULES.has(sourceTopLevel)) continue;
+    for (const specifier of readImportSpecifiers(file)) {
+      const target = resolveSourcePath(file, specifier);
+      if (target && /^storage\/(postgres|artifacts\/s3)(?:\/|$)/.test(target)) {
+        violations.push(`${relative(file)} imports ${specifier}`);
+      }
+    }
+  }
+  assert.deepEqual(violations, []);
+});
+
+test('production source contains no prohibited Demo path literal', () => {
+  const violations: string[] = [];
+  for (const file of listTypeScriptFiles(SRC_ROOT)) {
+    if (topLevelModule(file) === '__tests__') continue;
+    // The explicit ecom-demo composition is the sole approved location for
+    // example asset identities; production modules must remain path-free.
+    if (relative(file) === 'src/platform-sources/profiles.ts') continue;
+    const content = fs.readFileSync(file, 'utf8');
+    for (const match of content.matchAll(/(?:demo\/(?:ecom|mrd)|ecom-integration-tests)/g)) {
+      violations.push(`${relative(file)}:${match.index}`);
+    }
+  }
+  assert.deepEqual(violations, []);
+});
+
 function listTypeScriptFiles(root: string): string[] {
   const files: string[] = [];
   const visit = (dir: string): void => {
@@ -118,11 +150,16 @@ function readImportSpecifiers(file: string): string[] {
 }
 
 function resolveTopLevelModule(fromFile: string, specifier: string): string | undefined {
+  const sourcePath = resolveSourcePath(fromFile, specifier);
+  return sourcePath?.split('/')[0];
+}
+
+function resolveSourcePath(fromFile: string, specifier: string): string | undefined {
   if (!specifier.startsWith('.')) return undefined;
   const resolved = path.resolve(path.dirname(fromFile), specifier.replace(/\.js$/, '.ts'));
   const relativeToSrc = path.relative(SRC_ROOT, resolved);
   if (relativeToSrc.startsWith('..') || path.isAbsolute(relativeToSrc)) return undefined;
-  return relativeToSrc.split(path.sep)[0];
+  return relativeToSrc.split(path.sep).join('/');
 }
 
 function topLevelModule(file: string): string | undefined {

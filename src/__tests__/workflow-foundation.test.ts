@@ -816,7 +816,13 @@ test('structured requirement ownership drives fanout and track planning before l
   assert.deepEqual(plan.branches.find(branch => branch.projectName === 'marketing')?.tracks.map(track => track.kind), ['backend', 'frontend']);
 });
 
-test('requirement ownership maps business-domain labels through knowledge metadata without full fanout fallback', () => {
+test('requirement ownership maps business-domain labels through knowledge metadata without full fanout fallback', (t) => {
+  if (!fsSync.existsSync(path.join(process.cwd(), 'demo', 'ecom', 'spaces', 'knowledge', 'knowledge-base'))) {
+    t.skip('explicit Demo knowledge metadata is unavailable in this production-only checkout');
+    return;
+  }
+  const previousKnowledgeRoot = process.env.AI_CODING_KNOWLEDGE_ROOT;
+  process.env.AI_CODING_KNOWLEDGE_ROOT = path.join(process.cwd(), 'demo', 'ecom', 'spaces', 'knowledge', 'knowledge-base');
   const manifest = {
     requirements: [],
     projects: [
@@ -879,6 +885,8 @@ test('requirement ownership maps business-domain labels through knowledge metada
   assert.match(normalizedClarified, /ecom-inventory/);
   assert.deepEqual(unmatchedDecision.includedProjects.map(project => project.name), ['console']);
   assert.deepEqual(unmatchedDecision.excludedProjects.map(project => project.name), manifest.projects.slice(1).map(project => project.name));
+  if (previousKnowledgeRoot === undefined) delete process.env.AI_CODING_KNOWLEDGE_ROOT;
+  else process.env.AI_CODING_KNOWLEDGE_ROOT = previousKnowledgeRoot;
 });
 
 test('session execution plan validation rejects unsupported catalog entries cycles and missing artifact metadata', () => {

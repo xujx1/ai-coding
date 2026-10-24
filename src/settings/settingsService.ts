@@ -1,4 +1,4 @@
-import { getConfig, updateJavaConfig } from '../config/index.js';
+import { getConfig, updateJavaConfigAsync } from '../config/index.js';
 
 export interface RuntimeSettingsView {
   java: {
@@ -17,7 +17,7 @@ export function getRuntimeSettings(): RuntimeSettingsView {
   };
 }
 
-export function saveRuntimeSettings(input: { javaHome?: string; mavenPath?: string; mavenHome?: string }): RuntimeSettingsView & { saved: true } {
+export async function saveRuntimeSettings(input: { javaHome?: string; mavenPath?: string; mavenHome?: string }): Promise<RuntimeSettingsView & { saved: true }> {
   const javaHome = typeof input.javaHome === 'string' ? input.javaHome.trim() : undefined;
   const mavenPath = typeof input.mavenPath === 'string'
     ? input.mavenPath.trim()
@@ -25,7 +25,7 @@ export function saveRuntimeSettings(input: { javaHome?: string; mavenPath?: stri
       ? input.mavenHome.trim()
       : undefined;
 
-  const next = updateJavaConfig({
+  const next = await updateJavaConfigAsync({
     ...(javaHome !== undefined ? { javaHome } : {}),
     ...(mavenPath !== undefined ? { mavenHome: mavenPath } : {}),
   });

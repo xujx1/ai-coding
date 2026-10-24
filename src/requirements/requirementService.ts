@@ -13,6 +13,7 @@ import type {
   ManagedRequirementOverview,
   ManagedSessionApplication,
 } from '../application/managementTypes.js';
+import { InMemoryRequirementSource, type RequirementSource } from '../platform-sources/requirementSource.js';
 
 export interface RequirementManagementServiceInfo {
   module: 'requirements';
@@ -61,24 +62,17 @@ export function buildSessionRequirementOverview(args: {
     : requirementOverview;
 }
 
-export function appendMrdRepositoryRequirements(requirements: ManagedRequirementOverview[]): void {
-  const mrdRoot = path.join(process.cwd(), 'demo', 'mrd');
-  if (!fs.existsSync(mrdRoot) || !fs.statSync(mrdRoot).isDirectory()) return;
+export function appendMrdRepositoryRequirements(requirements: ManagedRequirementOverview[], source: RequirementSource = new InMemoryRequirementSource()): void {
+  if (!source.availability().available) return;
 
   const startedMrdRuns = listStartedMrdRuns();
-  for (const entry of fs.readdirSync(mrdRoot, { withFileTypes: true })) {
-    if (!entry.isFile() || path.extname(entry.name).toLowerCase() !== '.md') continue;
-    const fullPath = path.join(mrdRoot, entry.name);
-    const content = fs.readFileSync(fullPath, 'utf-8');
-    const title = extractMarkdownTitle(content) || entry.name.replace(/\.md$/i, '');
-    if (!isTargetDemoMrd(title, entry.name)) continue;
-    const stat = fs.statSync(fullPath);
-    const linkedRun = findLinkedMrdRun(startedMrdRuns, title, entry.name);
+  for (const requirement of source.list()) {
+    const linkedRun = findLinkedMrdRun(startedMrdRuns, requirement.name, requirement.id);
     requirements.push({
-      id: `mrd:${entry.name}`,
+      id: `mrd:${requirement.id}`,
       runId: linkedRun?.runId,
-      requirementId: entry.name.replace(/\.md$/i, ''),
-      name: title,
+      requirementId: requirement.id,
+      name: requirement.name,
       status: linkedRun?.status ?? 'available',
       phase: linkedRun?.phase ?? 'mrd-ready',
       appCount: linkedRun?.appCount ?? 0,
@@ -86,10 +80,10 @@ export function appendMrdRepositoryRequirements(requirements: ManagedRequirement
       waitingApprovals: linkedRun?.waitingApprovals ?? 0,
       completedApprovals: linkedRun?.completedApprovals ?? 0,
       type: 'mrd',
-      source: 'demo/mrd',
-      updatedAt: linkedRun?.updatedAt ?? stat.mtime.toISOString(),
-      fileRoot: mrdRoot,
-      paths: [entry.name],
+      source: 'configured-requirement-source',
+      updatedAt: linkedRun?.updatedAt ?? requirement.updatedAt,
+      fileRoot: requirement.root,
+      paths: requirement.paths,
     });
   }
 }
@@ -98,9 +92,20 @@ export type RequirementFileTreeResult =
   | { ok: true; requirementId: string; tree: unknown[] }
   | { ok: false; status: 404; error: string };
 
-export function getRequirementFiles(requirementId: string): RequirementFileTreeResult {
-  const requirement = findRequirementOverview(requirementId);
+export function getRequirementFiles(
+  requirementId: string,
+  source: RequirementSource = new InMemoryRequirementSource(),
+): RequirementFileTreeResult {
+  const requirement = findRequirementOverview(requirementId, source);
   if (!requirement) return { ok: false, status: 404, error: 'Requirement not found' };
+
+  // Repository requirements are owned by their configured source. Do not
+  // recover a missing source by inspecting a repository-local example path.
+  if (requirement.type === 'mrd') {
+    const sourced = source.list().find(item => item.id === requirement.requirementId);
+    if (!sourced) return { ok: false, status: 404, error: 'Requirement files not found' };
+    return { ok: true, requirementId, tree: buildSourcedRequirementTree(source, sourced.id, sourced.paths) };
+  }
 
   const root = resolveRequirementFileRoot(requirement);
   if (!root || !fs.existsSync(root)) return { ok: false, status: 404, error: 'Requirement files not found' };
@@ -116,11 +121,21 @@ export type RequirementFileContentResult =
   | { ok: true; path: string; content: string; size: number }
   | { ok: false; status: 400 | 404; error: string; path?: string };
 
-export function getRequirementFileContent(requirementId: string, filePath?: string): RequirementFileContentResult {
+export function getRequirementFileContent(
+  requirementId: string,
+  filePath?: string,
+  source: RequirementSource = new InMemoryRequirementSource(),
+): RequirementFileContentResult {
   if (!filePath) return { ok: false, status: 400, error: 'path query param required' };
 
-  const requirement = findRequirementOverview(requirementId);
+  const requirement = findRequirementOverview(requirementId, source);
   if (!requirement) return { ok: false, status: 404, error: 'Requirement not found' };
+
+  if (requirement.type === 'mrd') {
+    const content = source.read(requirement.requirementId, filePath);
+    if (content === undefined) return { ok: false, status: 404, error: 'File not found', path: filePath };
+    return { ok: true, path: filePath, content, size: Buffer.byteLength(content, 'utf8') };
+  }
 
   const root = resolveRequirementFileRoot(requirement);
   if (!root) return { ok: false, status: 404, error: 'Requirement files not found' };
@@ -138,7 +153,7 @@ export function getRequirementFileContent(requirementId: string, filePath?: stri
   };
 }
 
-function findRequirementOverview(requirementId: string): ManagedRequirementOverview | undefined {
+function findRequirementOverview(requirementId: string, source: RequirementSource): ManagedRequirementOverview | undefined {
   const requirements: ManagedRequirementOverview[] = [];
   for (const session of getSessionManager().listSessions()) {
     const execution = getStateStore(session.runId).loadExecutionState();
@@ -162,8 +177,45 @@ function findRequirementOverview(requirementId: string): ManagedRequirementOverv
     const overview = buildSessionRequirementOverview({ session, execution, lifecycle, apps, paths });
     if (overview) requirements.push(overview);
   }
-  appendMrdRepositoryRequirements(requirements);
+  appendMrdRepositoryRequirements(requirements, source);
   return requirements.find(item => item.id === requirementId || item.requirementId === requirementId);
+}
+
+function buildSourcedRequirementTree(source: RequirementSource, requirementId: string, paths: string[]): unknown[] {
+  const nodes: Array<Record<string, unknown>> = [];
+  for (const filePath of paths) {
+    if (!isSafeSourcePath(filePath)) continue;
+    const content = source.read(requirementId, filePath);
+    if (content === undefined) continue;
+    const parts = filePath.replace(/\\/g, '/').split('/').filter(Boolean);
+    if (!parts.length) continue;
+    let cursor = nodes;
+    let currentPath = '';
+    for (const part of parts.slice(0, -1)) {
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      let directory = cursor.find(item => item.type === 'directory' && item.name === part);
+      if (!directory) {
+        directory = { name: part, path: currentPath, type: 'directory', children: [] };
+        cursor.push(directory);
+      }
+      cursor = directory.children as Array<Record<string, unknown>>;
+    }
+    cursor.push({ name: parts.at(-1), path: parts.join('/'), type: 'file', size: Buffer.byteLength(content, 'utf8'), modified: Date.now() });
+  }
+  return sortSourceTree(nodes);
+}
+
+function isSafeSourcePath(value: string): boolean {
+  return value.length > 0 && !path.isAbsolute(value) && !value.split(/[\\/]+/).includes('..');
+}
+
+function sortSourceTree(nodes: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+  for (const node of nodes) {
+    if (Array.isArray(node.children)) node.children = sortSourceTree(node.children as Array<Record<string, unknown>>);
+  }
+  return nodes.sort((a, b) => a.type !== b.type
+    ? (a.type === 'directory' ? -1 : 1)
+    : String(a.name).localeCompare(String(b.name)));
 }
 
 function resolveRequirementFileRoot(requirement: ManagedRequirementOverview): string | undefined {
@@ -242,14 +294,4 @@ function normalizeRequirementIdentity(value: string): string {
 
 function timestampOf(value?: string): number {
   return value ? new Date(value).getTime() || 0 : 0;
-}
-
-function isTargetDemoMrd(title: string, fileName: string): boolean {
-  return title.includes('定向营销活动创建时增加商品上架与库存保护校验')
-    || fileName === 'targeted-campaign-stock-guard-mrd.md';
-}
-
-function extractMarkdownTitle(content: string): string | undefined {
-  const line = content.split(/\r?\n/).find(item => item.trim().startsWith('# '));
-  return line?.replace(/^#\s+/, '').trim();
 }

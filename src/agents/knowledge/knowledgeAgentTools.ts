@@ -22,20 +22,20 @@ export function createKnowledgeToolRegistry(): ToolRegistry {
 
 export function createKnowledgeToolContext(args: {
   workspaceRoot: string;
-  ecomRoot?: string;
+  repositoryRoot: string;
+  knowledgeArtifactsDir?: string;
   runId?: string;
   agentRunId?: string;
   nodeId?: string;
 }): ToolContext {
-  const ecomRoot = args.ecomRoot ?? path.join(args.workspaceRoot, 'demo', 'ecom');
   return {
     runId: args.runId ?? `knowledge-${Date.now()}`,
     agentRunId: args.agentRunId ?? `knowledge-agent-${Date.now()}`,
     nodeId: args.nodeId,
-    cwd: ecomRoot,
-    projectDir: ecomRoot,
+    cwd: args.repositoryRoot,
+    projectDir: args.repositoryRoot,
     runDir: args.workspaceRoot,
-    artifactsDir: path.join(ecomRoot, 'spaces', 'knowledge'),
+    artifactsDir: args.knowledgeArtifactsDir ?? path.join(args.workspaceRoot, 'artifacts', 'knowledge'),
     canUseTool: async () => 'allow',
   };
 }

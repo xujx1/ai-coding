@@ -12,6 +12,11 @@ import {
 } from './state.js';
 import { runConfirmationNode } from './nodes/confirmationNode.js';
 import { createStageNodeHandler } from './nodes/stageNode.js';
+import type { NodeLeaseExecutor } from '../../../storage/nodeLeaseExecutor.js';
+import type { FencedRuntimeTransitionCommitter } from '../../../storage/runtimeNodeTransition.js';
+import type { PipelineArtifactWriter } from '../../../storage/pipelineArtifactWriter.js';
+import { syncExecutionStateFromGraph } from './readModelSync.js';
+import { prepareGraphTransitionArtifacts } from './runtimeArtifacts.js';
 
 const RuntimeState = Annotation.Root({
   graph: Annotation<PipelineGraphState>(),
@@ -20,6 +25,11 @@ const RuntimeState = Annotation.Root({
 export interface WorkflowCompilerOptions {
   handlers?: Record<string, WorkflowNodeHandler>;
   checkpointer?: unknown;
+  /** Optional PostgreSQL lease boundary for executable (non-approval) nodes. */
+  nodeLeaseExecutor?: NodeLeaseExecutor;
+  /** Product-visible commit boundary; checkpoints remain runtime-internal. */
+  transitionCommitter?: FencedRuntimeTransitionCommitter;
+  artifactWriter?: PipelineArtifactWriter;
 }
 
 export type WorkflowNodeHandler = (
@@ -36,10 +46,39 @@ export function compileWorkflowDefinition(
   for (const node of workflow.nodes) {
     if (node.type === 'end') continue;
     builder = builder.addNode(node.id, async (state: typeof RuntimeState.State) => {
-      const patch = await runWorkflowNode(state.graph, node, options.handlers);
-      return {
-        graph: mergeGraphState(state.graph, patch),
+      const work = async (lease?: Parameters<FencedRuntimeTransitionCommitter['commit']>[0]['lease']) => {
+        const patch = await runWorkflowNode(state.graph, node, options.handlers);
+        const graph = mergeGraphState(state.graph, patch);
+        if (options.transitionCommitter) {
+          if (!lease) throw new Error(`LangGraph node '${node.id}' requires a lease for its product-state transition.`);
+          const nodeState = graph.nodes[node.id];
+          const committedArtifacts = await prepareGraphTransitionArtifacts(state.graph, graph, node.id, options.artifactWriter);
+          const transitionAt = nodeState?.completedAt ?? graph.updatedAt;
+          await options.transitionCommitter.commit({
+            runtime: 'langgraph',
+            runId: graph.runId,
+            nodeId: node.id,
+            transitionId: `langgraph:${graph.runId}:${node.id}:${nodeState?.status ?? 'unknown'}:${transitionAt}`,
+            lease,
+            updateRun: current => syncExecutionStateFromGraph(graph, {
+              reason: `langgraph-node:${node.id}`,
+              existing: current,
+              workflow,
+            }),
+            includeCurrentLifecycle: true,
+            committedArtifacts,
+            eventData: {
+              status: nodeState?.status,
+              artifactIds: committedArtifacts.map(artifact => artifact.artifactId),
+            },
+            timestamp: transitionAt,
+          });
+        }
+        return { graph };
       };
+      return options.nodeLeaseExecutor
+        ? options.nodeLeaseExecutor.execute(state.graph.runId, node.id, work)
+        : work();
     });
   }
 

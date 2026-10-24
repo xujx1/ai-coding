@@ -49,6 +49,36 @@ export interface SessionSummary {
   };
 }
 
+/** Shared initial snapshot used by both file and repository session services. */
+export function createInitialExecutionState(args: {
+  runId: string;
+  name: string;
+  description?: string;
+  now?: number;
+}): ExecutionState {
+  const now = args.now ?? Date.now();
+  const workflowSnapshot = captureWorkflowSnapshot(BUILTIN_MRD_TO_CODE_WORKFLOW_ID);
+  return {
+    runId: args.runId,
+    name: args.name || `Run ${args.runId.slice(0, 6)}`,
+    description: args.description,
+    status: 'idle',
+    currentNodeIndex: -1,
+    nodes: PIPELINE_NODES.map(n => ({
+      id: n.id, name: n.name, status: 'pending' as const, failureCount: 0,
+    })),
+    permissionMode: 'default',
+    modelOverrides: getCustomStageOverrides(),
+    startedAt: now,
+    updatedAt: now,
+    metadata: { workflowSnapshot },
+    workflowInstance: createInitialSessionWorkflowInstance({
+      runId: args.runId,
+      templateSnapshot: workflowSnapshot,
+    }),
+  };
+}
+
 export class SessionManager {
   /**
    * Create a new run/session.
@@ -58,34 +88,7 @@ export class SessionManager {
     const paths = ensureRunDirectories(runId);
     const store = getStateStore(runId);
 
-    // Initialize nodes from pipeline definition
-    const nodes: NodeState[] = PIPELINE_NODES.map(n => ({
-      id: n.id,
-      name: n.name,
-      status: 'pending' as const,
-      failureCount: 0,
-    }));
-
-    const workflowSnapshot = captureWorkflowSnapshot(BUILTIN_MRD_TO_CODE_WORKFLOW_ID);
-    const state: ExecutionState = {
-      runId,
-      name: name || `Run ${runId.slice(0, 6)}`,
-      description,
-      status: 'idle',
-      currentNodeIndex: -1,
-      nodes,
-      permissionMode: 'default',
-      modelOverrides: getCustomStageOverrides(),
-      startedAt: Date.now(),
-      updatedAt: Date.now(),
-      metadata: {
-        workflowSnapshot,
-      },
-      workflowInstance: createInitialSessionWorkflowInstance({
-        runId,
-        templateSnapshot: workflowSnapshot,
-      }),
-    };
+    const state = createInitialExecutionState({ runId, name, description });
 
     store.saveExecutionState(state);
     const eventLog = getEventLog(runId);
@@ -406,15 +409,9 @@ export class SessionManager {
    * On startup, fix all running sessions (process restart recovery).
    */
   recoverOnStartup(): void {
-    const runs = listRuns();
-    for (const runId of runs) {
-      const store = getStateStore(runId);
-      const state = store.loadExecutionState();
-      if (state && state.status === 'running') {
-        state.status = 'suspended';
-        store.saveExecutionState(state);
-      }
-    }
+    // File mode keeps no durable cross-process lease authority. Do not mutate
+    // every running session on API startup; production recovery is decided by
+    // storage/recovery.ts from PostgreSQL leases and checkpoints.
   }
 
   private reconcilePipelineNodes(state: ExecutionState): boolean {
@@ -571,7 +568,6 @@ let _sessionManager: SessionManager | null = null;
 export function getSessionManager(): SessionManager {
   if (!_sessionManager) {
     _sessionManager = new SessionManager();
-    _sessionManager.recoverOnStartup();
   }
   return _sessionManager;
 }

@@ -1,6 +1,7 @@
 import { BranchWorkflowDefinition, WorkflowNode } from '../../types.js';
 import type { ApplicationBranchPlan, PlannedNode } from '../../sessionPlan.js';
 import { getPlanNodeContract } from '../../planNodeRegistry.js';
+import type { NodeLeaseExecutor } from '../../../storage/nodeLeaseExecutor.js';
 import {
   AsyncSemaphore,
   PlanResourceLimits,
@@ -20,6 +21,7 @@ export interface BranchRunnerContext {
   branch: BranchState;
   branchWorkflow: BranchWorkflowDefinition;
   handlers?: Record<string, BranchNodeHandler>;
+  nodeLeaseExecutor?: NodeLeaseExecutor;
 }
 
 export type BranchNodeHandler = (
@@ -35,6 +37,7 @@ export interface PlannedBranchRunnerContext {
   concurrencyLimit?: number;
   resourceLimits?: Partial<PlanResourceLimits>;
   resourceSemaphores?: PlanResourceSemaphores;
+  nodeLeaseExecutor?: NodeLeaseExecutor;
 }
 
 export interface PlannedNodeRunResult {
@@ -67,7 +70,10 @@ export async function runBranch(
     });
 
     try {
-      const patch = await ctx.handlers?.[node.id]?.({ ...ctx, branch }, node);
+      const work = async () => ctx.handlers?.[node.id]?.({ ...ctx, branch }, node);
+      const patch = ctx.nodeLeaseExecutor
+        ? await ctx.nodeLeaseExecutor.execute(ctx.graphState.runId, branchLeaseNodeId(branch.branchId, node.id), work)
+        : await work();
       branch = {
         ...branch,
         ...patch,
@@ -157,9 +163,12 @@ export async function runPlannedBranch(
             ? markBranchTrackNode(branch, node.trackId, node.id, { resourceWaitReason })
             : markBranchNode(branch, node.id, { resourceWaitReason });
         }
-        const result = await runWithPlanResources(resourceSemaphores, node, () =>
+        const work = () => runWithPlanResources(resourceSemaphores, node, () =>
           handler?.({ ...ctx, branch }, node)
         );
+        const result = ctx.nodeLeaseExecutor
+          ? await ctx.nodeLeaseExecutor.execute(ctx.graphState.runId, branchLeaseNodeId(branch.branchId, node.id), work)
+          : await work();
         return { node, result };
       } catch (err) {
         return { node, error: err as Error };
@@ -430,6 +439,10 @@ function resolvePlannedNodeHandler(
   node: PlannedNode
 ): PlannedNodeHandler | undefined {
   return handlers?.[node.id] ?? handlers?.[node.runner] ?? handlers?.[node.type];
+}
+
+function branchLeaseNodeId(branchId: string, nodeId: string): string {
+  return `branch:${branchId}:${nodeId}`;
 }
 
 function failPlannedNode(

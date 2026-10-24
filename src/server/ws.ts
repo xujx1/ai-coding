@@ -5,26 +5,40 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
 import { PipelineEngine } from '../workflows/engine/pipelineEngine.js';
-import { getEventLog } from '../events/EventLog.js';
-import { PipelineEvent as LoggedPipelineEvent } from '../events/types.js';
-
-interface ClientSubscription {
-  ws: WebSocket;
-  runId: string;
-}
+import type { EventBus, EventNotification } from '../events/eventBus.js';
+import { EventReplayService } from '../events/eventReplay.js';
+import type { EventRepository } from '../storage/contracts/eventRepository.js';
+import type { StorageContext } from '../storage/contracts/common.js';
 
 export class WebSocketHub {
   private clients = new Map<string, Set<WebSocket>>();
   private wss: WebSocketServer | null = null;
-  private eventLogSubscriptions = new Set<string>();
+  private eventBusUnsubscribe?: () => Promise<void>;
+  private replay?: EventReplayService;
+  private replayContext?: StorageContext;
+  private readonly seenNotificationEventIds = new Set<string>();
+
+  async configureDurableEvents(args: { eventBus: EventBus; events: EventRepository; context: StorageContext }): Promise<void> {
+    this.replay = new EventReplayService(args.events);
+    this.replayContext = args.context;
+    const unsubscribe = await args.eventBus.subscribe(notification => this.receiveNotification(notification));
+    await this.eventBusUnsubscribe?.();
+    this.eventBusUnsubscribe = unsubscribe;
+  }
 
   attach(server: any): void {
     this.wss = new WebSocketServer({ server, path: '/api/ws' });
 
     this.wss.on('connection', (ws: WebSocket, req: any) => {
+      void this.acceptConnection(ws, req);
+    });
+  }
+
+  private async acceptConnection(ws: WebSocket, req: any): Promise<void> {
       // Parse runId from URL query: /api/ws?runId=xxx
       const url = new URL(req.url, 'http://localhost');
       const runId = url.searchParams.get('runId');
+      const afterSequence = Number(url.searchParams.get('afterSequence') ?? '0');
 
       if (!runId) {
         ws.send(JSON.stringify({ type: 'error', message: 'runId query parameter required' }));
@@ -33,6 +47,16 @@ export class WebSocketHub {
       }
 
       this.addClient(runId, ws);
+
+      if (this.replay && this.replayContext) {
+        try {
+          for (const event of await this.replay.after(this.replayContext, runId, Number.isFinite(afterSequence) ? Math.max(0, afterSequence) : 0)) {
+            this.sendToClient(runId, ws, { type: 'durable_event', event });
+          }
+        } catch (error) {
+          this.sendToClient(runId, ws, { type: 'error', message: error instanceof Error ? error.message : 'Event replay failed.' });
+        }
+      }
 
       ws.on('message', (data: string) => {
         try {
@@ -49,7 +73,6 @@ export class WebSocketHub {
 
       // Send initial connected event
       ws.send(JSON.stringify({ type: 'connected', runId, timestamp: Date.now() }));
-    });
   }
 
   private addClient(runId: string, ws: WebSocket): void {
@@ -105,82 +128,26 @@ export class WebSocketHub {
     });
   }
 
-  /** Connect EventLog entries to the legacy WebSocket message shapes. */
-  subscribeEventLog(runId: string): void {
-    if (this.eventLogSubscriptions.has(runId)) return;
-    this.eventLogSubscriptions.add(runId);
-    getEventLog(runId).on('event', (event: LoggedPipelineEvent) => {
-      const mapped = mapLoggedEventToWebSocketMessage(event);
-      if (mapped) this.broadcast(runId, mapped);
-    });
-  }
-}
-
-function mapLoggedEventToWebSocketMessage(event: LoggedPipelineEvent): unknown | null {
-  switch (event.type) {
-    case 'pipeline_node_start':
-      return {
-        type: 'stage_start',
-        nodeId: event.nodeId ?? event.data?.nodeId,
-        nodeName: event.data?.nodeName,
-      };
-    case 'pipeline_node_end':
-      return {
-        type: 'stage_end',
-        nodeId: event.nodeId ?? event.data?.nodeId,
-        success: event.data?.success !== false,
-        output: event.data?.error,
-      };
-    case 'confirmation_waiting':
-      return {
-        type: 'confirmation_required',
-        nodeId: event.nodeId ?? event.data?.nodeId,
-        title: event.data?.title,
-        content: event.data?.content,
-        artifactPath: event.data?.artifactPath,
-        confirmationKind: event.data?.confirmationKind,
-      };
-    case 'confirmation_resolved':
-      return {
-        type: 'confirmation_resolved',
-        nodeId: event.nodeId ?? event.data?.nodeId,
-        approved: event.data?.approved,
-        feedback: event.data?.feedback,
-      };
-    case 'artifact_written':
-      return {
-        type: 'stage_progress',
-        nodeId: event.nodeId ?? event.data?.nodeId,
-        event: {
-          type: 'artifact_written',
-          ...event.data,
-        },
-      };
-    case 'fanout_decision':
-    case 'branch_transition':
-    case 'join_state_updated':
-    case 'branch_rerun_scheduled':
-    case 'branch_cancelled':
-    case 'node_rollback_requested':
-    case 'node_rollback_started':
-      return {
-        type: 'stage_progress',
-        nodeId: event.nodeId ?? event.data?.nodeId,
-        event: {
-          type: event.type,
-          ...event.data,
-        },
-      };
-    case 'pipeline_completed':
-      return { type: 'pipeline_complete', runId: event.runId };
-    case 'pipeline_failed':
-      return { type: 'pipeline_failed', runId: event.runId, error: event.data?.error ?? event.data?.message };
-    case 'pipeline_cancelled':
-      return { type: 'pipeline_cancelled', runId: event.runId };
-    case 'error':
-      return { type: 'pipeline_failed', runId: event.runId, error: event.data?.message };
-    default:
-      return null;
+  private async receiveNotification(notification: EventNotification): Promise<void> {
+    if (!this.replay || !this.replayContext) return;
+    if (this.seenNotificationEventIds.has(notification.eventId)) return;
+    this.seenNotificationEventIds.add(notification.eventId);
+    try {
+      const events = await this.replay.after(this.replayContext, notification.runId, Math.max(0, notification.sequence - 1), 1);
+      const event = events.find(item => item.id === notification.eventId || item.sequence === notification.sequence);
+      if (!event) {
+        this.seenNotificationEventIds.delete(notification.eventId);
+        return;
+      }
+      this.seenNotificationEventIds.add(event.id);
+      if (this.seenNotificationEventIds.size > 10_000) {
+        this.seenNotificationEventIds.delete(this.seenNotificationEventIds.values().next().value!);
+      }
+      this.broadcast(notification.runId, { type: 'durable_event', event });
+    } catch (error) {
+      this.seenNotificationEventIds.delete(notification.eventId);
+      throw error;
+    }
   }
 }
 

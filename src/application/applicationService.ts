@@ -1,13 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
-import { createEcomLocalGitService } from '../integrations/git.js';
+import { InMemoryApplicationCatalog, type ApplicationCatalog } from '../platform-sources/applicationCatalog.js';
+import { InMemoryRequirementSource, type RequirementSource } from '../platform-sources/requirementSource.js';
 import { getStateStore } from '../persistence/stateStore.js';
 import type { ExecutionState } from '../persistence/executionTypes.js';
 import { getRunPaths } from '../runtime/paths.js';
 import { loadLifecycleState } from '../lifecycle/store.js';
 import type { LifecycleState } from '../lifecycle/types.js';
 import { getSessionManager } from '../session/SessionManager.js';
+import type { SessionSummary } from '../session/SessionManager.js';
 import {
   appendKnowledgeRepositoryOverview,
   buildSessionKnowledgeBaseOverviews,
@@ -45,6 +47,16 @@ export interface ManagedApplication {
   defaultBranch?: string;
 }
 
+export interface ManagementRunSnapshot {
+  session: SessionSummary;
+  execution: ExecutionState | null;
+  lifecycle: LifecycleState | null;
+}
+
+export interface ManagementRunSource {
+  list(): Promise<ManagementRunSnapshot[]>;
+}
+
 export function describeApplicationManagementService(): ApplicationManagementServiceInfo {
   return {
     module: 'application',
@@ -52,48 +64,62 @@ export function describeApplicationManagementService(): ApplicationManagementSer
   };
 }
 
-export function listManagedApplications(workspaceRoot = process.cwd()): ManagedApplication[] {
-  const ecomRoot = path.join(workspaceRoot, 'demo', 'ecom');
-  if (!fs.existsSync(ecomRoot) || !fs.statSync(ecomRoot).isDirectory()) return [];
-
-  const dependencyMap = readDependencyMap(ecomRoot);
-  const registry = readAppsRegistry(ecomRoot);
-  const service = createEcomLocalGitService(ecomRoot);
-
-  return service.listRepositories()
-    .filter(repo => fs.existsSync(repo.root))
-    .filter(repo => repo.implementationApp !== false && repo.repositoryType !== 'testing')
-    .map(repo => {
-      const appId = repo.appId ?? repo.repoId;
-      const registryApp = registry.get(appId);
+export function listManagedApplications(catalog: ApplicationCatalog = new InMemoryApplicationCatalog()): ManagedApplication[] {
+  return catalog.list()
+    .filter(application => fs.existsSync(application.root) && fs.statSync(application.root).isDirectory())
+    .map(application => {
       return {
-        appId,
-        repoId: repo.repoId,
-        name: registryApp?.name ?? repo.name,
-        root: registryApp?.localPath
-          ? resolveAppRoot(ecomRoot, registryApp.localPath)
-          : repo.root,
-        description: registryApp?.description ?? readApplicationDescription(repo.root, appId),
-        dependencies: dependencyMap.get(appId) ?? [],
-        apiCount: countApiRoutes(repo.root),
-        codeSignals: detectCodeSignals(repo.root),
-        provider: repo.provider,
-        remoteUrl: repo.remoteUrl,
-        defaultBranch: repo.defaultBranch,
+        appId: application.appId,
+        repoId: application.repoId,
+        name: application.name,
+        root: application.root,
+        description: application.description ?? readApplicationDescription(application.root, application.appId),
+        dependencies: application.dependencies,
+        apiCount: countApiRoutes(application.root),
+        codeSignals: detectCodeSignals(application.root),
+        provider: 'local-git-service' as const,
+        remoteUrl: application.remoteUrl ?? application.root,
+        defaultBranch: application.defaultBranch,
       };
     })
     .sort((a, b) => a.appId.localeCompare(b.appId));
 }
 
-export function getManagementOverview(): ManagementOverview {
-  const repositoriesByApp = buildEcomRepositoryOverview();
+export function getManagementOverview(
+  catalog: ApplicationCatalog = new InMemoryApplicationCatalog(),
+  requirementSource: RequirementSource = new InMemoryRequirementSource(),
+  knowledgeRoot?: string,
+): ManagementOverview {
+  const snapshots = getSessionManager().listSessions().map(session => ({
+    session,
+    execution: getStateStore(session.runId).loadExecutionState(),
+    lifecycle: loadLifecycleState(session.runId),
+  }));
+  return buildManagementOverview(catalog, requirementSource, knowledgeRoot, snapshots);
+}
+
+export async function getManagementOverviewFromSource(
+  catalog: ApplicationCatalog,
+  requirementSource: RequirementSource,
+  knowledgeRoot: string | undefined,
+  runs: ManagementRunSource,
+): Promise<ManagementOverview> {
+  return buildManagementOverview(catalog, requirementSource, knowledgeRoot, await runs.list());
+}
+
+function buildManagementOverview(
+  catalog: ApplicationCatalog,
+  requirementSource: RequirementSource,
+  knowledgeRoot: string | undefined,
+  snapshots: ManagementRunSnapshot[],
+): ManagementOverview {
+  const repositoriesByApp = buildRepositoryOverview(catalog);
   const knowledgeBases: ManagedKnowledgeBaseOverview[] = [];
   const requirements: ManagedRequirementOverview[] = [];
   const pipelines: unknown[] = [];
 
-  for (const session of getSessionManager().listSessions()) {
-    const execution = getStateStore(session.runId).loadExecutionState();
-    const lifecycle = loadLifecycleState(session.runId);
+  for (const snapshot of snapshots) {
+    const { session, execution, lifecycle } = snapshot;
     const paths = getRunPaths(session.runId);
     const apps = buildSessionApplications(execution, lifecycle);
 
@@ -133,8 +159,8 @@ export function getManagementOverview(): ManagementOverview {
     });
   }
 
-  appendMrdRepositoryRequirements(requirements);
-  appendKnowledgeRepositoryOverview(knowledgeBases, repositoriesByApp);
+  appendMrdRepositoryRequirements(requirements, requirementSource);
+  appendKnowledgeRepositoryOverview(knowledgeBases, repositoriesByApp, knowledgeRoot);
 
   return {
     repositories: [...repositoriesByApp.values()].sort((a, b) => a.name.localeCompare(b.name)),
@@ -187,8 +213,8 @@ export type ApplicationRepositoryDownloadResult =
     root?: string;
   };
 
-export function downloadApplicationRepository(appId: string): ApplicationRepositoryDownloadResult {
-  const repo = [...buildEcomRepositoryOverview().values()]
+export function downloadApplicationRepository(appId: string, catalog: ApplicationCatalog = new InMemoryApplicationCatalog()): ApplicationRepositoryDownloadResult {
+  const repo = [...buildRepositoryOverview(catalog).values()]
     .find(item => item.appId === appId || item.name === appId);
   if (!repo) return { ok: false, status: 404, error: 'Repository not found' };
   const root = path.resolve(repo.root);
@@ -205,31 +231,27 @@ export function downloadApplicationRepository(appId: string): ApplicationReposit
   };
 }
 
-export function buildEcomRepositoryOverview(): Map<string, ManagedRepositoryOverview> {
+export function buildRepositoryOverview(catalog: ApplicationCatalog = new InMemoryApplicationCatalog()): Map<string, ManagedRepositoryOverview> {
   const repositoriesByApp = new Map<string, ManagedRepositoryOverview>();
-  const ecomRoot = path.join(process.cwd(), 'demo', 'ecom');
-  if (!fs.existsSync(ecomRoot) || !fs.statSync(ecomRoot).isDirectory()) return repositoriesByApp;
-
-  const service = createEcomLocalGitService(ecomRoot);
-  for (const repo of service.listRepositories()) {
-    const hasServiceRemote = fs.existsSync(path.join(repo.remotePath, 'HEAD'));
-    repositoriesByApp.set(repo.appId ?? repo.repoId, {
-      appId: repo.appId ?? repo.repoId,
-      name: repo.name,
-      repositoryType: repo.repositoryType ?? 'application',
-      implementationApp: repo.implementationApp !== false,
-      description: readRepositoryDescription(repo.root, repo.repoId),
-      root: repo.root,
-      provider: repo.provider,
-      isGitRepo: hasServiceRemote,
-      gitAddress: repo.remoteUrl,
-      remoteUrl: repo.remoteUrl,
-      currentBranch: repo.defaultBranch,
+  for (const application of catalog.list()) {
+    const exists = fs.existsSync(application.root);
+    repositoriesByApp.set(application.appId, {
+      appId: application.appId,
+      name: application.name,
+      repositoryType: 'application',
+      implementationApp: true,
+      description: application.description ?? readRepositoryDescription(application.root, application.repoId),
+      root: application.root,
+      provider: 'catalog',
+      isGitRepo: exists && fs.existsSync(path.join(application.root, '.git')),
+      gitAddress: application.remoteUrl ?? application.root,
+      remoteUrl: application.remoteUrl ?? application.root,
+      currentBranch: application.defaultBranch,
       dirty: false,
       changedFiles: [],
       changedFileCount: 0,
-      gitError: hasServiceRemote ? undefined : '未初始化本地 Git 服务',
-      downloadUrl: `/api/management/repositories/${encodeURIComponent(repo.appId ?? repo.repoId)}/download`,
+      gitError: exists ? undefined : 'Configured repository root is unavailable',
+      downloadUrl: `/api/management/repositories/${encodeURIComponent(application.appId)}/download`,
       requirementIds: [],
     });
   }
@@ -327,9 +349,6 @@ function truncateText(text: string, maxLength: number): string {
 
 function isDownloadableCodeRoot(root: string): boolean {
   const resolved = path.resolve(root);
-  const workspaceRoot = path.resolve(process.cwd());
-  const demoRoot = path.join(workspaceRoot, 'demo');
-  if (!resolved.startsWith(`${demoRoot}${path.sep}`)) return false;
   if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) return false;
   const forbidden = ['node_modules', '.git', 'dist', 'target'];
   return !forbidden.some(part => resolved.split(path.sep).includes(part));

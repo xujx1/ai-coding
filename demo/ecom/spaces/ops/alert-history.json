@@ -1,6 +1,62 @@
 {
   "alerts": [
     {
+      "id": "alert-1792849843181-xy60yr",
+      "appId": "console",
+      "alert": "demo timeout",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "demo": 1,
+        "timeout": 1
+      },
+      "createdAt": "2026-10-24T13:50:43.181Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1792848839770-184s4g",
+      "appId": "console",
+      "alert": "demo timeout",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "demo": 1,
+        "timeout": 1
+      },
+      "createdAt": "2026-10-24T13:33:59.770Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1792847708037-2tf9d1",
+      "appId": "console",
+      "alert": "demo timeout",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "demo": 1,
+        "timeout": 1
+      },
+      "createdAt": "2026-10-24T13:15:08.037Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
+      "id": "alert-1792847665841-158q7v",
+      "appId": "console",
+      "alert": "demo timeout",
+      "category": "workflow_pending",
+      "categoryLabel": "待 workflow 研判",
+      "vector": {
+        "demo": 1,
+        "timeout": 1
+      },
+      "createdAt": "2026-10-24T13:14:25.841Z",
+      "workflowId": "fault-analysis",
+      "status": "completed"
+    },
+    {
       "id": "alert-1783846805767-gzt5c6",
       "appId": "console",
       "alert": "库存扣减失败，服务 ecom-inventory，接口 POST /api/inventory/deduct，traceId=inventory-stock-negative-20260712-004，BusinessDataInconsistencyException，available stock would become negative，存在超卖风险\n\n",

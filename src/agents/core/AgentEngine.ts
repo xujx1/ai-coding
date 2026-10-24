@@ -25,6 +25,7 @@ import { getStateStore } from '../../persistence/stateStore.js';
 import { getPermissionManager } from '../../tools/security/permissions.js';
 import { RegisteredModel } from '../../models/registry.js';
 import { generatePlan, confirmPlan } from './planMode.js';
+import type { AgentStatePersistence } from '../../storage/agentStatePersistence.js';
 
 export interface AgentEngineConfig {
   runId: string;
@@ -48,6 +49,7 @@ export interface AgentEngineConfig {
   requireToolUse?: boolean;
   getProgressChecklist?: () => string | undefined;
   progressChecklistLabel?: string;
+  persistence?: AgentStatePersistence;
 }
 
 export type AgentEvent =
@@ -73,6 +75,8 @@ export class AgentEngine {
   private state: AgentState;
   private budget: TokenBudget;
   private confirmedPlan = false;
+  private persistenceTail: Promise<void> = Promise.resolve();
+  private persistenceFailure: Error | undefined;
 
   constructor(config: AgentEngineConfig) {
     this.config = config;
@@ -112,9 +116,23 @@ export class AgentEngine {
   }
 
   private saveState(): void {
+    if (this.config.persistence) {
+      const snapshot = structuredClone(this.state);
+      const pending = this.persistenceTail.then(() => this.config.persistence!.save(snapshot));
+      this.persistenceTail = pending.catch(error => {
+        this.persistenceFailure ??= error instanceof Error ? error : new Error(String(error));
+      });
+      return;
+    }
     try {
       getStateStore(this.config.runId).saveAgentState(this.state);
     } catch { /* ignore persistence errors */ }
+  }
+
+  /** Wait for all queued versioned repository writes before a node commits. */
+  async flushPersistence(): Promise<void> {
+    await this.persistenceTail;
+    if (this.persistenceFailure) throw this.persistenceFailure;
   }
 
   private recordEstimatedTokenUsage(inputTokens: number, contentBlocks: LLMContentBlock[]): void {
@@ -167,6 +185,11 @@ export class AgentEngine {
 
   confirmPlan(): void {
     this.confirmedPlan = true;
+    if (this.config.persistence && this.state.plan) {
+      this.state.plan = { ...this.state.plan, confirmed: true, confirmedAt: Date.now() };
+      this.saveState();
+      return;
+    }
     confirmPlan(this.config.runId, this.config.agentRunId);
   }
 
@@ -195,6 +218,13 @@ export class AgentEngine {
           provider: this.config.provider,
           modelId: this.config.model.id,
           cwd: this.config.projectDir,
+          persistPlan: this.config.persistence
+            ? async plan => {
+              this.state.plan = plan;
+              this.saveState();
+              await this.flushPersistence();
+            }
+            : undefined,
         });
         this.state.plan = plan;
         this.saveState();
@@ -207,6 +237,7 @@ export class AgentEngine {
           title: `Plan: ${plan.title}`,
           content: JSON.stringify(plan, null, 2),
         }, this.config.agentRunId, this.config.nodeId);
+        await this.flushPersistence();
         this.running = false;
         return; // caller will resume after confirmation
       } catch (err) {
@@ -235,6 +266,7 @@ export class AgentEngine {
     for (let turn = 0; turn < maxTurns; turn++) {
       if (this.aborted) {
         this.updateStatus('cancelled');
+        await this.flushPersistence();
         this.running = false;
         return;
       }
@@ -370,6 +402,7 @@ export class AgentEngine {
         this.state.error = (err as Error).message;
         this.saveState();
         eventLog.logEvent('agent_error', { error: (err as Error).message }, this.config.agentRunId);
+        await this.flushPersistence();
         this.running = false;
         return;
       }
@@ -409,6 +442,7 @@ export class AgentEngine {
         this.saveState();
         eventLog.logEvent('agent_error', { error: message }, this.config.agentRunId, this.config.nodeId);
         yield { type: 'error', message };
+        await this.flushPersistence();
         this.running = false;
         return;
       }
@@ -423,6 +457,7 @@ export class AgentEngine {
         this.saveState();
         eventLog.logEvent('agent_end', { finalText: finalText.slice(0, 500), turns: this.state.turnCount }, this.config.agentRunId);
         yield { type: 'completed', finalText };
+        await this.flushPersistence();
         this.running = false;
         return;
       }
@@ -440,6 +475,7 @@ export class AgentEngine {
           this.config.agentRunId
         );
         yield { type: 'completed', finalText: message };
+        await this.flushPersistence();
         this.running = false;
         return;
       }
@@ -464,6 +500,7 @@ export class AgentEngine {
           this.config.agentRunId
         );
         yield { type: 'completed', finalText: message };
+        await this.flushPersistence();
         this.running = false;
         return;
       }
@@ -657,6 +694,7 @@ export class AgentEngine {
       yield { type: 'completed', finalText: finalText || '[Max turns reached]' };
     }
 
+    await this.flushPersistence();
     this.running = false;
   }
 }

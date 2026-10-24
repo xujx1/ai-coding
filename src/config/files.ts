@@ -41,3 +41,12 @@ export function persistLocalConfig(partial: Partial<PipelineConfig>): void {
   const next = deepMerge(existing as Record<string, any>, partial as Record<string, any>);
   fs.writeFileSync(configPath, JSON.stringify(next, null, 2), 'utf-8');
 }
+
+export async function persistLocalConfigAsync(partial: Partial<PipelineConfig>): Promise<void> {
+  const configDir = getConfigDir();
+  const configPath = getLocalConfigPath();
+  await fs.promises.mkdir(configDir, { recursive: true });
+  const existing = loadConfigFile(configPath);
+  const next = deepMerge(existing as Record<string, any>, partial as Record<string, any>);
+  await fs.promises.writeFile(configPath, JSON.stringify(next, null, 2), 'utf-8');
+}

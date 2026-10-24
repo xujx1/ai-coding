@@ -14,7 +14,7 @@ export async function runUploadInitStage(
   ctx: StageRunnerContext
 ): Promise<StageRunnerResult> {
   const { paths, node, nodeState, executionState } = ctx;
-  const manifest = generateProjectManifest(paths);
+  const manifest = generateProjectManifest(paths, ctx.applications);
 
   executionState.projects = manifest.projects.map(project => ({
     name: project.name,

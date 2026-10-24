@@ -29,8 +29,10 @@ export interface LangGraphEventBridge {
 
 export function createLangGraphEventBridge(
   runId: string,
-  workflow?: WorkflowDefinition
+  workflow?: WorkflowDefinition,
+  options: { productTransitionsAreDurable?: boolean } = {},
 ): LangGraphEventBridge {
+  if (options.productTransitionsAreDurable) return createDetachedBridge(runId);
   const eventLog = getEventLog(runId);
   const store = getStateStore(runId);
 
@@ -64,5 +66,30 @@ export function createLangGraphEventBridge(
       });
       store.saveExecutionState(executionState);
     },
+  };
+}
+
+/** The shared fenced committer owns persistence; this bridge only preserves the runtime API shape. */
+function createDetachedBridge(runId: string): LangGraphEventBridge {
+  const event = (type: EventType, payload?: Record<string, unknown>, nodeId?: string, agentRunId?: string): PipelineEvent => ({
+    id: `detached:${runId}:${nodeId ?? 'run'}:${type}:${Date.now()}`,
+    type,
+    runId,
+    timestamp: Date.now(),
+    agentRunId,
+    nodeId,
+    data: payload,
+  });
+  return {
+    emitPipelineEvent: event,
+    emitPipelineEventOnce(state, idempotencyKey, type, payload, nodeId, agentRunId) {
+      const targetNodeId = nodeId ?? state.currentNodeId;
+      if (!targetNodeId || hasNodeIdempotencyKey(state, targetNodeId, idempotencyKey)) return { state };
+      return {
+        event: event(type, payload, nodeId, agentRunId),
+        state: addNodeIdempotencyKey(state, targetNodeId, idempotencyKey),
+      };
+    },
+    syncReadModel() {},
   };
 }

@@ -34,7 +34,11 @@ export interface LifecycleReadModel {
 
 export function buildLifecycleReadModel(runId: string): LifecycleReadModel | null {
   const state = loadLifecycleState(runId);
-  if (!state) return null;
+  return state ? buildLifecycleReadModelFromState(state) : null;
+}
+
+/** Allows repository-backed callers to build the identical public read model. */
+export function buildLifecycleReadModelFromState(state: LifecycleState): LifecycleReadModel {
   return {
     schemaVersion: state.schemaVersion,
     requirementId: state.requirementId,
@@ -128,4 +132,3 @@ function contentForGate(gate: ApprovalGateRef, artifactRefs: ArtifactRef[]): str
     riskLines,
   ].join('\n');
 }
-

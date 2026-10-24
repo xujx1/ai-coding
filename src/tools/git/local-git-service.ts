@@ -1,15 +1,16 @@
 import { createEcomLocalGitService, LocalGitService } from '../../integrations/git.js';
 
 interface ParsedArgs {
-  root: string;
+  root?: string;
   command: string;
   values: string[];
 }
 
 const parsed = parseArgs(process.argv.slice(2));
-const service = createEcomLocalGitService(parsed.root);
 
 try {
+  requireValue(parsed.root, 'A repository root is required. Pass --root <directory>.');
+  const service = createEcomLocalGitService(parsed.root);
   run(service, parsed);
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
@@ -97,7 +98,7 @@ function run(service: LocalGitService, parsed: ParsedArgs): void {
 }
 
 function parseArgs(args: string[]): ParsedArgs {
-  let root = 'demo/ecom';
+  let root: string | undefined;
   const values = [...args];
   const rootIndex = values.indexOf('--root');
   if (rootIndex >= 0) {
@@ -126,6 +127,7 @@ function requireValue(value: string | undefined, message: string): asserts value
 function printUsage(): void {
   console.log([
     'Usage: npm run ecom:git -- <command> [args]',
+    '       npm run ecom:git -- --root <directory> <command> [args]',
     '',
     'Commands:',
     '  init',

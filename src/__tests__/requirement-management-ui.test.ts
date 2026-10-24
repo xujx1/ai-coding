@@ -2,7 +2,11 @@ import * as assert from 'assert/strict';
 import * as fs from 'fs';
 import test from 'node:test';
 
-test('requirement management does not expose app counts before ownership review', () => {
+test('requirement management does not expose app counts before ownership review', (t) => {
+  if (!fs.existsSync('demo/mrd/targeted-campaign-stock-guard-mrd.md')) {
+    t.skip('explicit Demo MRD is unavailable in this production-only checkout');
+    return;
+  }
   const app = fs.readFileSync('web/app.js', 'utf-8');
   const mrd = fs.readFileSync('demo/mrd/targeted-campaign-stock-guard-mrd.md', 'utf-8');
 

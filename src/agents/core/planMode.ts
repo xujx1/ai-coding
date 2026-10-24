@@ -1,6 +1,7 @@
 /**
  * Plan Mode - generates implementation plans before code writing.
- * Plans are saved to agents/{agentRunId}.plan.json and require user confirmation.
+ * Plans use the injected durable persistence callback when configured; the
+ * legacy file is retained only for explicit local compatibility mode.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -19,6 +20,7 @@ export interface PlanGenerationContext {
   provider: LLMProvider;
   modelId: string;
   cwd: string;
+  persistPlan?: (plan: PlanState) => Promise<void>;
 }
 
 const PLAN_SYSTEM_PROMPT = `You are a software implementation planner. Given a development goal and context, create a step-by-step implementation plan.
@@ -45,7 +47,6 @@ Do NOT include any other text outside the JSON.`;
  */
 export async function generatePlan(ctx: PlanGenerationContext): Promise<PlanState> {
   const eventLog = getEventLog(ctx.runId);
-  const store = getStateStore(ctx.runId);
 
   // Build user message with context
   let userMsg = `## Goal\n${ctx.goal}\n\n`;
@@ -120,8 +121,10 @@ export async function generatePlan(ctx: PlanGenerationContext): Promise<PlanStat
     createdAt: Date.now(),
   };
 
-  // Save plan
-  store.savePlan(ctx.agentRunId, plan);
+  // Save plan through the selected authority. Local callers that do not
+  // inject persistence retain the historical file format.
+  if (ctx.persistPlan) await ctx.persistPlan(plan);
+  else getStateStore(ctx.runId).savePlan(ctx.agentRunId, plan);
 
   eventLog.logEvent('plan_created', {
     plan,

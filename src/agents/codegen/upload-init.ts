@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { listManagedApplications, type ManagedApplication } from '../../application/applicationService.js';
+import { InMemoryApplicationCatalog, type ApplicationCatalog, type CatalogApplication } from '../../platform-sources/applicationCatalog.js';
 import { getRunPaths } from '../../runtime/paths.js';
 import {
   ProjectStartupCapabilitySnapshot,
@@ -75,8 +75,8 @@ export function detectProjectRoots(projectDir: string): Array<{ name: string; ro
   return [];
 }
 
-export function generateProjectManifest(paths: ReturnType<typeof getRunPaths>): ProjectManifest {
-  ensureApplicationManagedProjects(paths);
+export function generateProjectManifest(paths: ReturnType<typeof getRunPaths>, catalog: ApplicationCatalog = new InMemoryApplicationCatalog()): ProjectManifest {
+  ensureApplicationManagedProjects(paths, catalog);
   const requirements: ProjectManifest['requirements'] = [];
   if (fs.existsSync(paths.inputDir)) {
     for (const f of fs.readdirSync(paths.inputDir)) {
@@ -138,7 +138,7 @@ export function generateProjectManifest(paths: ReturnType<typeof getRunPaths>): 
   return { requirements, customPrompt, projects };
 }
 
-export function ensureProjectManifest(paths: ReturnType<typeof getRunPaths>): ProjectManifest {
+export function ensureProjectManifest(paths: ReturnType<typeof getRunPaths>, catalog: ApplicationCatalog = new InMemoryApplicationCatalog()): ProjectManifest {
   const manifestPath = path.join(paths.artifactsDir, 'project-manifest.json');
   if (fs.existsSync(manifestPath)) {
     try {
@@ -147,7 +147,7 @@ export function ensureProjectManifest(paths: ReturnType<typeof getRunPaths>): Pr
       // fall through to regenerate
     }
   }
-  const manifest = generateProjectManifest(paths);
+  const manifest = generateProjectManifest(paths, catalog);
   fs.mkdirSync(paths.artifactsDir, { recursive: true });
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
   return manifest;
@@ -183,9 +183,9 @@ function hasFrontendTestFile(root: string): boolean {
   }
 }
 
-function ensureApplicationManagedProjects(paths: ReturnType<typeof getRunPaths>): void {
+function ensureApplicationManagedProjects(paths: ReturnType<typeof getRunPaths>, catalog: ApplicationCatalog): void {
   if (detectProjectRoots(paths.projectDir).length > 0) return;
-  const applications = listManagedApplications()
+  const applications = catalog.list()
     .filter(app => fs.existsSync(app.root) && fs.statSync(app.root).isDirectory());
   if (!applications.length) return;
 
@@ -199,7 +199,7 @@ function ensureApplicationManagedProjects(paths: ReturnType<typeof getRunPaths>)
   }
 }
 
-function writeManagedProjectMetadata(targetRoot: string, app: ManagedApplication): void {
+function writeManagedProjectMetadata(targetRoot: string, app: CatalogApplication): void {
   const metadataPath = path.join(targetRoot, '.ai-coding-app.json');
   const metadata = {
     appId: app.appId,
@@ -209,7 +209,7 @@ function writeManagedProjectMetadata(targetRoot: string, app: ManagedApplication
     dependencies: app.dependencies,
     source: 'application-management',
     originalRoot: app.root,
-    provider: app.provider,
+    provider: app.provider ?? 'catalog',
     remoteUrl: app.remoteUrl,
     defaultBranch: app.defaultBranch,
   };

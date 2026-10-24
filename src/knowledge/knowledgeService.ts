@@ -15,6 +15,7 @@ import type {
   ManagedRepositoryOverview,
   ManagedSessionApplication,
 } from '../application/managementTypes.js';
+import type { ApplicationCatalog } from '../platform-sources/applicationCatalog.js';
 
 export interface KnowledgeManagementServiceInfo {
   module: 'knowledge';
@@ -28,8 +29,10 @@ export function describeKnowledgeManagementService(): KnowledgeManagementService
   };
 }
 
-export async function initAllKnowledgeBases(options: { appIds?: string[] } = {}) {
+export async function initAllKnowledgeBases(options: { catalog: ApplicationCatalog; knowledgeRoot: string; appIds?: string[] }) {
   return initAllAppKnowledge({
+    catalog: options.catalog,
+    knowledgeRoot: options.knowledgeRoot,
     appIds: options.appIds,
     updateGlobalKnowledge: !options.appIds?.length,
   });
@@ -86,8 +89,9 @@ export function buildSessionKnowledgeBaseOverviews(args: {
 export function appendKnowledgeRepositoryOverview(
   knowledgeBases: ManagedKnowledgeBaseOverview[],
   repositoriesByApp: Map<string, Pick<ManagedRepositoryOverview, 'description'>>,
+  knowledgeRoot?: string,
 ): void {
-  const knowledgeRoot = path.join(process.cwd(), 'demo', 'ecom', 'spaces', 'knowledge', 'knowledge-base');
+  if (!knowledgeRoot) return;
   const reportPath = path.join(knowledgeRoot, 'global', 'init-report.json');
   const appsPath = path.join(knowledgeRoot, 'registry', 'apps.json');
   if (!fs.existsSync(reportPath) || !fs.statSync(reportPath).isFile()) return;
@@ -172,8 +176,8 @@ export type KnowledgeFileTreeResult =
   | { ok: true; knowledgeId: string; tree: unknown[] }
   | { ok: false; status: 404; error: string };
 
-export function getKnowledgeBaseFiles(knowledgeId: string): KnowledgeFileTreeResult {
-  const knowledgeBase = findKnowledgeBaseOverview(knowledgeId);
+export function getKnowledgeBaseFiles(knowledgeId: string, knowledgeRoot?: string): KnowledgeFileTreeResult {
+  const knowledgeBase = findKnowledgeBaseOverview(knowledgeId, knowledgeRoot);
   if (!knowledgeBase) return { ok: false, status: 404, error: 'Knowledge base not found' };
 
   const root = resolveKnowledgeFileRoot(knowledgeBase);
@@ -189,10 +193,10 @@ export type KnowledgeFileContentResult =
   | { ok: true; path: string; content: string; size: number }
   | { ok: false; status: 400 | 404; error: string; path?: string };
 
-export function getKnowledgeBaseFileContent(knowledgeId: string, filePath?: string): KnowledgeFileContentResult {
+export function getKnowledgeBaseFileContent(knowledgeId: string, filePath?: string, knowledgeRoot?: string): KnowledgeFileContentResult {
   if (!filePath) return { ok: false, status: 400, error: 'path query param required' };
 
-  const knowledgeBase = findKnowledgeBaseOverview(knowledgeId);
+  const knowledgeBase = findKnowledgeBaseOverview(knowledgeId, knowledgeRoot);
   if (!knowledgeBase) return { ok: false, status: 404, error: 'Knowledge base not found' };
 
   const root = resolveKnowledgeFileRoot(knowledgeBase);
@@ -211,7 +215,7 @@ export function getKnowledgeBaseFileContent(knowledgeId: string, filePath?: stri
   };
 }
 
-function findKnowledgeBaseOverview(knowledgeId: string): ManagedKnowledgeBaseOverview | undefined {
+function findKnowledgeBaseOverview(knowledgeId: string, knowledgeRoot?: string): ManagedKnowledgeBaseOverview | undefined {
   const knowledgeBases: ManagedKnowledgeBaseOverview[] = [];
   for (const session of getSessionManager().listSessions()) {
     const execution = getStateStore(session.runId).loadExecutionState();
@@ -233,7 +237,7 @@ function findKnowledgeBaseOverview(knowledgeId: string): ManagedKnowledgeBaseOve
       }));
     knowledgeBases.push(...buildSessionKnowledgeBaseOverviews({ session, execution, lifecycle, apps }));
   }
-  appendKnowledgeRepositoryOverview(knowledgeBases, new Map());
+  appendKnowledgeRepositoryOverview(knowledgeBases, new Map(), knowledgeRoot);
   return knowledgeBases.find(item => item.id === knowledgeId);
 }
 

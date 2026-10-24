@@ -49,7 +49,7 @@ const SpikeState = Annotation.Root({
   }),
 });
 
-export function createLangGraphSpikeApp(checkpointer = new MemorySaver()) {
+export function createLangGraphSpikeApp(checkpointer: unknown = new MemorySaver()) {
   return new StateGraph(SpikeState)
     .addNode('prepare', async (state) => ({
       status: 'prepared' as const,
@@ -76,7 +76,7 @@ export function createLangGraphSpikeApp(checkpointer = new MemorySaver()) {
     .addEdge('prepare', 'approval')
     .addEdge('approval', 'finalize')
     .addEdge('finalize', END)
-    .compile({ checkpointer });
+    .compile({ checkpointer: checkpointer as never });
 }
 
 export function langGraphRunConfig(runId: string) {

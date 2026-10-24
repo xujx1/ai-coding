@@ -3,6 +3,7 @@ import * as path from 'path';
 import type { PipelineNode } from '../definitions/pipelineDefinition.js';
 import type { ExecutionState, NodeState, RollbackState } from '../../persistence/executionTypes.js';
 import type { RunPaths } from '../../runtime/paths.js';
+import type { LifecycleStatePersistence } from '../../storage/lifecycleStatePersistence.js';
 import {
   appendLifecycleEvent,
   applyFanoutAdjustments,
@@ -63,10 +64,24 @@ import {
 
 const WORKFLOW_ID = 'legacy-pipeline';
 
+export interface PipelineLifecycleOptions {
+  workflowId?: string;
+  now?: number;
+  /** When supplied, the repository is authoritative and no lifecycle JSON is read or written. */
+  persistence?: LifecycleStatePersistence;
+}
+
 export function ensurePipelineLifecycleForExecution(
   execution: ExecutionState,
-  options: { workflowId?: string; now?: number } = {},
-): ExecutionState {
+  options: PipelineLifecycleOptions = {},
+): ExecutionState | Promise<ExecutionState> {
+  if (options.persistence) {
+    return (async () => {
+      const state = await loadOrCreateLifecycleStateAsync(execution, options);
+      await options.persistence!.save(state);
+      return attachLifecycleMetadata(execution, state);
+    })();
+  }
   const state = loadOrCreateLifecycleState(execution, options);
   saveLifecycleState(state);
   return attachLifecycleMetadata(execution, state);
@@ -74,9 +89,9 @@ export function ensurePipelineLifecycleForExecution(
 
 export function recordPipelineLifecycleStarted(
   execution: ExecutionState,
-  options: { workflowId?: string; now?: number } = {},
-): void {
-  updatePipelineLifecycle(execution, options, state => {
+  options: PipelineLifecycleOptions = {},
+): void | Promise<void> {
+  return updatePipelineLifecycle(execution, options, state => {
     state.phase = inferPhase(execution.currentNodeId);
     state.status = 'active';
     const workflow = workflowRunForExecution(execution, 'running', options);
@@ -92,9 +107,9 @@ export function recordPipelineLifecycleStarted(
 
 export function recordPipelineLifecycleCompleted(
   execution: ExecutionState,
-  options: { workflowId?: string; now?: number } = {},
-): void {
-  updatePipelineLifecycle(execution, options, state => {
+  options: PipelineLifecycleOptions = {},
+): void | Promise<void> {
+  return updatePipelineLifecycle(execution, options, state => {
     state.phase = 'completed';
     state.status = 'completed';
     const workflow = workflowRunForExecution(execution, 'completed', options);
@@ -111,9 +126,9 @@ export function recordPipelineLifecycleCompleted(
 export function recordPipelineLifecycleFailed(
   execution: ExecutionState,
   error: string,
-  options: { workflowId?: string; now?: number } = {},
-): void {
-  updatePipelineLifecycle(execution, options, state => {
+  options: PipelineLifecycleOptions = {},
+): void | Promise<void> {
+  return updatePipelineLifecycle(execution, options, state => {
     state.phase = 'failed';
     state.status = execution.status === 'cancelled' ? 'cancelled' : 'failed';
     const workflow = workflowRunForExecution(execution, execution.status === 'cancelled' ? 'cancelled' : 'failed', options);
@@ -128,8 +143,9 @@ export function recordPipelineLifecycleNodeStarted(args: {
   node: PipelineNode;
   nodeState: NodeState;
   now?: number;
-}): void {
-  updatePipelineLifecycle(args.execution, { now: args.now }, state => {
+  persistence?: LifecycleStatePersistence;
+}): void | Promise<void> {
+  return updatePipelineLifecycle(args.execution, { now: args.now, persistence: args.persistence }, state => {
     state.phase = inferPhase(args.node.id);
     state.status = 'active';
     syncAppsFromExecution(state, args.execution);
@@ -152,8 +168,9 @@ export function recordPipelineLifecycleNodeCompleted(args: {
   outputArtifacts: string[];
   paths: RunPaths;
   now?: number;
-}): void {
-  updatePipelineLifecycle(args.execution, { now: args.now }, state => {
+  persistence?: LifecycleStatePersistence;
+}): void | Promise<void> {
+  return updatePipelineLifecycle(args.execution, { now: args.now, persistence: args.persistence }, state => {
     state.phase = inferPhase(args.node.id);
     state.status = 'active';
     syncAppsFromExecution(state, args.execution);
@@ -182,8 +199,9 @@ export function recordPipelineLifecycleNodeFailed(args: {
   nodeState: NodeState;
   error: string;
   now?: number;
-}): void {
-  updatePipelineLifecycle(args.execution, { now: args.now }, state => {
+  persistence?: LifecycleStatePersistence;
+}): void | Promise<void> {
+  return updatePipelineLifecycle(args.execution, { now: args.now, persistence: args.persistence }, state => {
     state.phase = isPipelineTestingNode(args.node.id) ? 'diagnosis' : inferPhase(args.node.id);
     state.status = 'failed';
     syncAppsFromExecution(state, args.execution);
@@ -213,10 +231,11 @@ export function recordPipelineLifecycleApprovalWaiting(args: {
   gateType?: ApprovalGateType;
   riskIds?: string[];
   now?: number;
-}): void {
+  persistence?: LifecycleStatePersistence;
+}): void | Promise<void> {
   const gateType = args.gateType ?? gateTypeForNode(args.nodeId);
   if (!gateType) return;
-  updatePipelineLifecycle(args.execution, { now: args.now }, state => {
+  return updatePipelineLifecycle(args.execution, { now: args.now, persistence: args.persistence }, state => {
     const workflowRunId = workflowRunIdFor(args.execution);
     const nodeRunId = nodeRunIdFor(args.execution, args.nodeId);
     const artifactIds = (args.artifactPaths ?? [])
@@ -246,8 +265,9 @@ export function recordPipelineLifecycleApprovalResolved(args: {
   feedback?: string;
   resolvedBy?: string;
   now?: number;
-}): void {
-  updatePipelineLifecycle(args.execution, { now: args.now }, state => {
+  persistence?: LifecycleStatePersistence;
+}): void | Promise<void> {
+  return updatePipelineLifecycle(args.execution, { now: args.now, persistence: args.persistence }, state => {
     const nodeRunId = nodeRunIdFor(args.execution, args.nodeId);
     const gate = [...state.approvals].reverse().find(item =>
       item.nodeRunId === nodeRunId && item.status === 'waiting'
@@ -264,12 +284,42 @@ export function recordPipelineLifecycleApprovalResolved(args: {
   });
 }
 
+export function recordPipelineLifecycleApprovalCancelled(args: {
+  execution: ExecutionState;
+  nodeId: string;
+  resolvedBy?: string;
+  now?: number;
+  persistence?: LifecycleStatePersistence;
+}): void | Promise<void> {
+  return updatePipelineLifecycle(args.execution, { now: args.now, persistence: args.persistence }, state => {
+    const nodeRunId = nodeRunIdFor(args.execution, args.nodeId);
+    const gate = [...state.approvals].reverse().find(item =>
+      item.nodeRunId === nodeRunId && item.status === 'waiting'
+    );
+    if (gate) {
+      resolveApprovalGate(state, {
+        approvalGateId: gate.approvalGateId,
+        decision: 'rejected',
+        resolvedBy: args.resolvedBy ?? 'user',
+        decisionReason: 'Rejected in pipeline confirmation gate.',
+        now: args.now,
+      });
+    }
+    state.phase = 'failed';
+    state.status = 'cancelled';
+    const workflow = workflowRunForExecution(args.execution, 'cancelled', { now: args.now });
+    workflow.completedAt = args.now ?? Date.now();
+    persistWorkflowRun(state, workflow);
+  });
+}
+
 export function recordPipelineLifecycleRollback(args: {
   execution: ExecutionState;
   rollback: RollbackState;
   now?: number;
-}): void {
-  updatePipelineLifecycle(args.execution, { now: args.now }, state => {
+  persistence?: LifecycleStatePersistence;
+}): void | Promise<void> {
+  return updatePipelineLifecycle(args.execution, { now: args.now, persistence: args.persistence }, state => {
     state.phase = 'fixing';
     const classification = createFailureClassification({
       state,
@@ -303,25 +353,39 @@ export function recordPipelineLifecycleRollback(args: {
 
 function updatePipelineLifecycle(
   execution: ExecutionState,
-  options: { workflowId?: string; now?: number },
+  options: PipelineLifecycleOptions,
   updater: (state: LifecycleState) => void,
-): LifecycleState {
+): void | Promise<void> {
+  if (options.persistence) {
+    return (async () => {
+      const state = await loadOrCreateLifecycleStateAsync(execution, options);
+      updater(state);
+      attachLifecycleMetadata(execution, state);
+      await options.persistence!.save(state);
+    })();
+  }
   const state = loadOrCreateLifecycleState(execution, options);
   updater(state);
   saveLifecycleState(state);
   attachLifecycleMetadata(execution, state);
-  return state;
 }
 
 function loadOrCreateLifecycleState(
   execution: ExecutionState,
-  options: { workflowId?: string; now?: number } = {},
+  options: PipelineLifecycleOptions = {},
 ): LifecycleState {
   const existing = loadLifecycleState(execution.runId);
   if (existing) {
     syncAppsFromExecution(existing, execution);
     return existing;
   }
+  return createLifecycleState(execution, options);
+}
+
+function createLifecycleState(
+  execution: ExecutionState,
+  options: PipelineLifecycleOptions,
+): LifecycleState {
   const state = createEmptyLifecycleState({
     requirementId: requirementIdFor(execution),
     runId: execution.runId,
@@ -361,6 +425,18 @@ function loadOrCreateLifecycleState(
     now: options.now,
   });
   return state;
+}
+
+async function loadOrCreateLifecycleStateAsync(
+  execution: ExecutionState,
+  options: PipelineLifecycleOptions,
+): Promise<LifecycleState> {
+  const existing = await options.persistence!.load(execution.runId);
+  if (existing) {
+    syncAppsFromExecution(existing, execution);
+    return existing;
+  }
+  return createLifecycleState(execution, options);
 }
 
 function attachLifecycleMetadata(execution: ExecutionState, state: LifecycleState): ExecutionState {

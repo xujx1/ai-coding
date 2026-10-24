@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execFileSync } from 'child_process';
-import { createEcomLocalGitService } from '../../integrations/git.js';
+import type { ApplicationCatalog } from '../../platform-sources/applicationCatalog.js';
 import type {
   KnowledgeAgentDefinition,
   KnowledgeAgentRunResult,
@@ -13,28 +13,26 @@ import type {
 export const KNOWLEDGE_REPOSITORY_SCAN_AGENT: KnowledgeAgentDefinition = {
   id: 'knowledge-repository-scan',
   label: '应用仓库扫描 Agent',
-  description: '扫描 ecom 应用仓库、领域上下文、OpenAPI、源码入口、数据库表和组件信号。',
+  description: '扫描配置的应用仓库、领域上下文、OpenAPI、源码入口、数据库表和组件信号。',
   defaultTools: ['glob', 'grep', 'read_file'],
   outputArtifacts: ['registry/repositories.json', 'registry/apps.json'],
 };
 
 export async function runKnowledgeRepositoryScanAgent(args: {
-  ecomRoot?: string;
-  workspaceRoot?: string;
+  catalog: ApplicationCatalog;
+  repositoryBaseRoot?: string;
   knowledgeRoot?: string;
   maxSourceFiles?: number;
-} = {}): Promise<KnowledgeAgentRunResult<{
+}): Promise<KnowledgeAgentRunResult<{
   scans: KnowledgeRepositoryScan[];
   generatedFiles: KnowledgeGeneratedFile[];
 }>> {
-  const workspaceRoot = path.resolve(args.workspaceRoot ?? process.cwd());
-  const ecomRoot = path.resolve(args.ecomRoot ?? path.join(workspaceRoot, 'demo', 'ecom'));
-  const service = createEcomLocalGitService(ecomRoot);
-  const scans = service.listRepositories().map(repo => scanRepository({
-    appId: repo.appId ?? repo.repoId,
-    name: repo.name,
-    root: repo.root,
-    ecomRoot,
+  const repositoryBaseRoot = path.resolve(args.repositoryBaseRoot ?? process.cwd());
+  const scans = args.catalog.list().map(repository => scanRepository({
+    appId: repository.appId,
+    name: repository.name,
+    root: repository.root,
+    repositoryBaseRoot,
     maxSourceFiles: args.maxSourceFiles ?? 240,
   }));
   const generatedFiles: KnowledgeGeneratedFile[] = [];
@@ -70,7 +68,7 @@ function scanRepository(args: {
   appId: string;
   name: string;
   root: string;
-  ecomRoot: string;
+  repositoryBaseRoot: string;
   maxSourceFiles: number;
 }): KnowledgeRepositoryScan {
   const sourceFiles = listSourceFiles(args.root, args.maxSourceFiles);
@@ -88,7 +86,7 @@ function scanRepository(args: {
     appId: args.appId,
     name: args.name,
     root: args.root,
-    relativeRoot: path.relative(args.ecomRoot, args.root).replace(/\\/g, '/'),
+    relativeRoot: path.relative(args.repositoryBaseRoot, args.root).replace(/\\/g, '/'),
     domain: readDomainContext(args.root),
     routes: [...routes].slice(0, 120),
     components: [...components].slice(0, 120),
@@ -184,7 +182,7 @@ function safeRead(file: string): string | undefined {
 
 function headSha(root: string): string | undefined {
   try {
-    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf-8' }).trim();
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   } catch {
     return undefined;
   }

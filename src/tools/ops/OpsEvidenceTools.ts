@@ -1,11 +1,8 @@
 import { z } from 'zod';
 import type { Tool, ToolContext, ToolResult } from '../base.js';
-import {
-  collectCodeEvidence,
-  collectKnowledgeEvidence,
-  collectLogEvidence,
-  collectSimilarAlertEvidence,
-} from './evidence.js';
+import { collectCodeEvidence } from './evidence.js';
+import type { AlertHistoryRepository, KnowledgeEvidenceProvider, LogEvidenceProvider } from '../../platform-sources/opsEvidenceProviders.js';
+import type { OpsKnowledgeEvidence, OpsLogEvidence, OpsSimilarAlertEvidence } from './evidence.js';
 
 const HintsSchema = z.object({
   codeHints: z.array(z.string()).default([]),
@@ -23,12 +20,12 @@ function jsonError(error: unknown): ToolResult {
   };
 }
 
-export const LocalLogSearchTool: Tool = {
+export function createLocalLogSearchTool(provider: LogEvidenceProvider<OpsLogEvidence>): Tool {
+  return {
   definition: {
     name: 'local_log_search',
-    description: 'Search local demo/ecom logs by appId, traceId, alert tokens, and classification hints.',
+    description: 'Search the configured local log source by appId, traceId, alert tokens, and classification hints.',
     inputSchema: z.object({
-      ecomRoot: z.string(),
       appId: z.string(),
       alert: z.string(),
       classification: HintsSchema,
@@ -38,12 +35,13 @@ export const LocalLogSearchTool: Tool = {
   async execute(input: unknown, _ctx: ToolContext): Promise<ToolResult> {
     try {
       const parsed = this.definition.inputSchema.parse(input);
-      return jsonResult(collectLogEvidence(parsed.ecomRoot, parsed.appId, parsed.classification, parsed.alert));
+      return jsonResult(await provider.search({ appId: parsed.appId, alert: parsed.alert, hints: parsed.classification.codeHints }));
     } catch (error) {
       return jsonError(error);
     }
   },
-};
+  };
+}
 
 export const CodeContextSearchTool: Tool = {
   definition: {
@@ -66,12 +64,12 @@ export const CodeContextSearchTool: Tool = {
   },
 };
 
-export const OpsKnowledgeSearchTool: Tool = {
+export function createOpsKnowledgeSearchTool(provider: KnowledgeEvidenceProvider<OpsKnowledgeEvidence>): Tool {
+  return {
   definition: {
     name: 'ops_knowledge_search',
     description: 'Search application knowledge base, global knowledge base, and GitNexus artifacts for ops evidence.',
     inputSchema: z.object({
-      ecomRoot: z.string(),
       appId: z.string(),
       alert: z.string(),
       classification: HintsSchema,
@@ -81,19 +79,20 @@ export const OpsKnowledgeSearchTool: Tool = {
   async execute(input: unknown, _ctx: ToolContext): Promise<ToolResult> {
     try {
       const parsed = this.definition.inputSchema.parse(input);
-      return jsonResult(collectKnowledgeEvidence(parsed.ecomRoot, parsed.appId, parsed.classification, parsed.alert));
+      return jsonResult(await provider.search({ appId: parsed.appId, alert: parsed.alert, hints: parsed.classification.codeHints }));
     } catch (error) {
       return jsonError(error);
     }
   },
-};
+  };
+}
 
-export const AlertVectorSearchTool: Tool = {
+export function createAlertVectorSearchTool(provider: AlertHistoryRepository<OpsSimilarAlertEvidence>): Tool {
+  return {
   definition: {
     name: 'alert_vector_search',
     description: 'Search local operations alert history vectors for alerts similar to the current alert.',
     inputSchema: z.object({
-      ecomRoot: z.string(),
       alert: z.string(),
     }),
     isReadOnly: true,
@@ -101,12 +100,13 @@ export const AlertVectorSearchTool: Tool = {
   async execute(input: unknown, _ctx: ToolContext): Promise<ToolResult> {
     try {
       const parsed = this.definition.inputSchema.parse(input);
-      return jsonResult(collectSimilarAlertEvidence(parsed.ecomRoot, parsed.alert));
+      return jsonResult(await provider.findSimilar(parsed.alert));
     } catch (error) {
       return jsonError(error);
     }
   },
-};
+  };
+}
 
 export const DependencyGraphSearchTool: Tool = {
   definition: {

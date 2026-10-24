@@ -1,37 +1,43 @@
 import {
   analyzeOpsAlert,
-  listOpsAlertHistory,
   listOpsApplications,
   listOpsCapabilities,
   listOpsWorkflowTemplates,
   streamOpsAlertAnalysis,
 } from '../../app-ops/appOpsService.js';
+import type { OpsAnalysisHistoryRepository } from '../../app-ops/history.js';
+import type { ApplicationCatalog } from '../../platform-sources/applicationCatalog.js';
+import type { OpsEvidenceSources } from '../../workflows/runtime/ops/opsFaultAnalysisTypes.js';
 
-export function listOpsApps(c: any) {
-  return c.json({ apps: listOpsApplications() });
+export function listOpsApps(c: any, catalog: ApplicationCatalog) {
+  return c.json({ apps: listOpsApplications(catalog) });
 }
 
-export function getOpsWorkbench(c: any) {
+type OpsControllerSources = OpsEvidenceSources & {
+  analysisHistory: OpsAnalysisHistoryRepository;
+};
+
+export async function getOpsWorkbench(c: any, catalog: ApplicationCatalog, analysisHistory: OpsAnalysisHistoryRepository) {
   return c.json({
-    apps: listOpsApplications(),
+    apps: listOpsApplications(catalog),
     workflows: listOpsWorkflowTemplates(),
     capabilities: listOpsCapabilities(),
-    alertHistory: listOpsAlertHistory(),
+    alertHistory: await analysisHistory.list(),
   });
 }
 
-export async function analyzeOps(c: any) {
+export async function analyzeOps(c: any, catalog: ApplicationCatalog, sources: OpsControllerSources) {
   try {
     const body = await c.req.json();
     const { appId, alert, workflowConfig, error } = parseOpsAnalyzeBody(body);
     if (error) return c.json({ error }, error.includes('appId') ? 400 : 400);
-    return c.json({ analysis: await analyzeOpsAlert({ appId, alert, workflowConfig }) });
+    return c.json({ analysis: await analyzeOpsAlert({ appId, alert, catalog, evidenceSources: sources, analysisHistory: sources.analysisHistory, workflowConfig }) });
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
 
-export async function analyzeOpsStream(c: any) {
+export async function analyzeOpsStream(c: any, catalog: ApplicationCatalog, sources: OpsControllerSources) {
   try {
     const body = await c.req.json();
     const { appId, alert, workflowConfig, error } = parseOpsAnalyzeBody(body);
@@ -43,7 +49,7 @@ export async function analyzeOpsStream(c: any) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
         };
         try {
-          for await (const event of streamOpsAlertAnalysis({ appId, alert, workflowConfig })) {
+          for await (const event of streamOpsAlertAnalysis({ appId, alert, catalog, evidenceSources: sources, analysisHistory: sources.analysisHistory, workflowConfig })) {
             send(event);
           }
           send({ type: 'done' });

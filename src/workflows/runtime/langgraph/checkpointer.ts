@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { MemorySaver } from '@langchain/langgraph';
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { getRunPaths } from '../../../runtime/paths.js';
 import type { ExecutionState, NodeState, ProjectState } from '../../../persistence/executionTypes.js';
 import {
@@ -33,6 +34,28 @@ export interface LangGraphCheckpointPaths {
 
 export function createMemoryCheckpointer(): MemorySaver {
   return new MemorySaver();
+}
+
+/**
+ * Creates and initializes the LangGraph PostgreSQL saver. Checkpoints use
+ * LangGraph's own tables and deliberately remain separate from product run
+ * and lifecycle read models.
+ */
+export async function createPostgresCheckpointer(databaseUrl: string): Promise<PostgresSaver> {
+  if (!databaseUrl) throw new Error('PostgreSQL LangGraph checkpointer requires DATABASE_URL.');
+  const checkpointer = PostgresSaver.fromConnString(databaseUrl, { schema: 'ai_coding_langgraph' });
+  await checkpointer.setup();
+  return checkpointer;
+}
+
+export async function createConfiguredCheckpointer(
+  mode: LangGraphCheckpointerMode,
+  databaseUrl?: string,
+): Promise<MemorySaver | PostgresSaver> {
+  if (mode === 'postgres') return createPostgresCheckpointer(databaseUrl ?? '');
+  // File mode uses the explicit envelope below for compatibility; graph
+  // execution still needs an in-process saver while it is active.
+  return createMemoryCheckpointer();
 }
 
 export function getLangGraphCheckpointPaths(runId: string): LangGraphCheckpointPaths {

@@ -1,14 +1,10 @@
-import * as path from 'path';
 import {
   OPS_AGENT_DEFINITIONS,
   createOpsToolContext,
   createOpsToolRegistry,
-  runAppKnowledgeAgent,
   runCodeContextAgent,
   runGlobalImpactAgent,
-  runLocalLogTraceAgent,
   runRepairPlanAgent,
-  runSimilarAlertAgent,
   startRepairPlanAgent,
   streamRepairPlanAgent,
   buildRecommendedActions,
@@ -32,17 +28,18 @@ export async function runOpsFaultAnalysisWorkflow(
   input: OpsFaultAnalysisWorkflowInput,
 ): Promise<OpsFaultAnalysisWorkflowResult> {
   const ctx = createOpsWorkflowContext(input);
+  const evidenceQuery = { appId: input.app.appId, alert: input.alert, hints: ctx.classification.codeHints };
   const logEvidence = ctx.isEnabled('local-log-trace')
-    ? (await runLocalLogTraceAgent({ registry: ctx.opsToolRegistry, ctx: ctx.opsToolContext, ecomRoot: ctx.ecomRoot, appId: input.app.appId, classification: ctx.classification, alert: input.alert, tools: ctx.nodeTools('local-log-trace'), react: ctx.usesReAct('local-log-trace') })).data ?? []
+    ? await input.evidenceSources.logEvidence.search(evidenceQuery)
     : [];
   const similarAlertEvidence = ctx.isEnabled('similar-alert')
-    ? (await runSimilarAlertAgent({ registry: ctx.opsToolRegistry, ctx: ctx.opsToolContext, ecomRoot: ctx.ecomRoot, alert: input.alert, tools: ctx.nodeTools('similar-alert'), react: ctx.usesReAct('similar-alert') })).data ?? []
+    ? await input.evidenceSources.alertHistory.findSimilar(input.alert)
     : [];
   const codeEvidence = ctx.isEnabled('code-context')
     ? (await runCodeContextAgent({ registry: ctx.opsToolRegistry, ctx: ctx.opsToolContext, root: input.app.root, classification: ctx.classification, alert: input.alert, tools: ctx.nodeTools('code-context'), react: ctx.usesReAct('code-context') })).data ?? []
     : [];
   const knowledgeEvidence = (ctx.isEnabled('app-knowledge') || ctx.isEnabled('global-impact'))
-    ? (await runAppKnowledgeAgent({ registry: ctx.opsToolRegistry, ctx: ctx.opsToolContext, ecomRoot: ctx.ecomRoot, appId: input.app.appId, classification: ctx.classification, alert: input.alert, tools: ctx.nodeTools('app-knowledge'), react: ctx.usesReAct('app-knowledge') })).data ?? []
+    ? await input.evidenceSources.knowledgeEvidence.search(evidenceQuery)
     : [];
   let impact = { upstream: ctx.upstream, downstream: ctx.downstream, blastRadius: describeBlastRadius(ctx.upstream, ctx.downstream) };
   if (ctx.isEnabled('global-impact')) {
@@ -66,6 +63,11 @@ export async function runOpsFaultAnalysisWorkflow(
     codeEvidence,
     knowledgeEvidence,
     impact,
+    evidenceAvailability: {
+      logs: input.evidenceSources.logEvidence.availability(),
+      knowledge: input.evidenceSources.knowledgeEvidence.availability(),
+      history: input.evidenceSources.alertHistory.availability(),
+    },
   });
   const analysis: OpsAlertAnalysis = {
     app: input.app,
@@ -149,17 +151,15 @@ export async function* streamOpsFaultAnalysisWorkflow(
 
   if (ctx.isEnabled('similar-alert')) {
     yield setNode('similar-alert', 'running', 'alert_vector_search => 正在读取告警历史向量并计算相似度...');
-    const result = await runSimilarAlertAgent({ registry: ctx.opsToolRegistry, ctx: ctx.opsToolContext, ecomRoot: ctx.ecomRoot, alert: input.alert, tools: ctx.nodeTools('similar-alert'), react: ctx.usesReAct('similar-alert') });
-    similarAlertEvidence = result.data ?? [];
+    similarAlertEvidence = await input.evidenceSources.alertHistory.findSimilar(input.alert);
     analysis.similarAlertEvidence = similarAlertEvidence;
-    yield setNode(result.nodeId, result.status, result.output);
+    yield setNode('similar-alert', 'completed', evidenceStatusMessage('alert history provider', input.evidenceSources.alertHistory.availability(), similarAlertEvidence.length));
   }
   if (ctx.isEnabled('local-log-trace')) {
-    yield setNode('local-log-trace', 'running', 'local_log_search => 正在检索 demo/ecom/logs 本地日志和 trace 片段...');
-    const result = await runLocalLogTraceAgent({ registry: ctx.opsToolRegistry, ctx: ctx.opsToolContext, ecomRoot: ctx.ecomRoot, appId: input.app.appId, classification: ctx.classification, alert: input.alert, tools: ctx.nodeTools('local-log-trace'), react: ctx.usesReAct('local-log-trace') });
-    logEvidence = result.data ?? [];
+    yield setNode('local-log-trace', 'running', 'local_log_search => 正在检索配置的日志源和 trace 片段...');
+    logEvidence = await input.evidenceSources.logEvidence.search({ appId: input.app.appId, alert: input.alert, hints: ctx.classification.codeHints });
     analysis.logEvidence = logEvidence;
-    yield setNode(result.nodeId, result.status, result.output);
+    yield setNode('local-log-trace', 'completed', evidenceStatusMessage('log evidence provider', input.evidenceSources.logEvidence.availability(), logEvidence.length));
   }
   if (ctx.isEnabled('code-context')) {
     yield setNode('code-context', 'running', 'code_context_search => 正在检索应用源码、配置和异常相关代码路径...');
@@ -170,15 +170,14 @@ export async function* streamOpsFaultAnalysisWorkflow(
   }
   if (ctx.isEnabled('app-knowledge')) {
     yield setNode('app-knowledge', 'running', 'ops_knowledge_search => 正在检索应用知识库和应用级 GitNexus...');
-    const result = await runAppKnowledgeAgent({ registry: ctx.opsToolRegistry, ctx: ctx.opsToolContext, ecomRoot: ctx.ecomRoot, appId: input.app.appId, classification: ctx.classification, alert: input.alert, tools: ctx.nodeTools('app-knowledge'), react: ctx.usesReAct('app-knowledge') });
-    knowledgeEvidence = result.data ?? [];
+    knowledgeEvidence = await input.evidenceSources.knowledgeEvidence.search({ appId: input.app.appId, alert: input.alert, hints: ctx.classification.codeHints });
     analysis.knowledgeEvidence = knowledgeEvidence;
-    yield setNode(result.nodeId, result.status, result.output);
+    yield setNode('app-knowledge', 'completed', evidenceStatusMessage('knowledge evidence provider', input.evidenceSources.knowledgeEvidence.availability(), knowledgeEvidence.length));
   }
   if (ctx.isEnabled('global-impact')) {
     yield setNode('global-impact', 'running', 'dependency_graph_search => 正在分析全局图谱和上下游影响面...');
     if (!knowledgeEvidence.length) {
-      knowledgeEvidence = (await runAppKnowledgeAgent({ registry: ctx.opsToolRegistry, ctx: ctx.opsToolContext, ecomRoot: ctx.ecomRoot, appId: input.app.appId, classification: ctx.classification, alert: input.alert, tools: ctx.nodeTools('app-knowledge'), react: ctx.usesReAct('app-knowledge') })).data ?? [];
+      knowledgeEvidence = await input.evidenceSources.knowledgeEvidence.search({ appId: input.app.appId, alert: input.alert, hints: ctx.classification.codeHints });
       analysis.knowledgeEvidence = knowledgeEvidence;
     }
     const result = await runGlobalImpactAgent({
@@ -236,8 +235,7 @@ export async function* streamOpsFaultAnalysisWorkflow(
 }
 
 function createOpsWorkflowContext(input: OpsFaultAnalysisWorkflowInput) {
-  const ecomRoot = path.dirname(input.app.root);
-  const opsToolRegistry = createOpsToolRegistry();
+  const opsToolRegistry = createOpsToolRegistry(input.evidenceSources);
   const opsToolContext = createOpsToolContext({ workspaceRoot: input.workspaceRoot, appRoot: input.app.root });
   const classification = classifyOpsAlert(input.alert);
   const downstream = input.app.dependencies;
@@ -254,7 +252,6 @@ function createOpsWorkflowContext(input: OpsFaultAnalysisWorkflowInput) {
   const usesReAct = (nodeId: string): boolean => process.env.AI_CODING_OPS_REACT === '1'
     || Boolean(input.workflowConfig?.reactNodeIds?.includes(nodeId));
   return {
-    ecomRoot,
     opsToolRegistry,
     opsToolContext,
     classification,
@@ -287,6 +284,11 @@ function buildOpsToolResults(args: {
   codeEvidence: OpsAlertAnalysis['codeEvidence'];
   knowledgeEvidence: OpsAlertAnalysis['knowledgeEvidence'];
   impact: OpsAlertAnalysis['impact'];
+  evidenceAvailability: {
+    logs: { available: boolean; reason?: string };
+    knowledge: { available: boolean; reason?: string };
+    history: { available: boolean; reason?: string };
+  };
 }): OpsAlertAnalysis['toolResults'] {
   return args.workflow.nodes.map(node => {
     if (!args.isEnabled(node.id)) {
@@ -294,10 +296,10 @@ function buildOpsToolResults(args: {
     }
     const tools = args.nodeTools(node.id);
     const outputByNode: Record<string, string> = {
-      'local-log-trace': `local_log_search => 命中 ${args.logEvidence.length} 条本地日志证据。`,
-      'similar-alert': `alert_vector_search => 命中 ${args.similarAlertEvidence.length} 条告警历史相似记录。`,
+      'local-log-trace': evidenceStatusMessage('log evidence provider', args.evidenceAvailability.logs, args.logEvidence.length),
+      'similar-alert': evidenceStatusMessage('alert history provider', args.evidenceAvailability.history, args.similarAlertEvidence.length),
       'code-context': `code_context_search => 命中 ${args.codeEvidence.length} 个源码/配置文件。`,
-      'app-knowledge': `ops_knowledge_search => 命中 ${args.knowledgeEvidence.filter(item => item.source === 'knowledge-base').length} 条应用知识库证据。`,
+      'app-knowledge': evidenceStatusMessage('knowledge evidence provider', args.evidenceAvailability.knowledge, args.knowledgeEvidence.filter(item => item.source === 'knowledge-base').length),
       'global-impact': `dependency_graph_search => ${args.impact.blastRadius}`,
       'repair-plan': 'read_file/use_skill => 已汇总日志、代码、知识库和影响面，生成处置建议。',
     };
@@ -309,6 +311,12 @@ function buildOpsToolResults(args: {
       output: outputByNode[node.id] ?? '节点执行完成。',
     };
   });
+}
+
+function evidenceStatusMessage(provider: string, availability: { available: boolean; reason?: string }, count: number): string {
+  return availability.available
+    ? `${provider} => ${count} matches.`
+    : `${provider} unavailable: ${availability.reason ?? 'not configured'}; no local fallback was used.`;
 }
 
 function describeBlastRadius(upstream: string[], downstream: string[]): string {

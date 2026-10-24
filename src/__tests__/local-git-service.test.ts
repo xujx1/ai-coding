@@ -6,6 +6,13 @@ import * as path from 'path';
 import { execFileSync } from 'child_process';
 import { createEcomLocalGitService } from '../integrations/git.js';
 
+test('local git CLI requires an explicit repository root', () => {
+  assert.throws(
+    () => execFileSync(process.execPath, ['../tools/git/local-git-service.js', 'list'], { cwd: import.meta.dirname, encoding: 'utf-8', stdio: 'pipe' }),
+    /repository root is required/,
+  );
+});
+
 test('local git service initializes remotes and syncs branch commits', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'local-git-service-'));
   const ecomRoot = path.join(root, 'ecom');

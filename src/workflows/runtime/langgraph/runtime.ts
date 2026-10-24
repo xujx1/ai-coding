@@ -4,7 +4,8 @@ import { getStateStore } from '../../../persistence/stateStore.js';
 import { getWorkflowDefinition } from '../../storage.js';
 import { WorkflowDefinition } from '../../types.js';
 import {
-  createMemoryCheckpointer,
+  createConfiguredCheckpointer,
+  createPostgresCheckpointer,
   readLatestFileCheckpoint,
   recoverFileCheckpointFromExecutionState,
   writeFileCheckpoint,
@@ -12,6 +13,10 @@ import {
 import { compileWorkflowDefinition } from './compiler.js';
 import { createLangGraphEventBridge } from './eventBridge.js';
 import { createInitialGraphState, PipelineGraphState } from './state.js';
+import type { NodeLeaseExecutor } from '../../../storage/nodeLeaseExecutor.js';
+import type { FencedRuntimeTransitionCommitter } from '../../../storage/runtimeNodeTransition.js';
+import type { PipelineArtifactWriter } from '../../../storage/pipelineArtifactWriter.js';
+import { syncExecutionStateFromGraph } from './readModelSync.js';
 
 export interface LangGraphStartOptions {
   workflowId: string;
@@ -23,14 +28,34 @@ export interface LangGraphResumeDecision {
 }
 
 const activeRuns = new Map<string, LangGraphRuntimeHandle>();
+let configuredRuntimeDependencies: {
+  nodeLeaseExecutor?: NodeLeaseExecutor;
+  transitionCommitter?: FencedRuntimeTransitionCommitter;
+  artifactWriter?: PipelineArtifactWriter;
+} = {};
 
 export class LangGraphRuntime {
+  constructor(
+    private readonly nodeLeaseExecutor?: NodeLeaseExecutor,
+    private readonly transitionCommitter?: FencedRuntimeTransitionCommitter,
+    private readonly artifactWriter?: PipelineArtifactWriter,
+  ) {}
+
   async start(runId: string, options: LangGraphStartOptions): Promise<PipelineGraphState> {
     const workflow = getWorkflowDefinition(options.workflowId);
-    const handle = createRuntimeHandle(runId, workflow);
+    const handle = await createRuntimeHandle(
+      runId,
+      workflow,
+      undefined,
+      this.nodeLeaseExecutor,
+      this.transitionCommitter,
+      this.artifactWriter,
+    );
     activeRuns.set(runId, handle);
 
-    const existingState = getStateStore(runId).loadExecutionState();
+    const existingState = this.transitionCommitter
+      ? await this.transitionCommitter.loadRun(runId)
+      : getStateStore(runId).loadExecutionState();
     const initialGraphState = createInitialGraphState({
       runId,
       workflowId: workflow.id,
@@ -41,7 +66,7 @@ export class LangGraphRuntime {
       startedAt: existingState?.startedAt,
     });
 
-    handle.bridge.emitPipelineEvent('pipeline_started', { runId, runtime: 'langgraph' });
+    if (!this.transitionCommitter) handle.bridge.emitPipelineEvent('pipeline_started', { runId, runtime: 'langgraph' });
     const result = await handle.app.invoke(
       { graph: initialGraphState },
       langGraphRunConfig(runId)
@@ -52,7 +77,11 @@ export class LangGraphRuntime {
   }
 
   async resume(runId: string, decision: LangGraphResumeDecision): Promise<PipelineGraphState> {
-    const handle = activeRuns.get(runId);
+    let handle = activeRuns.get(runId);
+    if (!handle) {
+      const recovered = await recoverPostgresRuntimeHandle(runId);
+      if (recovered) handle = recovered;
+    }
     if (!handle) {
       const latest = readLatestFileCheckpoint(runId) ?? recoverFileCheckpointFromExecutionState(runId);
       if (!latest) {
@@ -63,7 +92,7 @@ export class LangGraphRuntime {
       );
     }
 
-    handle.bridge.emitPipelineEvent('pipeline_resumed', { runId, runtime: 'langgraph' });
+    if (!this.transitionCommitter) handle.bridge.emitPipelineEvent('pipeline_resumed', { runId, runtime: 'langgraph' });
     const result = await handle.app.invoke(
       new Command({ resume: decision }),
       langGraphRunConfig(runId)
@@ -86,16 +115,45 @@ export class LangGraphRuntime {
       completedAt: Date.now(),
       updatedAt: Date.now(),
     };
-    const bridge = handle?.bridge ?? createLangGraphEventBridge(runId);
-    bridge.emitPipelineEvent('pipeline_cancelled', { runId, runtime: 'langgraph' });
-    bridge.syncReadModel(cancelled, 'cancel');
+    const bridge = handle?.bridge ?? createLangGraphEventBridge(runId, undefined, {
+      productTransitionsAreDurable: Boolean(this.transitionCommitter),
+    });
+    if (this.transitionCommitter && this.nodeLeaseExecutor) {
+      const nodeId = cancelled.currentNodeId ?? 'runtime-cancel';
+      await this.nodeLeaseExecutor.execute(runId, nodeId, lease => this.transitionCommitter!.commit({
+        runtime: 'langgraph',
+        runId,
+        nodeId,
+        transitionId: `langgraph:${runId}:${nodeId}:cancelled:${cancelled.completedAt}`,
+        lease,
+        updateRun: current => syncExecutionStateFromGraph(cancelled, {
+          reason: 'langgraph-cancel',
+          existing: current,
+          workflow: handle?.workflow,
+        }),
+        includeCurrentLifecycle: true,
+        eventType: 'pipeline_cancelled',
+        eventData: { status: 'cancelled' },
+        timestamp: cancelled.completedAt,
+      }));
+    } else {
+      bridge.emitPipelineEvent('pipeline_cancelled', { runId, runtime: 'langgraph' });
+      bridge.syncReadModel(cancelled, 'cancel');
+    }
     writeFileCheckpoint(runId, cancelled, 'cancel');
     activeRuns.delete(runId);
   }
 }
 
-export function getLangGraphRuntime(): LangGraphRuntime {
-  return new LangGraphRuntime();
+export function getLangGraphRuntime(
+  nodeLeaseExecutor?: NodeLeaseExecutor,
+  transitionCommitter?: FencedRuntimeTransitionCommitter,
+  artifactWriter?: PipelineArtifactWriter,
+): LangGraphRuntime {
+  if (nodeLeaseExecutor || transitionCommitter || artifactWriter) {
+    configuredRuntimeDependencies = { nodeLeaseExecutor, transitionCommitter, artifactWriter };
+  }
+  return new LangGraphRuntime(nodeLeaseExecutor, transitionCommitter, artifactWriter);
 }
 
 export function shouldUseLangGraphRuntime(): boolean {
@@ -110,20 +168,45 @@ export function langGraphRunConfig(runId: string) {
   };
 }
 
+/** Used by process-recovery orchestration after an in-memory runtime is lost. */
+export async function recoverPostgresRuntimeForRun(runId: string): Promise<boolean> {
+  return Boolean(await recoverPostgresRuntimeHandle(runId));
+}
+
+export async function hasPostgresCheckpointForRun(runId: string): Promise<boolean> {
+  const config = getConfig();
+  if (config.workflow.checkpointer !== 'postgres' || !config.storage.databaseUrl) return false;
+  const checkpointer = await createPostgresCheckpointer(config.storage.databaseUrl);
+  try { return Boolean(await checkpointer.getTuple(langGraphRunConfig(runId))); }
+  finally { await checkpointer.end(); }
+}
+
 interface LangGraphRuntimeHandle {
   app: ReturnType<typeof compileWorkflowDefinition>;
   bridge: ReturnType<typeof createLangGraphEventBridge>;
   workflow: WorkflowDefinition;
   lastState: PipelineGraphState;
+  checkpointMode: ReturnType<typeof getConfig>['workflow']['checkpointer'];
+  productTransitions: boolean;
 }
 
-function createRuntimeHandle(
+async function createRuntimeHandle(
   runId: string,
-  workflow: WorkflowDefinition
-): LangGraphRuntimeHandle {
-  const bridge = createLangGraphEventBridge(runId, workflow);
+  workflow: WorkflowDefinition,
+  checkpointer?: unknown,
+  nodeLeaseExecutor?: NodeLeaseExecutor,
+  transitionCommitter?: FencedRuntimeTransitionCommitter,
+  artifactWriter?: PipelineArtifactWriter,
+): Promise<LangGraphRuntimeHandle> {
+  const bridge = createLangGraphEventBridge(runId, workflow, {
+    productTransitionsAreDurable: Boolean(transitionCommitter),
+  });
+  const config = getConfig();
   const app = compileWorkflowDefinition(workflow, {
-    checkpointer: createMemoryCheckpointer(),
+    checkpointer: checkpointer ?? await createConfiguredCheckpointer(config.workflow.checkpointer, config.storage.databaseUrl),
+    nodeLeaseExecutor,
+    transitionCommitter,
+    artifactWriter,
   });
   const latest = readLatestFileCheckpoint(runId)?.state;
 
@@ -131,6 +214,8 @@ function createRuntimeHandle(
     app,
     bridge,
     workflow,
+    checkpointMode: config.workflow.checkpointer,
+    productTransitions: Boolean(transitionCommitter),
     lastState: latest ?? createInitialGraphState({
       runId,
       workflowId: workflow.id,
@@ -147,8 +232,43 @@ function persistRuntimeState(
   reason: string
 ): void {
   handle.lastState = graphState;
-  handle.bridge.syncReadModel(graphState, reason);
-  writeFileCheckpoint(graphState.runId, graphState, reason);
+  if (!handle.productTransitions) handle.bridge.syncReadModel(graphState, reason);
+  if (handle.checkpointMode === 'file') writeFileCheckpoint(graphState.runId, graphState, reason);
+}
+
+async function recoverPostgresRuntimeHandle(runId: string): Promise<LangGraphRuntimeHandle | null> {
+  const config = getConfig();
+  if (config.workflow.checkpointer !== 'postgres' || !config.storage.databaseUrl) return null;
+  const checkpointer = await createPostgresCheckpointer(config.storage.databaseUrl);
+  const tuple = await checkpointer.getTuple(langGraphRunConfig(runId));
+  const graphState = tuple?.checkpoint.channel_values.graph;
+  if (!isPipelineGraphState(graphState)) {
+    await checkpointer.end();
+    return null;
+  }
+  const workflow = getWorkflowDefinition(graphState.workflowId);
+  const runtime = configuredRuntimeDependencies;
+  const handle = await createRuntimeHandle(
+    runId,
+    workflow,
+    checkpointer,
+    runtime.nodeLeaseExecutor,
+    runtime.transitionCommitter,
+    runtime.artifactWriter,
+  );
+  handle.lastState = graphState;
+  // The checkpoint is internal runtime state; reconcile the separately owned
+  // product read model only at the durable recovery boundary.
+  if (!handle.productTransitions) handle.bridge.syncReadModel(graphState, 'postgres-checkpoint-recovery');
+  activeRuns.set(runId, handle);
+  return handle;
+}
+
+function isPipelineGraphState(value: unknown): value is PipelineGraphState {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.runId === 'string' && typeof candidate.workflowId === 'string' &&
+    typeof candidate.workflowVersion === 'number' && typeof candidate.nodes === 'object';
 }
 
 function normalizeGraphResult(

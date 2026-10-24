@@ -265,10 +265,10 @@ function readRequirementText(paths: ReturnType<typeof getRunPaths>, manifest: Pr
 }
 
 function resolveKnowledgeRoot(): string | null {
-  const candidates = [
-    path.join(process.cwd(), 'demo', 'ecom', 'spaces', 'knowledge', 'knowledge-base'),
-  ];
-  return candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) ?? null;
+  const configured = process.env.AI_CODING_KNOWLEDGE_ROOT;
+  if (!configured) return null;
+  const root = path.resolve(configured);
+  return fs.existsSync(root) && fs.statSync(root).isDirectory() ? root : null;
 }
 
 function readJson<T>(filePath: string): T | null {

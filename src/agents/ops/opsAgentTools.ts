@@ -7,22 +7,23 @@ import { ReviewArtifactTool } from '../../tools/builtin/ReviewArtifactTool.js';
 import { DiscoverSkillsTool } from '../../tools/builtin/DiscoverSkillsTool.js';
 import { SkillTool } from '../../tools/builtin/SkillTool.js';
 import {
-  AlertVectorSearchTool,
+  createAlertVectorSearchTool,
   CodeContextSearchTool,
   DependencyGraphSearchTool,
-  LocalLogSearchTool,
-  OpsKnowledgeSearchTool,
+  createLocalLogSearchTool,
+  createOpsKnowledgeSearchTool,
 } from '../../tools/ops/index.js';
+import type { OpsEvidenceSources } from '../../workflows/runtime/ops/opsFaultAnalysisTypes.js';
 
-export function createOpsToolRegistry(): ToolRegistry {
+export function createOpsToolRegistry(evidenceSources: OpsEvidenceSources): ToolRegistry {
   const registry = new ToolRegistry();
   registry.register(ReadTool);
   registry.register(GlobTool);
   registry.register(GrepTool);
-  registry.register(AlertVectorSearchTool);
-  registry.register(LocalLogSearchTool);
+  registry.register(createAlertVectorSearchTool(evidenceSources.alertHistory));
+  registry.register(createLocalLogSearchTool(evidenceSources.logEvidence));
   registry.register(CodeContextSearchTool);
-  registry.register(OpsKnowledgeSearchTool);
+  registry.register(createOpsKnowledgeSearchTool(evidenceSources.knowledgeEvidence));
   registry.register(DependencyGraphSearchTool);
   registry.register(ReviewArtifactTool);
   registry.register(DiscoverSkillsTool);
@@ -36,6 +37,7 @@ export function createOpsToolContext(args: {
   runId?: string;
   agentRunId?: string;
   nodeId?: string;
+  artifactsDir?: string;
 }): ToolContext {
   const runDir = args.workspaceRoot;
   return {
@@ -45,7 +47,7 @@ export function createOpsToolContext(args: {
     cwd: args.appRoot,
     projectDir: args.appRoot,
     runDir,
-    artifactsDir: path.join(args.workspaceRoot, 'demo', 'ecom', 'spaces', 'ops'),
+    artifactsDir: args.artifactsDir ?? path.join(args.workspaceRoot, 'ops-artifacts'),
     canUseTool: async () => 'allow',
   };
 }

@@ -42,35 +42,57 @@ import {
   calculateTestingMetrics,
   evaluateQualityGate,
   executePytestScript,
-  generatePytestScripts,
   parsePytestOutput,
   runTestingCommand,
 } from '../../../tools/testing/index.js';
+import { InMemoryTestingRepositoryResolver, type TestingRepository, type TestingRepositoryResolver } from '../../../platform-sources/testingRepositoryResolver.js';
+import type { NodeLeaseExecutor } from '../../../storage/nodeLeaseExecutor.js';
+import type { LifecycleStatePersistence } from '../../../storage/lifecycleStatePersistence.js';
+import type { Lease } from '../../../storage/contracts/leaseRepository.js';
+import type { ArtifactObject } from '../../../storage/contracts/artifactStore.js';
+import type { FencedRuntimeTransitionCommitter } from '../../../storage/runtimeNodeTransition.js';
+import type { PipelineArtifactWriter } from '../../../storage/pipelineArtifactWriter.js';
 
 export interface TestingWorkflowRuntimeOptions {
   agents?: TestingAgents;
+  repositoryResolver?: TestingRepositoryResolver;
+  nodeLeaseExecutor?: NodeLeaseExecutor;
+  lifecyclePersistence?: LifecycleStatePersistence;
+  transitionCommitter?: FencedRuntimeTransitionCommitter;
+  artifactWriter?: PipelineArtifactWriter;
 }
 
 export class TestingWorkflowRuntime {
   private readonly agents: TestingAgents;
+  private readonly repositoryResolver: TestingRepositoryResolver;
+  private readonly nodeLeaseExecutor?: NodeLeaseExecutor;
+  private readonly lifecyclePersistence?: LifecycleStatePersistence;
+  private readonly transitionCommitter?: FencedRuntimeTransitionCommitter;
+  private readonly artifactWriter?: PipelineArtifactWriter;
 
   constructor(options: TestingWorkflowRuntimeOptions = {}) {
     this.agents = options.agents ?? DEFAULT_TESTING_AGENTS;
+    this.repositoryResolver = options.repositoryResolver ?? new InMemoryTestingRepositoryResolver();
+    this.nodeLeaseExecutor = options.nodeLeaseExecutor;
+    this.lifecyclePersistence = options.lifecyclePersistence;
+    this.transitionCommitter = options.transitionCommitter;
+    this.artifactWriter = options.artifactWriter;
   }
 
   async start(input: StartTestingWorkflowInput): Promise<TestingWorkflowRunResult> {
-    const lifecycle = requireLifecycleState(input.runId);
+    const lifecycle = await this.loadLifecycle(input.runId);
     const paths = ensureRunDirectories(input.runId);
     const workflowInstanceId = input.workflowInstanceId ?? `testing-${input.runId}`;
     const now = input.now ?? Date.now();
-    const statePath = testingWorkflowStatePath(input.runId, workflowInstanceId);
-    let shouldContinue = input.continueExisting === true && fs.existsSync(statePath);
+    const existingWorkflow = input.continueExisting === true
+      ? await this.loadWorkflowState(input.runId, workflowInstanceId)
+      : null;
+    let shouldContinue = Boolean(existingWorkflow);
     if (shouldContinue && input.dryRunExecution === false) {
-      const existing = loadTestingWorkflowState(input.runId, workflowInstanceId);
-      if (existing.status === 'completed') shouldContinue = false;
+      if (existingWorkflow!.status === 'completed') shouldContinue = false;
     }
     const runtimeState = shouldContinue
-      ? loadTestingWorkflowState(input.runId, workflowInstanceId)
+      ? existingWorkflow!
       : initialRuntimeState({
           input,
           workflowInstanceId,
@@ -103,9 +125,10 @@ export class TestingWorkflowRuntime {
   }
 
   async resume(input: ResumeTestingWorkflowInput): Promise<TestingWorkflowRunResult> {
-    const lifecycle = requireLifecycleState(input.runId);
+    const lifecycle = await this.loadLifecycle(input.runId);
     const paths = ensureRunDirectories(input.runId);
-    const runtimeState = loadTestingWorkflowState(input.runId, input.workflowInstanceId);
+    const runtimeState = await this.loadWorkflowState(input.runId, input.workflowInstanceId);
+    if (!runtimeState) throw new Error(`Testing workflow state does not exist: ${input.workflowInstanceId}`);
     if (!runtimeState.pendingGate) {
       throw new Error(`Testing workflow ${input.workflowInstanceId} is not waiting for review`);
     }
@@ -113,37 +136,40 @@ export class TestingWorkflowRuntime {
       throw new Error(`Invalid resume token for testing workflow ${input.workflowInstanceId}`);
     }
     const now = input.now ?? Date.now();
-    const gate: TestingReviewGate = {
-      ...runtimeState.pendingGate,
-      status: input.decision,
-      feedback: input.feedback,
-      decidedAt: now,
-    };
-    runtimeState.gates = runtimeState.gates.map(existing => existing.gateId === gate.gateId ? gate : existing);
-    runtimeState.pendingGate = undefined;
-    if (input.decision === 'cancelled') {
-      runtimeState.status = 'cancelled';
-      runtimeState.updatedAt = now;
-      writeTestingWorkflowState(paths, runtimeState);
-      return {
-        state: runtimeState,
-        context: createEmptyResumeContext(lifecycle),
-      };
-    }
-    if (input.decision === 'needs_changes') {
-      runtimeState.status = 'waiting_review';
-      runtimeState.blockedReason = input.feedback ?? 'Reviewer requested changes.';
-      runtimeState.updatedAt = now;
-      writeTestingWorkflowState(paths, runtimeState);
-      return {
-        state: runtimeState,
-        context: createEmptyResumeContext(lifecycle),
-      };
-    }
-    setNode(runtimeState, gate.nodeId, 'succeeded', gate.artifactIds, 'Review approved.', now);
-    const next = TESTING_WORKFLOW_NODES[TESTING_WORKFLOW_NODES.findIndex(node => node.id === gate.nodeId) + 1];
-    if (next) runtimeState.currentNodeId = next.id;
+    const pendingGate = runtimeState.pendingGate;
     const context = rebuildContextFromLifecycle(lifecycle, paths);
+    const applyDecision = async (lease?: Lease) => {
+      const gate: TestingReviewGate = {
+        ...pendingGate,
+        status: input.decision,
+        feedback: input.feedback,
+        decidedAt: now,
+      };
+      runtimeState.gates = runtimeState.gates.map(existing => existing.gateId === gate.gateId ? gate : existing);
+      runtimeState.pendingGate = undefined;
+      runtimeState.updatedAt = now;
+      if (input.decision === 'cancelled') {
+        runtimeState.status = 'cancelled';
+        setNode(runtimeState, gate.nodeId, 'cancelled', gate.artifactIds, 'Review cancelled.', now);
+      } else if (input.decision === 'needs_changes') {
+        runtimeState.status = 'waiting_review';
+        runtimeState.blockedReason = input.feedback ?? 'Reviewer requested changes.';
+        setNode(runtimeState, gate.nodeId, 'waiting_review', gate.artifactIds, runtimeState.blockedReason, now);
+      } else {
+        setNode(runtimeState, gate.nodeId, 'succeeded', gate.artifactIds, 'Review approved.', now);
+        const next = TESTING_WORKFLOW_NODES[TESTING_WORKFLOW_NODES.findIndex(node => node.id === gate.nodeId) + 1];
+        if (next) runtimeState.currentNodeId = next.id;
+      }
+      await this.commitVisibleTransition({ paths, state: runtimeState, context }, gate.nodeId, lease, []);
+      writeTestingWorkflowState(paths, runtimeState);
+    };
+    if (this.nodeLeaseExecutor) {
+      await this.nodeLeaseExecutor.execute(runtimeState.runId, testingLeaseNodeId(runtimeState, pendingGate.nodeId), applyDecision);
+    } else {
+      await applyDecision();
+    }
+    if (!this.transitionCommitter) await this.persistLifecycle(lifecycle);
+    if (input.decision !== 'approved') return { state: runtimeState, context };
     return this.runUntilStop({ paths, state: runtimeState, context, autoApproveReviews: input.autoApproveReviews, dryRunExecution: input.dryRunExecution === true });
   }
 
@@ -151,14 +177,33 @@ export class TestingWorkflowRuntime {
     return loadTestingWorkflowState(runId, workflowInstanceId);
   }
 
-  cancel(runId: string, workflowInstanceId: string, now = Date.now()): TestingWorkflowRuntimeState {
+  async statusAsync(runId: string, workflowInstanceId: string): Promise<TestingWorkflowRuntimeState> {
+    const state = await this.loadWorkflowState(runId, workflowInstanceId);
+    if (!state) throw new Error(`Testing workflow state does not exist: ${workflowInstanceId}`);
+    return state;
+  }
+
+  async cancel(runId: string, workflowInstanceId: string, now = Date.now()): Promise<TestingWorkflowRuntimeState> {
     const paths = ensureRunDirectories(runId);
-    const state = loadTestingWorkflowState(runId, workflowInstanceId);
-    state.status = 'cancelled';
-    state.pendingGate = undefined;
-    state.updatedAt = now;
-    setNode(state, state.currentNodeId, 'cancelled', [], 'Workflow cancelled.', now);
-    writeTestingWorkflowState(paths, state);
+    const state = await this.loadWorkflowState(runId, workflowInstanceId);
+    if (!state) throw new Error(`Testing workflow state does not exist: ${workflowInstanceId}`);
+    const lifecycle = await this.loadLifecycle(runId);
+    const context = rebuildContextFromLifecycle(lifecycle, paths);
+    const nodeId = state.currentNodeId;
+    const cancel = async (lease?: Lease) => {
+      state.status = 'cancelled';
+      state.pendingGate = undefined;
+      state.updatedAt = now;
+      setNode(state, nodeId, 'cancelled', [], 'Workflow cancelled.', now);
+      await this.commitVisibleTransition({ paths, state, context }, nodeId, lease, []);
+      writeTestingWorkflowState(paths, state);
+    };
+    if (this.nodeLeaseExecutor) {
+      await this.nodeLeaseExecutor.execute(runId, testingLeaseNodeId(state, nodeId), cancel);
+    } else {
+      await cancel();
+    }
+    if (!this.transitionCommitter) await this.persistLifecycle(lifecycle);
     return state;
   }
 
@@ -178,29 +223,139 @@ export class TestingWorkflowRuntime {
       const nodeId = args.state.currentNodeId;
       const node = TESTING_WORKFLOW_NODES.find(candidate => candidate.id === nodeId)!;
       if (node.reviewGate && !args.autoApproveReviews) {
-        pauseForReview(args.state, nodeId, latestArtifactIds(args.context), Date.now());
-        writeTestingWorkflowState(args.paths, args.state);
-        saveLifecycleState(args.context.lifecycle);
+        const pause = async (lease?: Lease) => {
+          pauseForReview(args.state, nodeId, latestArtifactIds(args.context), Date.now());
+          await this.commitVisibleTransition(args, nodeId, lease, []);
+          writeTestingWorkflowState(args.paths, args.state);
+        };
+        if (this.nodeLeaseExecutor) {
+          await this.nodeLeaseExecutor.execute(args.state.runId, testingLeaseNodeId(args.state, nodeId), pause);
+        } else {
+          await pause();
+        }
+        if (!this.transitionCommitter) await this.persistLifecycle(args.context.lifecycle);
         return { state: args.state, context: args.context };
       }
-      await this.executeNode({ ...args, nodeId, dryRunExecution: args.dryRunExecution === true });
+      const work = async (lease?: Lease) => {
+        const priorArtifactIds = new Set(args.context.lifecycle.artifacts.map(artifact => artifact.artifactId));
+        await this.executeNode({ ...args, nodeId, dryRunExecution: args.dryRunExecution === true });
+        args.context.refs = args.context.lifecycle.artifacts;
+        if (args.state.status === 'running') {
+          const next = TESTING_WORKFLOW_NODES[TESTING_WORKFLOW_NODES.findIndex(candidate => candidate.id === nodeId) + 1];
+          if (!next) {
+            args.state.status = 'completed';
+          } else if (args.stopAfterNode === nodeId) {
+            args.state.currentNodeId = next.id;
+            args.state.status = 'pending';
+          } else {
+            args.state.currentNodeId = next.id;
+          }
+        }
+        args.state.updatedAt = Date.now();
+        const committedArtifacts = await this.prepareTestingArtifacts(args, nodeId, priorArtifactIds);
+        await this.commitVisibleTransition(args, nodeId, lease, committedArtifacts);
+        writeTestingWorkflowState(args.paths, args.state);
+      };
+      if (this.nodeLeaseExecutor) {
+        await this.nodeLeaseExecutor.execute(args.state.runId, testingLeaseNodeId(args.state, nodeId), work);
+      } else {
+        await work();
+      }
       if (args.state.status !== 'running') break;
-      const next = TESTING_WORKFLOW_NODES[TESTING_WORKFLOW_NODES.findIndex(candidate => candidate.id === nodeId) + 1];
-      if (!next) {
-        args.state.status = 'completed';
-        break;
-      }
-      if (args.stopAfterNode === nodeId) {
-        args.state.currentNodeId = next.id;
-        args.state.status = 'pending';
-        break;
-      }
-      args.state.currentNodeId = next.id;
     }
     args.state.updatedAt = Date.now();
     writeTestingWorkflowState(args.paths, args.state);
-    saveLifecycleState(args.context.lifecycle);
+    if (!this.transitionCommitter) await this.persistLifecycle(args.context.lifecycle);
     return { state: args.state, context: args.context };
+  }
+
+  private async commitVisibleTransition(
+    args: { paths: RunPaths; state: TestingWorkflowRuntimeState; context: TestingWorkflowContext },
+    nodeId: TestingWorkflowNodeId,
+    lease: Lease | undefined,
+    committedArtifacts: ArtifactObject[],
+  ): Promise<void> {
+    if (!this.transitionCommitter) return;
+    if (!lease) throw new Error(`Testing node '${nodeId}' requires a lease for its product-state transition.`);
+    const node = args.state.nodes.find(candidate => candidate.nodeId === nodeId);
+    const transitionAt = node?.completedAt ?? args.state.updatedAt;
+    await this.transitionCommitter.commit({
+      runtime: 'testing',
+      runId: args.state.runId,
+      nodeId: testingLeaseNodeId(args.state, nodeId),
+      transitionId: `testing:${args.state.runId}:${args.state.workflowInstanceId}:${nodeId}:${node?.status ?? args.state.status}:${transitionAt}`,
+      lease,
+      updateRun: current => ({
+        ...current,
+        updatedAt: Math.max(current.updatedAt, args.state.updatedAt),
+        metadata: {
+          ...current.metadata,
+          testingWorkflows: {
+            ...testingWorkflowReadModels(current.metadata),
+            [args.state.workflowInstanceId]: structuredClone(args.state),
+          },
+        },
+      }),
+      lifecycle: args.context.lifecycle,
+      committedArtifacts,
+      eventData: {
+        workflowInstanceId: args.state.workflowInstanceId,
+        status: node?.status ?? args.state.status,
+        artifactIds: committedArtifacts.map(artifact => artifact.artifactId),
+      },
+      timestamp: transitionAt,
+    });
+  }
+
+  private async prepareTestingArtifacts(
+    args: { paths: RunPaths; state: TestingWorkflowRuntimeState; context: TestingWorkflowContext },
+    nodeId: TestingWorkflowNodeId,
+    priorArtifactIds: Set<string>,
+  ): Promise<ArtifactObject[]> {
+    if (!this.artifactWriter) return [];
+    const refs = args.context.lifecycle.artifacts.filter(ref => !priorArtifactIds.has(ref.artifactId) && ref.path);
+    const prepared: ArtifactObject[] = [];
+    for (const ref of refs) {
+      const absolutePath = safeRunPath(args.paths.runDir, ref.path!);
+      if (!absolutePath || !fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) continue;
+      prepared.push(await this.artifactWriter.write({
+        runId: args.state.runId,
+        nodeId: testingLeaseNodeId(args.state, nodeId),
+        artifactId: ref.artifactId,
+        kind: ref.type,
+        relativePath: ref.path!,
+        body: fs.readFileSync(absolutePath),
+        contentType: 'application/json',
+      }));
+    }
+    return prepared;
+  }
+
+  private async persistLifecycle(lifecycle: LifecycleState): Promise<void> {
+    if (this.lifecyclePersistence) {
+      await this.lifecyclePersistence.save(lifecycle);
+      return;
+    }
+    saveLifecycleState(lifecycle);
+  }
+
+  private async loadLifecycle(runId: string): Promise<LifecycleState> {
+    if (this.lifecyclePersistence) {
+      const lifecycle = await this.lifecyclePersistence.load(runId);
+      if (!lifecycle) throw new Error(`Lifecycle state does not exist for run ${runId}`);
+      return lifecycle;
+    }
+    return requireLifecycleState(runId);
+  }
+
+  private async loadWorkflowState(runId: string, workflowInstanceId: string): Promise<TestingWorkflowRuntimeState | null> {
+    if (this.transitionCommitter) {
+      const run = await this.transitionCommitter.loadRun(runId);
+      const state = testingWorkflowReadModels(run?.metadata)[workflowInstanceId];
+      return state ? structuredClone(state) : null;
+    }
+    const file = testingWorkflowStatePath(runId, workflowInstanceId);
+    return fs.existsSync(file) ? loadTestingWorkflowState(runId, workflowInstanceId) : null;
   }
 
   private async executeNode(args: {
@@ -270,13 +425,20 @@ export class TestingWorkflowRuntime {
         }
         args.state.deploymentSetId = deployment.deploymentSetId;
         args.state.environmentId = deployment.environmentId;
+        const repository = this.resolveTestingRepository(args.state, args.context);
+        if (!repository) {
+          args.state.status = 'blocked';
+          args.state.blockedReason = 'No compatible integration testing repository is configured for this requirement and application scope.';
+          setNode(args.state, args.nodeId, 'blocked', [], args.state.blockedReason, now);
+          return;
+        }
         if (!args.dryRunExecution) {
-          const repo = resolveEcomIntegrationTestRepository();
-          if (repo) {
+          if (repository.commands.start) {
+            const [command, ...commandArgs] = splitCommand(repository.commands.start);
             await runTestingCommand({
-              command: './scripts/start-all.sh',
-              args: [],
-              cwd: path.resolve(repo, '..'),
+              command,
+              args: commandArgs,
+              cwd: repository.root,
               timeoutMs: 180_000,
             });
           }
@@ -286,19 +448,19 @@ export class TestingWorkflowRuntime {
       }
       case 'generate_scripts': {
         const caseSet = requireArtifact(args.context.artifacts.caseSet, 'caseSet');
-        const repo = resolveEcomIntegrationTestRepository();
-        const scripts = repo
-          ? generateEcomIntegrationScripts({
-              caseSet,
-              dataPlanId: args.context.artifacts.dataPlan?.dataPlanId,
-              workflowInstanceId: args.state.workflowInstanceId,
-              repo,
-            })
-          : generatePytestScripts({
-              caseSet,
-              dataPlan: args.context.artifacts.dataPlan,
-              workflowInstanceId: args.state.workflowInstanceId,
-            });
+        const repository = this.resolveTestingRepository(args.state, args.context);
+        if (!repository) {
+          args.state.status = 'blocked';
+          args.state.blockedReason = 'No compatible integration testing repository is configured for this requirement and application scope.';
+          setNode(args.state, args.nodeId, 'blocked', [], args.state.blockedReason, now);
+          return;
+        }
+        const scripts = generateRepositoryScripts({
+          caseSet,
+          dataPlanId: args.context.artifacts.dataPlan?.dataPlanId,
+          workflowInstanceId: args.state.workflowInstanceId,
+          repository,
+        });
         args.context.artifacts.scripts = scripts;
         const refs = scripts.map(script => saveArtifact(args.paths, args.context.lifecycle, script));
         setNode(args.state, args.nodeId, 'succeeded', refs.map(ref => ref.artifactId), undefined, now);
@@ -318,11 +480,17 @@ export class TestingWorkflowRuntime {
       }
       case 'execute_scripts': {
         const scripts = args.context.artifacts.scripts ?? [];
-        const repo = resolveEcomIntegrationTestRepository();
-        const reports = repo && !args.dryRunExecution
-          ? await executeEcomIntegrationRepository({
+        const repository = this.resolveTestingRepository(args.state, args.context);
+        if (!repository) {
+          args.state.status = 'blocked';
+          args.state.blockedReason = 'No compatible integration testing repository is configured for this requirement and application scope.';
+          setNode(args.state, args.nodeId, 'blocked', [], args.state.blockedReason, now);
+          return;
+        }
+        const reports = !args.dryRunExecution
+          ? await executeTestingRepository({
               state: args.state,
-              repo,
+              repository,
               scripts,
             })
           : [];
@@ -425,6 +593,10 @@ export class TestingWorkflowRuntime {
         return;
     }
   }
+
+  private resolveTestingRepository(state: TestingWorkflowRuntimeState, context: TestingWorkflowContext): TestingRepository | null {
+    return this.repositoryResolver.resolve({ requirementId: state.requirementId, applicationIds: context.appIds, repositoryType: 'integration' });
+  }
 }
 
 export function createTestingWorkflowRuntime(options?: TestingWorkflowRuntimeOptions): TestingWorkflowRuntime {
@@ -465,6 +637,7 @@ function saveArtifact(paths: RunPaths, lifecycle: LifecycleState, artifact: AnyT
     sourceId: artifact.sourceNodeId,
     summary: artifact.artifactKind,
     metadata: {
+      artifactId: `testing-${artifact.workflowInstanceId}-${artifact.sourceNodeId}-${testingArtifactFileId(artifact)}`.replace(/[^a-zA-Z0-9_.-]+/g, '-'),
       status: artifact.status,
       testRunId: artifact.testRunId,
       deploymentSetId: artifact.deploymentSetId,
@@ -472,6 +645,24 @@ function saveArtifact(paths: RunPaths, lifecycle: LifecycleState, artifact: AnyT
     },
   });
   return ref;
+}
+
+function testingLeaseNodeId(state: TestingWorkflowRuntimeState, nodeId: TestingWorkflowNodeId): string {
+  return `testing:${state.workflowInstanceId}:${nodeId}`;
+}
+
+function testingWorkflowReadModels(metadata: Record<string, unknown> | undefined): Record<string, TestingWorkflowRuntimeState> {
+  const value = metadata?.testingWorkflows;
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, TestingWorkflowRuntimeState>
+    : {};
+}
+
+function safeRunPath(runDir: string, relativePath: string): string | undefined {
+  const root = path.resolve(runDir);
+  const resolved = path.resolve(root, relativePath);
+  if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) return undefined;
+  return resolved;
 }
 
 function testingArtifactFileId(artifact: AnyTestingWorkflowArtifact): string {
@@ -609,18 +800,13 @@ function createEmptyResumeContext(lifecycle: LifecycleState): TestingWorkflowCon
   };
 }
 
-function resolveEcomIntegrationTestRepository(): string | null {
-  const repo = path.resolve(process.cwd(), 'demo/ecom/ecom-integration-tests');
-  return fs.existsSync(path.join(repo, 'package.json')) ? repo : null;
-}
-
-function generateEcomIntegrationScripts(args: {
+function generateRepositoryScripts(args: {
   caseSet: TestCase;
   dataPlanId?: string;
   workflowInstanceId: string;
-  repo: string;
+  repository: TestingRepository;
 }): GeneratedScript[] {
-  const testPath = path.join(args.repo, 'tests/integration/targeted-campaign-stock-guard.test.js');
+  const testPath = path.join(args.repository.root, 'tests', 'integration', `${args.caseSet.requirementId}.test.js`);
   const content = fs.existsSync(testPath) ? fs.readFileSync(testPath, 'utf-8') : '';
   return [{
     schemaVersion: 1,
@@ -632,60 +818,56 @@ function generateEcomIntegrationScripts(args: {
     status: 'approved',
     generatedAt: Date.now(),
     upstreamArtifactIds: [],
-    scriptId: `script-${args.workflowInstanceId}-ecom-integration`,
+    scriptId: `script-${args.workflowInstanceId}-${args.repository.repositoryId}`,
     testCaseIds: args.caseSet.cases.map(testCase => testCase.testCaseId),
     dataPlanId: args.dataPlanId,
     language: 'javascript',
     path: path.relative(process.cwd(), testPath).replace(/\\/g, '/'),
-    command: 'npm run test:live',
+    command: args.repository.commands.test,
     content,
     environmentRequirements: ['node>=20', 'npm', 'product service', 'inventory service', 'marketing service'],
   }];
 }
 
-async function executeEcomIntegrationRepository(args: {
+async function executeTestingRepository(args: {
   state: TestingWorkflowRuntimeState;
-  repo: string;
+  repository: TestingRepository;
   scripts: GeneratedScript[];
 }): Promise<ExecutionReport[]> {
-  const primaryScript = args.scripts[0] ?? ecomSyntheticScript(args.state, args.repo);
-  const seed = await runTestingCommand({
-    command: 'npm',
-    args: ['run', 'seed'],
-    cwd: args.repo,
-    timeoutMs: 120_000,
-  });
+  const primaryScript = args.scripts[0] ?? syntheticRepositoryScript(args.state, args.repository);
+  const reports: ExecutionReport[] = [];
+  if (args.repository.commands.seed) {
+    const [seedCommand, ...seedArgs] = splitCommand(args.repository.commands.seed);
+    const seed = await runTestingCommand({ command: seedCommand, args: seedArgs, cwd: args.repository.root, timeoutMs: 120_000 });
+    reports.push(commandExecutionReport({
+      state: args.state, script: primaryScript, sourceNodeId: 'execute_scripts',
+      reportId: `report-${args.state.workflowInstanceId}-${args.repository.repositoryId}-seed`, executor: seedCommand,
+      command: args.repository.commands.seed, result: seed, parseAsNodeTest: /node|npm/.test(seedCommand),
+    }));
+  }
+  const [testCommand, ...testArgs] = splitCommand(args.repository.commands.test);
   const test = await runTestingCommand({
-    command: 'npm',
-    args: ['run', 'test:live'],
-    cwd: args.repo,
+    command: testCommand,
+    args: testArgs,
+    cwd: args.repository.root,
     timeoutMs: 180_000,
   });
-  return [
+  reports.push(
     commandExecutionReport({
       state: args.state,
       script: primaryScript,
       sourceNodeId: 'execute_scripts',
-      reportId: `report-${args.state.workflowInstanceId}-seed`,
-      executor: 'npm',
-      command: 'npm run seed',
-      result: seed,
-      parseAsNodeTest: false,
-    }),
-    commandExecutionReport({
-      state: args.state,
-      script: primaryScript,
-      sourceNodeId: 'execute_scripts',
-      reportId: `report-${args.state.workflowInstanceId}-test-live`,
-      executor: 'node:test',
-      command: 'npm run test:live',
+      reportId: `report-${args.state.workflowInstanceId}-${args.repository.repositoryId}`,
+      executor: testCommand,
+      command: args.repository.commands.test,
       result: test,
-      parseAsNodeTest: true,
+      parseAsNodeTest: /node|npm/.test(testCommand),
     }),
-  ];
+  );
+  return reports;
 }
 
-function ecomSyntheticScript(state: TestingWorkflowRuntimeState, repo: string): GeneratedScript {
+function syntheticRepositoryScript(state: TestingWorkflowRuntimeState, repository: TestingRepository): GeneratedScript {
   return {
     schemaVersion: 1,
     artifactKind: 'testing-generated-script',
@@ -696,14 +878,20 @@ function ecomSyntheticScript(state: TestingWorkflowRuntimeState, repo: string): 
     status: 'approved',
     generatedAt: Date.now(),
     upstreamArtifactIds: [],
-    scriptId: `script-${state.workflowInstanceId}-ecom-integration`,
+    scriptId: `script-${state.workflowInstanceId}-${repository.repositoryId}`,
     testCaseIds: [],
     language: 'javascript',
-    path: path.relative(process.cwd(), path.join(repo, 'tests/integration/targeted-campaign-stock-guard.test.js')).replace(/\\/g, '/'),
-    command: 'npm run test:live',
+    path: path.relative(process.cwd(), repository.root).replace(/\\/g, '/'),
+    command: repository.commands.test,
     content: '',
     environmentRequirements: ['node>=20', 'npm'],
   };
+}
+
+function splitCommand(command: string): [string, ...string[]] {
+  const parts = command.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) throw new Error('Testing repository command must not be empty.');
+  return parts as [string, ...string[]];
 }
 
 function commandExecutionReport(args: {

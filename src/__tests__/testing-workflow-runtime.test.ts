@@ -8,6 +8,7 @@ import {
 import {
   createTestingWorkflowRuntime,
 } from '../workflows/runtime/testing/index.js';
+import { InMemoryTestingRepositoryResolver } from '../platform-sources/testingRepositoryResolver.js';
 import {
   TESTING_WORKFLOW_NODES,
 } from '../workflows/definitions/testing/index.js';
@@ -16,7 +17,7 @@ test('testing workflow executes ordered nodes and records terminal test run', as
   const runId = 'testing-workflow-complete-run';
   saveLifecycleState(createLifecycle(runId, true));
 
-  const runtime = createTestingWorkflowRuntime();
+  const runtime = configuredRuntime();
   const result = await runtime.start({
     requirementId: 'req-testing-workflow',
     runId,
@@ -42,7 +43,7 @@ test('testing workflow can advance through PI testing stage boundaries', async (
   const runId = 'testing-workflow-segmented-run';
   saveLifecycleState(createLifecycle(runId, true));
 
-  const runtime = createTestingWorkflowRuntime();
+  const runtime = configuredRuntime();
   const cases = await runtime.start({
     requirementId: 'req-testing-workflow',
     runId,
@@ -112,7 +113,7 @@ test('testing workflow pauses for review and approve resume preserves upstream a
   const runId = 'testing-workflow-review-run';
   saveLifecycleState(createLifecycle(runId, true));
 
-  const runtime = createTestingWorkflowRuntime();
+  const runtime = configuredRuntime();
   const paused = await runtime.start({
     requirementId: 'req-testing-workflow',
     runId,
@@ -148,7 +149,7 @@ test('testing workflow records change-request review without regenerating artifa
   const runId = 'testing-workflow-change-request-run';
   saveLifecycleState(createLifecycle(runId, true));
 
-  const runtime = createTestingWorkflowRuntime();
+  const runtime = configuredRuntime();
   const paused = await runtime.start({
     requirementId: 'req-testing-workflow',
     runId,
@@ -177,7 +178,7 @@ test('testing workflow blocks execution when deployment context is missing', asy
   const runId = 'testing-workflow-blocked-run';
   saveLifecycleState(createLifecycle(runId, false));
 
-  const runtime = createTestingWorkflowRuntime();
+  const runtime = configuredRuntime();
   const result = await runtime.start({
     requirementId: 'req-testing-workflow',
     runId,
@@ -193,6 +194,27 @@ test('testing workflow blocks execution when deployment context is missing', asy
   assert.match(result.state.blockedReason ?? '', /Missing deployment/);
   assert.equal(result.state.nodes.find(node => node.nodeId === 'generate_data_plans')?.status, 'succeeded');
 });
+
+test('testing workflow reports a configuration wait instead of using an implicit repository', async () => {
+  const runId = 'testing-workflow-no-repository-run';
+  saveLifecycleState(createLifecycle(runId, true));
+  const result = await createTestingWorkflowRuntime().start({
+    requirementId: 'req-testing-workflow', runId, workflowInstanceId: 'wf-testing-no-repository',
+    requirementSummary: 'Checkout creates order', appIds: ['checkout'], autoApproveReviews: true, dryRunExecution: true,
+  });
+  assert.equal(result.state.status, 'blocked');
+  assert.equal(result.state.currentNodeId, 'generate_scripts');
+  assert.match(result.state.blockedReason ?? '', /No compatible integration testing repository/);
+});
+
+function configuredRuntime() {
+  return createTestingWorkflowRuntime({
+    repositoryResolver: new InMemoryTestingRepositoryResolver([{
+      repositoryId: 'testing-fixture', root: process.cwd(), repositoryType: 'integration',
+      commands: { test: 'npm test' }, capabilities: ['http'], applicationIds: ['checkout'],
+    }]),
+  });
+}
 
 function createLifecycle(runId: string, withDeployment: boolean) {
   const state = createEmptyLifecycleState({

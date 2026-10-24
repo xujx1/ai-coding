@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execFileSync } from 'child_process';
-import { createEcomLocalGitService } from '../integrations/git.js';
+import type { ApplicationCatalog } from '../platform-sources/applicationCatalog.js';
 import { analyzeGitNexusRepository, type GitNexusAnalyzeResult } from '../integrations/gitnexus.js';
 import { createLLMProvider } from '../models/providers.js';
 import { getCustomStageOverrides, getModel, getModelForStage } from '../models/registry.js';
@@ -15,8 +15,9 @@ import {
 } from '../workflows/definitions/knowledgeAppWorkflowResources.js';
 
 export interface InitAllAppKnowledgeOptions {
-  ecomRoot?: string;
-  knowledgeRoot?: string;
+  catalog: ApplicationCatalog;
+  knowledgeRoot: string;
+  repositoryBaseRoot?: string;
   gitNexusBinPath?: string;
   gitNexusHome?: string;
   now?: Date;
@@ -150,28 +151,27 @@ const APP_KNOWLEDGE_TEMPLATE_FILES = [
   'KB_FRESHNESS-template.md',
 ] as const;
 
-export async function initAllAppKnowledge(options: InitAllAppKnowledgeOptions = {}): Promise<InitAllAppKnowledgeResult> {
+export async function initAllAppKnowledge(options: InitAllAppKnowledgeOptions): Promise<InitAllAppKnowledgeResult> {
   const startedAt = (options.now ?? new Date()).toISOString();
   const versionId = `kb-${timestampForVersion(options.now ?? new Date())}`;
-  const ecomRoot = path.resolve(options.ecomRoot ?? path.join(process.cwd(), 'demo', 'ecom'));
-  const knowledgeRoot = path.resolve(options.knowledgeRoot ?? path.join(ecomRoot, 'spaces', 'knowledge', 'knowledge-base'));
+  const knowledgeRoot = path.resolve(options.knowledgeRoot);
+  const repositoryBaseRoot = path.resolve(options.repositoryBaseRoot ?? process.cwd());
   const gitNexusHome = path.resolve(options.gitNexusHome ?? path.join(knowledgeRoot, '.gitnexus-home'));
   const gitNexusIndexRoot = path.join(knowledgeRoot, 'global', 'gitnexus-indexes');
-  const service = createEcomLocalGitService(ecomRoot);
   const requestedAppIds = new Set((options.appIds ?? []).map(appId => appId.trim()).filter(Boolean));
-  const repos = service.listRepositories()
+  const repos = options.catalog.list()
     .filter(repo => {
-      const repoId = repo.appId ?? repo.repoId;
-      if (requestedAppIds.size) return requestedAppIds.has(repoId) || requestedAppIds.has(repo.repoId);
-      return repo.implementationApp !== false && repo.repositoryType !== 'testing';
-    });
+      if (requestedAppIds.size) return requestedAppIds.has(repo.appId) || requestedAppIds.has(repo.repoId);
+      return true;
+    })
+    .sort((left, right) => left.appId.localeCompare(right.appId));
   if (requestedAppIds.size && repos.length === 0) {
     throw new Error(`No repositories matched selected appIds: ${Array.from(requestedAppIds).join(', ')}`);
   }
   const generatedFiles: string[] = [];
   fs.mkdirSync(knowledgeRoot, { recursive: true });
 
-  const scans = repos.map(repo => scanApp(repo.appId ?? repo.repoId, repo.name, repo.root, ecomRoot));
+  const scans = repos.map(repo => scanApp(repo.appId, repo.name, repo.root, repositoryBaseRoot));
   const gitNexusResults = new Map<string, GitNexusAnalyzeResult>();
 
   const perApp = await mapWithConcurrency(scans, options.appConcurrency ?? 3, async (scan) => {
@@ -269,7 +269,7 @@ export async function initAllAppKnowledge(options: InitAllAppKnowledgeOptions = 
   return result;
 }
 
-function scanApp(appId: string, name: string, root: string, ecomRoot: string): AppScan {
+function scanApp(appId: string, name: string, root: string, repositoryBaseRoot: string): AppScan {
   const domain = readJson<DomainContext>(path.join(root, 'knowledge', 'domain-context.json')) ?? {};
   const openApi = readJson<{ paths?: Record<string, unknown> }>(path.join(root, 'docs', 'openapi.json'));
   const schemaPath = path.join(root, 'src', 'main', 'resources', 'schema.sql');
@@ -279,7 +279,7 @@ function scanApp(appId: string, name: string, root: string, ecomRoot: string): A
     appId,
     name,
     root,
-    relativeRoot: relative(ecomRoot, root),
+    relativeRoot: relative(repositoryBaseRoot, root),
     domain,
     routes: unique([
       ...Object.keys(openApi?.paths ?? {}),

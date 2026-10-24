@@ -21,22 +21,40 @@ import {
   getCustomStageOverrides,
   getProvider,
 } from '../models/registry.js';
-import { getSessionManager } from '../session/SessionManager.js';
-import { getPipeline } from '../workflows/engine/pipelineEngine.js';
+import { createInitialExecutionState, getSessionManager } from '../session/SessionManager.js';
+import { RepositorySessionService } from '../session/repositorySessionService.js';
+import { findPipeline, getPipeline } from '../workflows/engine/pipelineEngine.js';
 import { getStateStore } from '../persistence/stateStore.js';
 import { getEventLog } from '../events/EventLog.js';
 import { ensureRunDirectories, getRunPaths, listFilesRecursive } from '../runtime/paths.js';
 import { processUploads } from '../runtime/uploads.js';
+import { persistDurableUploads } from '../runtime/durableUploads.js';
 import { getPermissionManager, PermissionMode } from '../tools/security/permissions.js';
 import { getWebSocketHub } from './ws.js';
+import { createStorageDependencies, ensureStorageReadyForStartup } from '../storage/factory.js';
+import { ArtifactManager } from '../storage/artifactManager.js';
+import { createPipelineArtifactWriter } from '../storage/pipelineArtifactWriter.js';
+import { NodeLeaseExecutor } from '../storage/nodeLeaseExecutor.js';
+import { RepositoryAgentStatePersistence } from '../storage/agentStatePersistence.js';
+import { RepositoryLifecycleStatePersistence } from '../storage/lifecycleStatePersistence.js';
+import { RepositoryRunStatePersistence } from '../storage/runStatePersistence.js';
+import { NodeTransitionService } from '../storage/nodeTransition.js';
+import { FencedRuntimeTransitionCommitter } from '../storage/runtimeNodeTransition.js';
+import { IdempotentCommandExecutor } from '../storage/idempotentCommand.js';
+import { IdempotencyConflictError } from '../storage/contracts/common.js';
+import { getStorageMetrics } from '../storage/metrics.js';
+import { createPlatformSources } from '../platform-sources/profiles.js';
 import { PIPELINE_NODES } from '../workflows/definitions/pipelineDefinition.js';
 import { BUILTIN_MRD_TO_CODE_WORKFLOW_ID } from '../workflows/builtinDefinitions.js';
 import { WorkflowConfigPatch } from '../workflows/storage.js';
 import {
   getLangGraphRuntime,
+  hasPostgresCheckpointForRun,
+  recoverPostgresRuntimeForRun,
   shouldUseLangGraphRuntime,
 } from '../workflows/runtime/langgraph/runtime.js';
-import { buildLifecycleReadModel } from '../lifecycle/readModel.js';
+import { recoverDurableRuns } from '../storage/recovery.js';
+import { buildLifecycleReadModelFromState } from '../lifecycle/readModel.js';
 import { analyzeOps, analyzeOpsStream, getOpsWorkbench, listOpsApps } from './controllers/appOpsController.js';
 import {
   downloadApplicationRepository,
@@ -67,6 +85,7 @@ import {
   startTestingWorkflow,
   submitTestingReviewDecision,
 } from './controllers/testingController.js';
+import { downloadArtifact, getArtifactContent, listRunArtifacts } from './controllers/artifactController.js';
 
 interface UploadedFilePayload {
   name: string;
@@ -79,11 +98,75 @@ loadConfig();
 const config = getConfig();
 const sessionManager = getSessionManager();
 const wsHub = getWebSocketHub();
+const storageDependencies = createStorageDependencies(config);
+const artifactManager = new ArtifactManager(storageDependencies.artifactStore, storageDependencies.unitOfWork);
+const pipelineArtifactWriter = createPipelineArtifactWriter(
+  artifactManager,
+  { tenantId: 'default' },
+  { deferMetadata: config.storage.driver === 'postgres' },
+);
+const pipelineAgentPersistence = new RepositoryAgentStatePersistence(storageDependencies.repositories.agents, { tenantId: 'default' });
+const pipelineLifecyclePersistence = new RepositoryLifecycleStatePersistence(
+  storageDependencies.repositories.lifecycle,
+  { tenantId: 'default' },
+  storageDependencies.unitOfWork,
+);
+const pipelineRunPersistence = new RepositoryRunStatePersistence(storageDependencies.repositories.runs, { tenantId: 'default' });
+const pipelineNodeTransitions = config.storage.driver === 'postgres'
+  ? new NodeTransitionService(storageDependencies.unitOfWork)
+  : undefined;
+const runtimeNodeTransitions = pipelineNodeTransitions
+  ? new FencedRuntimeTransitionCommitter({
+    service: pipelineNodeTransitions,
+    runs: storageDependencies.repositories.runs,
+    lifecycle: storageDependencies.repositories.lifecycle,
+    context: { tenantId: 'default' },
+    workerId: config.storage.workerId,
+  })
+  : undefined;
+const workflowCommands = config.storage.driver === 'postgres'
+  ? new IdempotentCommandExecutor(
+    storageDependencies.repositories.leases,
+    storageDependencies.unitOfWork,
+    { tenantId: 'default' },
+    config.storage.workerId,
+  )
+  : undefined;
+const repositorySessions = config.storage.driver === 'postgres'
+  ? new RepositorySessionService({
+    runs: storageDependencies.repositories.runs,
+    agents: storageDependencies.repositories.agents,
+    events: storageDependencies.repositories.events,
+    unitOfWork: storageDependencies.unitOfWork,
+    context: { tenantId: 'default' },
+    createState: createInitialExecutionState,
+  })
+  : undefined;
+const pipelineNodeLeases = config.storage.driver === 'postgres'
+  ? { leases: storageDependencies.repositories.leases, workerId: config.storage.workerId, tenantId: 'default' }
+  : undefined;
+const langGraphNodeLeaseExecutor = pipelineNodeLeases
+  ? new NodeLeaseExecutor({ context: { tenantId: pipelineNodeLeases.tenantId }, leases: pipelineNodeLeases.leases, workerId: pipelineNodeLeases.workerId })
+  : undefined;
+const langGraphRuntime = getLangGraphRuntime(langGraphNodeLeaseExecutor, runtimeNodeTransitions, pipelineArtifactWriter);
+const platformSources = createPlatformSources(config.storage.profile);
+const storageContext = { tenantId: 'default' } as const;
+const workflowControllerDependencies = {
+  workflows: storageDependencies.repositories.workflows,
+  context: storageContext,
+};
+if (config.storage.driver === 'postgres' && config.workflow.runtime === 'langgraph' && config.workflow.checkpointer === 'postgres') {
+  void recoverDurableRuns({
+    context: { tenantId: 'default' }, runs: storageDependencies.repositories.runs, events: storageDependencies.repositories.events,
+    leases: storageDependencies.repositories.leases, checkpointExists: hasPostgresCheckpointForRun,
+    resumeFromCheckpoint: recoverPostgresRuntimeForRun,
+  }).catch(error => console.error('Durable startup recovery failed:', error));
+}
 const FULL_FLOW_DEMO_VERSION = 17;
 const FULL_FLOW_DEMO_SOURCE_RUN_ID = 'PDRbY_AI59';
 const FULL_FLOW_DEMO_SOURCE_RUNTIME_DIR = '/Users/xu/IdeaProjects/ai-coding/runtime-projects';
-// 默认启动时注入一个完整演示会话；部署方如需纯空白环境，可设置 AI_CODING_AUTO_DEMO=0。
-if (process.env.AI_CODING_AUTO_DEMO !== '0') {
+// Demo state can only be created by the explicitly selected Demo profile.
+if (config.storage.profile === 'ecom-demo' && process.env.AI_CODING_AUTO_DEMO !== '0') {
   ensureFullFlowDemoSession();
 }
 
@@ -91,6 +174,8 @@ if (process.env.AI_CODING_AUTO_DEMO !== '0') {
 const app = new Hono();
 
 app.use('*', cors({ origin: '*' }));
+
+app.get('/api/metrics', (c) => c.json(getStorageMetrics().snapshot()));
 
 // ── Static frontend ────────────────────────────────────────────────────────
 app.get('/', (c) => {
@@ -250,46 +335,166 @@ app.get('/api/settings', getSettings);
 app.patch('/api/settings', patchSettings);
 
 // ── API: Workflows ────────────────────────────────────────────────────────
-app.get('/api/workflows', listWorkflows);
+app.get('/api/workflows', c => listWorkflows(c, workflowControllerDependencies));
 
-app.get('/api/workflows/default-mrd-to-code', getDefaultWorkflow);
+app.get('/api/workflows/default-mrd-to-code', c => getDefaultWorkflow(c, workflowControllerDependencies));
 
-app.get('/api/workflows/:workflowId/validate', validateWorkflow);
+app.get('/api/workflows/:workflowId/validate', c => validateWorkflow(c, workflowControllerDependencies));
 
-app.put('/api/workflows/default-mrd-to-code/config', updateDefaultWorkflowConfig);
+app.put('/api/workflows/default-mrd-to-code/config', c => updateDefaultWorkflowConfig(c, workflowControllerDependencies));
 
 // ── API: Sessions / Runs ──────────────────────────────────────────────────
-app.get('/api/sessions', (c) => {
-  const sessions = sessionManager.listSessions();
+async function listSessions() {
+  return repositorySessions ? repositorySessions.list() : sessionManager.listSessions();
+}
+
+async function getSession(runId: string) {
+  return repositorySessions ? repositorySessions.get(runId) : sessionManager.getSession(runId);
+}
+
+async function createSession(name: string, description?: string) {
+  return repositorySessions ? repositorySessions.create(name, description) : sessionManager.createRun(name, description);
+}
+
+async function resumeSession(runId: string) {
+  return repositorySessions ? repositorySessions.resume(runId) : sessionManager.resumeSession(runId);
+}
+
+async function suspendSession(runId: string) {
+  return repositorySessions ? repositorySessions.suspend(runId) : sessionManager.suspendSession(runId);
+}
+
+async function cancelSession(runId: string) {
+  return repositorySessions ? repositorySessions.cancel(runId) : sessionManager.cancelSession(runId);
+}
+
+async function rerunSessionBranch(runId: string, branchId: string, fromNodeId?: string) {
+  return repositorySessions ? repositorySessions.rerunBranch(runId, branchId, fromNodeId) : sessionManager.rerunBranch(runId, branchId, fromNodeId);
+}
+
+async function cancelSessionBranch(runId: string, branchId: string) {
+  return repositorySessions ? repositorySessions.cancelBranch(runId, branchId) : sessionManager.cancelBranch(runId, branchId);
+}
+
+async function deleteSession(runId: string) {
+  return repositorySessions ? repositorySessions.delete(runId) : sessionManager.deleteSession(runId);
+}
+
+async function renameSession(runId: string, name: string) {
+  return repositorySessions ? repositorySessions.rename(runId, name) : sessionManager.renameSession(runId, name);
+}
+
+async function updateSession(runId: string, updater: (state: any) => void) {
+  if (repositorySessions) return repositorySessions.update(runId, updater);
+  const store = getStateStore(runId);
+  const state = store.loadExecutionState();
+  if (!state) return null;
+  updater(state);
+  store.saveExecutionState(state);
+  return state;
+}
+
+async function getTranscript(runId: string): Promise<unknown[]> {
+  if (!repositorySessions) return sessionManager.getTranscript(runId);
+  const transcript: unknown[] = [];
+  let afterSequence = 0;
+  while (true) {
+    const page = await storageDependencies.repositories.events.listByRun(storageContext, runId, {
+      afterSequence,
+      limit: 500,
+    });
+    transcript.push(...page.items.map(({ tenantId: _tenantId, sequence: _sequence, ...event }) => event));
+    const lastSequence = page.items.at(-1)?.sequence;
+    if (!lastSequence || page.items.length < 500) break;
+    afterSequence = lastSequence;
+  }
+  return transcript;
+}
+
+async function listAgentStates(runId: string) {
+  const agents = [];
+  let cursor: string | undefined;
+  do {
+    const page = await storageDependencies.repositories.agents.listByRun(storageContext, runId, { cursor, limit: 250 });
+    agents.push(...page.items.map(record => record.value));
+    cursor = page.nextCursor;
+  } while (cursor);
+  return agents;
+}
+
+async function loadAgentPlan(agentId: string) {
+  return (await storageDependencies.repositories.agents.findById(storageContext, agentId))?.value.plan ?? null;
+}
+
+async function lifecycleReadModel(runId: string) {
+  const record = await storageDependencies.repositories.lifecycle.findByRunId(storageContext, runId);
+  return record ? buildLifecycleReadModelFromState(record.value) : null;
+}
+
+function pipelineFor(runId: string) {
+  return getPipeline(runId, {
+    applications: platformSources.applications,
+    durableArtifacts: pipelineArtifactWriter,
+    nodeLeases: pipelineNodeLeases,
+    agentPersistence: pipelineAgentPersistence,
+    lifecyclePersistence: pipelineLifecyclePersistence,
+    runPersistence: repositorySessions ? pipelineRunPersistence : undefined,
+    nodeTransitions: pipelineNodeTransitions ? {
+      service: pipelineNodeTransitions,
+      context: storageContext,
+      workerId: config.storage.workerId,
+    } : undefined,
+  });
+}
+
+const managementRunSource = {
+  async list() {
+    const sessions = await listSessions();
+    return Promise.all(sessions.map(async session => {
+      const [details, lifecycle] = await Promise.all([
+        getSession(session.runId),
+        storageDependencies.repositories.lifecycle.findByRunId(storageContext, session.runId),
+      ]);
+      return {
+        session,
+        execution: details.state,
+        lifecycle: lifecycle?.value ?? null,
+      };
+    }));
+  },
+};
+
+app.get('/api/sessions', async (c) => {
+  const sessions = await listSessions();
   return c.json({ sessions });
 });
 
-app.get('/api/management/overview', getManagementOverview);
+app.get('/api/management/overview', c => getManagementOverview(c, platformSources.applications, platformSources.requirements, platformSources.knowledgeRoot, managementRunSource));
 
-app.post('/api/management/knowledge/init-all', initAllKnowledgeBases);
+app.post('/api/management/knowledge/init-all', c => initAllKnowledgeBases(c, platformSources.applications, platformSources.knowledgeRoot));
 
-app.get('/api/ops/apps', listOpsApps);
+app.get('/api/ops/apps', c => listOpsApps(c, platformSources.applications));
 
-app.get('/api/ops/workbench', getOpsWorkbench);
+app.get('/api/ops/workbench', c => getOpsWorkbench(c, platformSources.applications, platformSources.analysisHistory));
 
-app.post('/api/ops/analyze', analyzeOps);
-app.post('/api/ops/analyze/stream', analyzeOpsStream);
+app.post('/api/ops/analyze', c => analyzeOps(c, platformSources.applications, platformSources));
+app.post('/api/ops/analyze/stream', c => analyzeOpsStream(c, platformSources.applications, platformSources));
 
-app.post('/api/testing/workflows/start', startTestingWorkflow);
-app.get('/api/testing/:runId/dashboard', getTestingDashboard);
-app.get('/api/testing/:runId/workflows/:workflowInstanceId/status', getTestingWorkflowStatus);
-app.post('/api/testing/:runId/workflows/:workflowInstanceId/review', submitTestingReviewDecision);
-app.get('/api/testing/:runId/artifacts', listTestingArtifacts);
-app.get('/api/testing/:runId/artifacts/:artifactId', getTestingArtifact);
-app.get('/api/testing/:runId/reports/:artifactId', getTestingExecutionReport);
+app.post('/api/testing/workflows/start', c => startTestingWorkflow(c, platformSources.testingRepositories, langGraphNodeLeaseExecutor, pipelineLifecyclePersistence, runtimeNodeTransitions, pipelineArtifactWriter));
+app.get('/api/testing/:runId/dashboard', c => getTestingDashboard(c, platformSources.testingRepositories, pipelineLifecyclePersistence, runtimeNodeTransitions));
+app.get('/api/testing/:runId/workflows/:workflowInstanceId/status', c => getTestingWorkflowStatus(c, platformSources.testingRepositories, pipelineLifecyclePersistence, runtimeNodeTransitions));
+app.post('/api/testing/:runId/workflows/:workflowInstanceId/review', c => submitTestingReviewDecision(c, platformSources.testingRepositories, langGraphNodeLeaseExecutor, pipelineLifecyclePersistence, runtimeNodeTransitions, pipelineArtifactWriter));
+app.get('/api/testing/:runId/artifacts', c => listTestingArtifacts(c, platformSources.testingRepositories, pipelineLifecyclePersistence));
+app.get('/api/testing/:runId/artifacts/:artifactId', c => getTestingArtifact(c, platformSources.testingRepositories, pipelineLifecyclePersistence));
+app.get('/api/testing/:runId/reports/:artifactId', c => getTestingExecutionReport(c, platformSources.testingRepositories, pipelineLifecyclePersistence));
 
-app.get('/api/management/knowledge/:knowledgeId/files', getKnowledgeBaseFiles);
+app.get('/api/management/knowledge/:knowledgeId/files', c => getKnowledgeBaseFiles(c, platformSources.knowledgeRoot));
 
-app.get('/api/management/knowledge/:knowledgeId/files/content', getKnowledgeBaseFileContent);
+app.get('/api/management/knowledge/:knowledgeId/files/content', c => getKnowledgeBaseFileContent(c, platformSources.knowledgeRoot));
 
-app.get('/api/management/requirements/:requirementId/files', getRequirementFiles);
+app.get('/api/management/requirements/:requirementId/files', c => getRequirementFiles(c, platformSources.requirements));
 
-app.get('/api/management/requirements/:requirementId/files/content', getRequirementFileContent);
+app.get('/api/management/requirements/:requirementId/files/content', c => getRequirementFileContent(c, platformSources.requirements));
 
 app.post('/api/sessions', async (c) => {
   const body = await c.req.parseBody({ all: true });
@@ -297,52 +502,53 @@ app.post('/api/sessions', async (c) => {
   const description = firstString(body.description);
 
   // Handle file uploads in the same request
-  const state = sessionManager.createRun(name, description);
+  const state = await createSession(name, description);
 
   // Process any uploaded files
   const { files: uploadedFiles, projectFileName } = await collectUploadedFiles(body);
 
   if (uploadedFiles.length > 0) {
+    await persistDurableUploads({ runId: state.runId, files: uploadedFiles, manager: artifactManager, context: { tenantId: 'default' } });
     processUploads(state.runId, uploadedFiles, projectFileName);
   }
 
   return c.json({ runId: state.runId, state });
 });
 
-app.get('/api/sessions/:runId', (c) => {
+app.get('/api/sessions/:runId', async (c) => {
   const runId = c.req.param('runId');
-  const session = sessionManager.getSession(runId);
+  const session = await getSession(runId);
   if (!session.state) return c.json({ error: 'Session not found' }, 404);
   return c.json({
     ...session,
-    lifecycle: buildLifecycleReadModel(runId),
+    lifecycle: await lifecycleReadModel(runId),
   });
 });
 
-app.post('/api/sessions/:runId/resume', (c) => {
+app.post('/api/sessions/:runId/resume', async (c) => {
   const runId = c.req.param('runId');
-  const state = sessionManager.resumeSession(runId);
+  const state = await resumeSession(runId);
   if (!state) return c.json({ error: 'Cannot resume session' }, 400);
   return c.json({ state });
 });
 
-app.post('/api/sessions/:runId/suspend', (c) => {
+app.post('/api/sessions/:runId/suspend', async (c) => {
   const runId = c.req.param('runId');
-  const ok = sessionManager.suspendSession(runId);
-  const pipeline = getPipeline(runId);
-  if (pipeline) pipeline.suspend();
+  const ok = await suspendSession(runId);
+  const pipeline = findPipeline(runId);
+  if (pipeline) await pipeline.suspend();
   return c.json({ suspended: ok });
 });
 
 app.post('/api/sessions/:runId/cancel', async (c) => {
   const runId = c.req.param('runId');
   if (shouldUseLangGraphRuntime()) {
-    await getLangGraphRuntime().cancel(runId);
+    await langGraphRuntime.cancel(runId);
     return c.json({ cancelled: true });
   }
-  const ok = sessionManager.cancelSession(runId);
-  const pipeline = getPipeline(runId);
-  if (pipeline) pipeline.abort();
+  const ok = await cancelSession(runId);
+  const pipeline = findPipeline(runId);
+  if (pipeline) await pipeline.abort();
   return c.json({ cancelled: ok });
 });
 
@@ -350,22 +556,22 @@ app.post('/api/sessions/:runId/branches/:branchId/rerun', async (c) => {
   const runId = c.req.param('runId');
   const branchId = c.req.param('branchId');
   const body = await c.req.json().catch(() => ({}));
-  const state = sessionManager.rerunBranch(runId, branchId, body.fromNodeId);
+  const state = await rerunSessionBranch(runId, branchId, body.fromNodeId);
   if (!state) return c.json({ error: 'Branch not found' }, 404);
   return c.json({ state });
 });
 
-app.post('/api/sessions/:runId/branches/:branchId/cancel', (c) => {
+app.post('/api/sessions/:runId/branches/:branchId/cancel', async (c) => {
   const runId = c.req.param('runId');
   const branchId = c.req.param('branchId');
-  const state = sessionManager.cancelBranch(runId, branchId);
+  const state = await cancelSessionBranch(runId, branchId);
   if (!state) return c.json({ error: 'Branch not found' }, 404);
   return c.json({ state });
 });
 
-app.delete('/api/sessions/:runId', (c) => {
+app.delete('/api/sessions/:runId', async (c) => {
   const runId = c.req.param('runId');
-  const ok = sessionManager.deleteSession(runId);
+  const ok = await deleteSession(runId);
   return c.json({ deleted: ok, runId });
 });
 
@@ -373,27 +579,24 @@ app.patch('/api/sessions/:runId', async (c) => {
   const runId = c.req.param('runId');
   const body = await c.req.json();
   if (body.name) {
-    sessionManager.renameSession(runId, body.name);
+    await renameSession(runId, body.name);
   }
   if (body.permissionMode) {
     const permMgr = getPermissionManager(runId);
     permMgr.setMode(body.permissionMode as PermissionMode);
   }
   if (body.modelOverrides) {
-    const store = getStateStore(runId);
-    const state = store.loadExecutionState();
-    if (state) {
+    await updateSession(runId, state => {
       state.modelOverrides = { ...state.modelOverrides, ...body.modelOverrides };
-      store.saveExecutionState(state);
-    }
+    });
   }
-  const session = sessionManager.getSession(runId);
+  const session = await getSession(runId);
   return c.json(session);
 });
 
-app.get('/api/sessions/:runId/transcript', (c) => {
+app.get('/api/sessions/:runId/transcript', async (c) => {
   const runId = c.req.param('runId');
-  const transcript = sessionManager.getTranscript(runId);
+  const transcript = await getTranscript(runId);
   return c.json({ transcript });
 });
 
@@ -403,41 +606,54 @@ app.post('/api/sessions/:runId/upload', async (c) => {
   const formData = await c.req.parseBody({ all: true });
   const { files, projectFileName } = await collectUploadedFiles(formData);
 
+  const formalArtifacts = await persistDurableUploads({ runId, files, manager: artifactManager, context: { tenantId: 'default' } });
   const result = processUploads(runId, files, projectFileName);
-  return c.json(result);
+  return c.json({ ...result, artifacts: formalArtifacts.map(artifact => ({ artifactId: artifact.artifactId, kind: artifact.kind, sizeBytes: artifact.sizeBytes })) });
 });
+
+// Durable artifact APIs use metadata plus the configured ArtifactStore rather
+// than treating a Worker workspace as the formal source of downloadable data.
+app.get('/api/sessions/:runId/artifacts', c => listRunArtifacts(c, {
+  artifacts: storageDependencies.repositories.artifacts, context: { tenantId: 'default' },
+}));
+app.get('/api/sessions/:runId/artifacts/:artifactId/content', c => getArtifactContent(c, {
+  artifacts: storageDependencies.repositories.artifacts, store: storageDependencies.artifactStore, context: { tenantId: 'default' },
+}));
+app.get('/api/sessions/:runId/artifacts/:artifactId/download', c => downloadArtifact(c, {
+  artifacts: storageDependencies.repositories.artifacts, store: storageDependencies.artifactStore, context: { tenantId: 'default' },
+}));
 
 // ── API: Pipeline control ─────────────────────────────────────────────────
 app.post('/api/sessions/:runId/pipeline/start', async (c) => {
   const runId = c.req.param('runId');
   const body = await c.req.json().catch(() => ({}));
+  return respondToWorkflowCommand(c, runId, 'pipeline.start', body, async () => {
+    if (shouldUseLangGraphRuntime()) {
+      langGraphRuntime.start(runId, {
+        workflowId: BUILTIN_MRD_TO_CODE_WORKFLOW_ID,
+      }).catch(err => {
+        const eventLog = getEventLog(runId);
+        eventLog.logEvent('error', { message: err.message });
+        wsHub.broadcast(runId, { type: 'pipeline_failed', runId, error: err.message });
+      });
+      return { started: true, runId, runtime: 'langgraph' };
+    }
 
-  if (shouldUseLangGraphRuntime()) {
-    wsHub.subscribeEventLog(runId);
-    getLangGraphRuntime().start(runId, {
-      workflowId: BUILTIN_MRD_TO_CODE_WORKFLOW_ID,
+    const pipeline = pipelineFor(runId);
+    wsHub.subscribePipeline(runId, pipeline);
+
+    // Run pipeline asynchronously (don't await - events via WS)
+    pipeline.start({
+      fromNodeId: body.fromNodeId,
+      skipConfirmations: body.skipConfirmations,
     }).catch(err => {
       const eventLog = getEventLog(runId);
       eventLog.logEvent('error', { message: err.message });
       wsHub.broadcast(runId, { type: 'pipeline_failed', runId, error: err.message });
     });
-    return c.json({ started: true, runId, runtime: 'langgraph' });
-  }
 
-  const pipeline = getPipeline(runId);
-  wsHub.subscribePipeline(runId, pipeline);
-
-  // Run pipeline asynchronously (don't await - events via WS)
-  pipeline.start({
-    fromNodeId: body.fromNodeId,
-    skipConfirmations: body.skipConfirmations,
-  }).catch(err => {
-    const eventLog = getEventLog(runId);
-    eventLog.logEvent('error', { message: err.message });
-    wsHub.broadcast(runId, { type: 'pipeline_failed', runId, error: err.message });
+    return { started: true, runId };
   });
-
-  return c.json({ started: true, runId });
 });
 
 app.post('/api/sessions/:runId/pipeline/confirm', async (c) => {
@@ -447,44 +663,80 @@ app.post('/api/sessions/:runId/pipeline/confirm', async (c) => {
   const approved = body.approved !== false;
   const feedback = body.feedback as string | undefined;
 
-  if (shouldUseLangGraphRuntime()) {
-    await getLangGraphRuntime().resume(runId, { approved, feedback });
-    return c.json({ confirmed: approved, runtime: 'langgraph' });
-  }
+  return respondToWorkflowCommand(c, runId, 'pipeline.confirm', { nodeId, approved, feedback }, async () => {
+    if (shouldUseLangGraphRuntime()) {
+      await langGraphRuntime.resume(runId, { approved, feedback });
+      return { confirmed: approved, runtime: 'langgraph' };
+    }
 
-  const pipeline = getPipeline(runId);
-  pipeline.resolveConfirmation(nodeId, approved, feedback);
-
-  return c.json({ confirmed: approved });
+    const pipeline = pipelineFor(runId);
+    await pipeline.resolveConfirmation(nodeId, approved, feedback);
+    return { confirmed: approved };
+  });
 });
 
 app.post('/api/sessions/:runId/pipeline/cancel', async (c) => {
   const runId = c.req.param('runId');
-  const session = sessionManager.getSession(runId);
+  const session = await getSession(runId);
   if (!session.state) return c.json({ error: 'Session not found' }, 404);
-  if (shouldUseLangGraphRuntime()) {
-    await getLangGraphRuntime().cancel(runId);
-    return c.json({ cancelled: true, runtime: 'langgraph' });
-  }
-  const pipeline = getPipeline(runId);
-  pipeline.abort();
-  sessionManager.cancelSession(runId);
-  return c.json({ cancelled: true });
+  return respondToWorkflowCommand(c, runId, 'pipeline.cancel', {}, async () => {
+    if (shouldUseLangGraphRuntime()) {
+      await langGraphRuntime.cancel(runId);
+      return { cancelled: true, runtime: 'langgraph' };
+    }
+    const pipeline = pipelineFor(runId);
+    await pipeline.abort();
+    await cancelSession(runId);
+    return { cancelled: true };
+  });
 });
 
 app.post('/api/sessions/:runId/pipeline/interrupt', async (c) => {
   const runId = c.req.param('runId');
-  const session = sessionManager.getSession(runId);
+  const session = await getSession(runId);
   if (!session.state) return c.json({ error: 'Session not found' }, 404);
-  if (shouldUseLangGraphRuntime()) {
-    await getLangGraphRuntime().cancel(runId);
-    return c.json({ interrupted: true, runId, runtime: 'langgraph' });
-  }
-  const pipeline = getPipeline(runId);
-  pipeline.abort();
-  sessionManager.cancelSession(runId);
-  return c.json({ interrupted: true, runId });
+  return respondToWorkflowCommand(c, runId, 'pipeline.interrupt', {}, async () => {
+    if (shouldUseLangGraphRuntime()) {
+      await langGraphRuntime.cancel(runId);
+      return { interrupted: true, runId, runtime: 'langgraph' };
+    }
+    const pipeline = pipelineFor(runId);
+    await pipeline.abort();
+    await cancelSession(runId);
+    return { interrupted: true, runId };
+  });
 });
+
+async function respondToWorkflowCommand<T>(
+  c: any,
+  runId: string,
+  command: string,
+  payload: Record<string, unknown>,
+  execute: () => Promise<T>,
+) {
+  const headerKey = c.req.header('Idempotency-Key');
+  const bodyKey = typeof payload.idempotencyKey === 'string' ? payload.idempotencyKey : undefined;
+  const key = headerKey?.trim() || bodyKey?.trim();
+  if (!workflowCommands || !key) return c.json(await execute());
+  try {
+    const completed = await workflowCommands.execute({
+      scope: `workflow-command:${runId}:${command}`,
+      key,
+      payload: { ...payload, idempotencyKey: undefined },
+      execute,
+    });
+    c.header('Idempotency-Replayed', completed.replayed ? 'true' : 'false');
+    return c.json(completed.result);
+  } catch (error) {
+    if (error instanceof IdempotencyConflictError) {
+      return c.json({ error: error.message }, 409);
+    }
+    if (error instanceof Error && error.message.startsWith('Idempotency-Key')) {
+      return c.json({ error: error.message }, 400);
+    }
+    throw error;
+  }
+}
 
 // ── API: Permission resolution ────────────────────────────────────────────
 app.post('/api/sessions/:runId/permissions/:requestId/resolve', async (c) => {
@@ -554,9 +806,9 @@ app.get('/api/sessions/:runId/files/content', (c) => {
   return c.json({ error: 'File not found', path: filePath }, 404);
 });
 
-app.get('/api/sessions/:runId/download/project', (c) => {
+app.get('/api/sessions/:runId/download/project', async (c) => {
   const runId = c.req.param('runId');
-  const session = sessionManager.getSession(runId);
+  const session = await getSession(runId);
   if (!session.state) return c.json({ error: 'Session not found' }, 404);
 
   const paths = getRunPaths(runId);
@@ -576,7 +828,7 @@ app.get('/api/sessions/:runId/download/project', (c) => {
   return c.body(zipBuffer);
 });
 
-app.get('/api/management/repositories/:appId/download', downloadApplicationRepository);
+app.get('/api/management/repositories/:appId/download', c => downloadApplicationRepository(c, platformSources.applications));
 
 // ── API: Diff ─────────────────────────────────────────────────────────────
 app.get('/api/sessions/:runId/diff', (c) => {
@@ -596,25 +848,32 @@ app.get('/api/sessions/:runId/diff', (c) => {
 });
 
 // ── API: Agents ───────────────────────────────────────────────────────────
-app.get('/api/sessions/:runId/agents', (c) => {
+app.get('/api/sessions/:runId/agents', async (c) => {
   const runId = c.req.param('runId');
-  const store = getStateStore(runId);
-  const agents = store.listAgentStates();
+  const agents = await listAgentStates(runId);
   return c.json({ agents });
 });
 
-app.get('/api/sessions/:runId/agents/:agentId/plan', (c) => {
+app.get('/api/sessions/:runId/agents/:agentId/plan', async (c) => {
   const runId = c.req.param('runId');
   const agentId = c.req.param('agentId');
-  const store = getStateStore(runId);
-  const plan = store.loadPlan(agentId);
+  const plan = await loadAgentPlan(agentId);
   if (!plan) return c.json({ error: 'Plan not found' }, 404);
   return c.json({ plan });
 });
 
 // ── API: Events (polling fallback for clients without WebSocket) ──────────
-app.get('/api/sessions/:runId/events', (c) => {
+app.get('/api/sessions/:runId/events', async (c) => {
   const runId = c.req.param('runId');
+  const afterSequence = Number(c.req.query('afterSequence'));
+  if (config.storage.driver === 'postgres' && Number.isFinite(afterSequence)) {
+    const page = await storageDependencies.repositories.events.listByRun(
+      { tenantId: 'default' },
+      runId,
+      { afterSequence: Math.max(0, afterSequence), limit: 250 },
+    );
+    return c.json({ events: page.items, latestSequence: page.items.at(-1)?.sequence ?? Math.max(0, afterSequence), nextCursor: page.nextCursor });
+  }
   const since = parseInt(c.req.query('since') || '0', 10);
   const eventLog = getEventLog(runId);
   eventLog.loadFromDisk();
@@ -628,10 +887,12 @@ app.get('/api/pipeline/definition', (c) => {
 });
 
 // ── API: Demo data ────────────────────────────────────────────────────────
-app.post('/api/demo/full-flow', (c) => {
-  const demo = createFullFlowDemoSession(true);
-  return c.json(demo);
-});
+if (config.storage.profile === 'ecom-demo') {
+  app.post('/api/demo/full-flow', (c) => {
+    const demo = createFullFlowDemoSession(true);
+    return c.json(demo);
+  });
+}
 
 function ensureFullFlowDemoSession(): void {
   const existing = findCurrentFullFlowDemoSession();
@@ -798,9 +1059,11 @@ function isDemoTextFile(filePath: string): boolean {
 }
 
 // ── API: Health ───────────────────────────────────────────────────────────
-app.get('/api/health', (c) => {
+app.get('/api/health', async (c) => {
+  const storageHealth = await storageDependencies.health({ tenantId: 'default' });
+  const ready = storageHealth.workerReady;
   return c.json({
-    status: 'ok',
+    status: ready ? 'ok' : 'degraded',
     version: '1.0.0',
     config: {
       port: config.port,
@@ -808,7 +1071,8 @@ app.get('/api/health', (c) => {
       javaHome: config.java.javaHome,
       mavenHome: config.java.mavenHome,
     },
-  });
+    storage: storageHealth,
+  }, ready ? 200 : 503);
 });
 
 function buildModelsUrl(baseUrl: string, fullModelUrl: boolean): string {
@@ -971,6 +1235,19 @@ function safeDownloadName(name: string): string {
 }
 
 // ── Start server ──────────────────────────────────────────────────────────
+try {
+  await ensureStorageReadyForStartup(config.storage.profile, storageDependencies, storageContext);
+  await wsHub.configureDurableEvents({
+    eventBus: storageDependencies.eventBus,
+    events: storageDependencies.repositories.events,
+    context: storageContext,
+  });
+  storageDependencies.start();
+} catch (error) {
+  await storageDependencies.close();
+  throw error;
+}
+
 const server = serve({
   fetch: app.fetch,
   port: config.port,
@@ -991,15 +1268,16 @@ console.log(`
 `);
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('\nShutting down...');
   // Suspend all running sessions
-  const sessions = sessionManager.listSessions();
+  const sessions = await listSessions();
   for (const s of sessions) {
     if (s.status === 'running') {
-      sessionManager.suspendSession(s.runId);
+      await suspendSession(s.runId);
     }
   }
   server.close();
+  await storageDependencies.close();
   process.exit(0);
 });

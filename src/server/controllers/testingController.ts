@@ -1,9 +1,27 @@
 import { createTestingService } from '../../testing/index.js';
+import { createTestingWorkflowRuntime } from '../../workflows/runtime/testing/index.js';
+import type { TestingRepositoryResolver } from '../../platform-sources/testingRepositoryResolver.js';
+import type { NodeLeaseExecutor } from '../../storage/nodeLeaseExecutor.js';
+import type { LifecycleStatePersistence } from '../../storage/lifecycleStatePersistence.js';
+import type { FencedRuntimeTransitionCommitter } from '../../storage/runtimeNodeTransition.js';
+import type { PipelineArtifactWriter } from '../../storage/pipelineArtifactWriter.js';
 
-const testingService = createTestingService();
+function testingServiceFor(
+  repositoryResolver?: TestingRepositoryResolver,
+  nodeLeaseExecutor?: NodeLeaseExecutor,
+  lifecyclePersistence?: LifecycleStatePersistence,
+  transitionCommitter?: FencedRuntimeTransitionCommitter,
+  artifactWriter?: PipelineArtifactWriter,
+) {
+  return createTestingService({
+    runtime: createTestingWorkflowRuntime({ repositoryResolver, nodeLeaseExecutor, lifecyclePersistence, transitionCommitter, artifactWriter }),
+    lifecyclePersistence,
+  });
+}
 
-export async function startTestingWorkflow(c: any) {
+export async function startTestingWorkflow(c: any, repositoryResolver?: TestingRepositoryResolver, nodeLeaseExecutor?: NodeLeaseExecutor, lifecyclePersistence?: LifecycleStatePersistence, transitionCommitter?: FencedRuntimeTransitionCommitter, artifactWriter?: PipelineArtifactWriter) {
   try {
+    const testingService = testingServiceFor(repositoryResolver, nodeLeaseExecutor, lifecyclePersistence, transitionCommitter, artifactWriter);
     const body = await c.req.json().catch(() => ({}));
     const requirementId = stringValue(body.requirementId);
     const runId = stringValue(body.runId);
@@ -27,18 +45,20 @@ export async function startTestingWorkflow(c: any) {
   }
 }
 
-export function getTestingWorkflowStatus(c: any) {
+export async function getTestingWorkflowStatus(c: any, repositoryResolver?: TestingRepositoryResolver, lifecyclePersistence?: LifecycleStatePersistence, transitionCommitter?: FencedRuntimeTransitionCommitter) {
   try {
+    const testingService = testingServiceFor(repositoryResolver, undefined, lifecyclePersistence, transitionCommitter);
     const runId = c.req.param('runId');
     const workflowInstanceId = c.req.param('workflowInstanceId');
-    return c.json({ workflow: testingService.getWorkflowStatus(runId, workflowInstanceId) });
+    return c.json({ workflow: await testingService.getWorkflowStatusAsync(runId, workflowInstanceId) });
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : String(error) }, 404);
   }
 }
 
-export async function submitTestingReviewDecision(c: any) {
+export async function submitTestingReviewDecision(c: any, repositoryResolver?: TestingRepositoryResolver, nodeLeaseExecutor?: NodeLeaseExecutor, lifecyclePersistence?: LifecycleStatePersistence, transitionCommitter?: FencedRuntimeTransitionCommitter, artifactWriter?: PipelineArtifactWriter) {
   try {
+    const testingService = testingServiceFor(repositoryResolver, nodeLeaseExecutor, lifecyclePersistence, transitionCommitter, artifactWriter);
     const body = await c.req.json().catch(() => ({}));
     const decision = stringValue(body.decision);
     if (decision !== 'approved' && decision !== 'needs_changes' && decision !== 'cancelled') {
@@ -59,10 +79,11 @@ export async function submitTestingReviewDecision(c: any) {
   }
 }
 
-export function listTestingArtifacts(c: any) {
+export async function listTestingArtifacts(c: any, repositoryResolver?: TestingRepositoryResolver, lifecyclePersistence?: LifecycleStatePersistence) {
   try {
+    const testingService = testingServiceFor(repositoryResolver, undefined, lifecyclePersistence);
     return c.json({
-      artifacts: testingService.listArtifacts({
+      artifacts: await testingService.listArtifactsAsync({
         runId: c.req.param('runId'),
         type: stringValue(c.req.query('type')) as any,
         workflowInstanceId: stringValue(c.req.query('workflowInstanceId')) || undefined,
@@ -74,27 +95,30 @@ export function listTestingArtifacts(c: any) {
   }
 }
 
-export function getTestingArtifact(c: any) {
+export async function getTestingArtifact(c: any, repositoryResolver?: TestingRepositoryResolver, lifecyclePersistence?: LifecycleStatePersistence) {
   try {
-    const saved = testingService.getArtifact(c.req.param('runId'), c.req.param('artifactId'));
+    const testingService = testingServiceFor(repositoryResolver, undefined, lifecyclePersistence);
+    const saved = await testingService.getArtifactAsync(c.req.param('runId'), c.req.param('artifactId'));
     return c.json({ artifact: saved.artifact, ref: saved.ref });
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : String(error) }, 404);
   }
 }
 
-export function getTestingExecutionReport(c: any) {
+export async function getTestingExecutionReport(c: any, repositoryResolver?: TestingRepositoryResolver, lifecyclePersistence?: LifecycleStatePersistence) {
   try {
-    const saved = testingService.getExecutionReport(c.req.param('runId'), c.req.param('artifactId'));
+    const testingService = testingServiceFor(repositoryResolver, undefined, lifecyclePersistence);
+    const saved = await testingService.getExecutionReportAsync(c.req.param('runId'), c.req.param('artifactId'));
     return c.json({ report: saved.artifact, ref: saved.ref });
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : String(error) }, 404);
   }
 }
 
-export function getTestingDashboard(c: any) {
+export async function getTestingDashboard(c: any, repositoryResolver?: TestingRepositoryResolver, lifecyclePersistence?: LifecycleStatePersistence, transitionCommitter?: FencedRuntimeTransitionCommitter) {
   try {
-    return c.json({ dashboard: testingService.getDashboard(c.req.param('runId'), stringValue(c.req.query('workflowInstanceId')) || undefined) });
+    const testingService = testingServiceFor(repositoryResolver, undefined, lifecyclePersistence, transitionCommitter);
+    return c.json({ dashboard: await testingService.getDashboardAsync(c.req.param('runId'), stringValue(c.req.query('workflowInstanceId')) || undefined) });
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : String(error) }, 404);
   }

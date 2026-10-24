@@ -35,12 +35,17 @@ export class EventLog extends EventEmitter {
       nodeId,
       data,
     };
+    return this.appendEvent(event);
+  }
+
+  /** Persist an externally constructed event while preserving its identity. */
+  appendEvent(event: PipelineEvent): PipelineEvent {
     this.events.push(event);
     if (this.writeStream) {
       this.writeStream.write(JSON.stringify(event) + '\n');
     }
     super.emit('event', event);
-    super.emit(type, event);
+    super.emit(event.type, event);
     return event;
   }
 

@@ -309,8 +309,22 @@ function matchesKnowledgeTerms(
   const normalizedContent = normalizeName(stripMarkdown(content));
   return buildProjectKnowledgeTerms(project).some(term => {
     const normalizedTerm = normalizeName(term);
-    return Boolean(normalizedTerm && normalizedTerm.length >= 2 && normalizedContent.includes(normalizedTerm));
+    return Boolean(normalizedTerm && normalizedTerm.length >= 2 && (
+      normalizedContent.includes(normalizedTerm) || sharesChineseDomainStem(normalizedContent, normalizedTerm)
+    ));
   });
+}
+
+function sharesChineseDomainStem(content: string, term: string): boolean {
+  const contentStems = content.match(/[\u4e00-\u9fa5]{2,}/g) ?? [];
+  const termStems = term.match(/[\u4e00-\u9fa5]{2,}/g) ?? [];
+  return contentStems.some(left => termStems.some(right => {
+    const max = Math.min(left.length, right.length, 4);
+    for (let length = max; length >= 2; length -= 1) {
+      if (left.slice(0, length) === right.slice(0, length)) return true;
+    }
+    return false;
+  }));
 }
 
 function buildProjectKnowledgeTerms(project: ProjectManifest['projects'][number]): string[] {
@@ -322,15 +336,15 @@ function buildProjectKnowledgeTerms(project: ProjectManifest['projects'][number]
   ];
   const knowledgeRoot = resolveKnowledgeRoot();
   if (knowledgeRoot) {
-    const domainMap = readJson<Record<string, { domain?: string; domainName?: string; serviceName?: string; summary?: string }>>(
+    const domainMap = readJson<Record<string, unknown>>(
       path.join(knowledgeRoot, 'global', 'app-domain-map.json')
     ) ?? {};
-    const capabilityMap = readJson<Record<string, string[]>>(path.join(knowledgeRoot, 'global', 'capability-map.json')) ?? {};
-    const registry = readJson<{ apps?: Array<{ appId?: string; name?: string; domain?: string; domains?: string[]; tags?: string[]; aliases?: string[] }> }>(
+    const capabilityMap = readJson<Record<string, unknown>>(path.join(knowledgeRoot, 'global', 'capability-map.json')) ?? {};
+    const registry = readJson<{ apps?: Array<{ appId?: string; name?: string; domain?: string; domains?: string[]; tags?: string[]; aliases?: string[]; responsibility?: string; capabilities?: string[] }> }>(
       path.join(knowledgeRoot, 'registry', 'apps.json')
     ) ?? {};
-    const domain = domainMap[appId] ?? {};
-    const registryApp = registry.apps?.find(app => app.appId === appId || app.name === project.name);
+    const domain = domainEntry(domainMap, appId, project.name);
+    const registryApp = registry.apps?.find(app => app.appId === appId || app.appId === `ecom-${project.name}` || app.name === project.name);
     terms.push(
       domain.domain,
       domain.domainName,
@@ -340,18 +354,50 @@ function buildProjectKnowledgeTerms(project: ProjectManifest['projects'][number]
       ...(registryApp?.domains ?? []),
       ...(registryApp?.tags ?? []),
       ...(registryApp?.aliases ?? []),
-      ...(capabilityMap[appId] ?? []),
+      registryApp?.responsibility,
+      ...(registryApp?.capabilities ?? []),
+      ...capabilityTerms(capabilityMap, appId, project.name),
     );
   }
   return Array.from(new Set(terms.filter((term): term is string => Boolean(term))));
 }
 
+function domainEntry(
+  value: Record<string, unknown>,
+  appId: string,
+  projectName: string,
+): { domain?: string; domainName?: string; serviceName?: string; summary?: string } {
+  const direct = value[appId];
+  if (isRecord(direct)) return direct;
+  const apps = Array.isArray(value.apps) ? value.apps : [];
+  const matched = apps.find(entry => isRecord(entry) && (entry.appId === appId || entry.appId === projectName || entry.appId === `ecom-${projectName}`));
+  return isRecord(matched) ? matched : {};
+}
+
+function capabilityTerms(value: Record<string, unknown>, appId: string, projectName: string): string[] {
+  const direct = value[appId];
+  if (Array.isArray(direct)) return direct.filter((term): term is string => typeof term === 'string');
+  const apps = Array.isArray(value.apps) ? value.apps : [];
+  const app = apps.find(entry => isRecord(entry) && (entry.appId === appId || entry.appId === projectName || entry.appId === `ecom-${projectName}`));
+  if (!isRecord(app)) return [];
+  const terms = Array.isArray(app.terms) ? app.terms.filter((term): term is string => typeof term === 'string') : [];
+  const capabilities = Array.isArray(app.capabilities) ? app.capabilities : [];
+  for (const capability of capabilities) {
+    if (!isRecord(capability)) continue;
+    if (typeof capability.name === 'string') terms.push(capability.name);
+    if (typeof capability.capabilityId === 'string') terms.push(capability.capabilityId);
+    if (Array.isArray(capability.terms)) terms.push(...capability.terms.filter((term): term is string => typeof term === 'string'));
+  }
+  return terms;
+}
+
+function isRecord(value: unknown): value is Record<string, any> { return typeof value === 'object' && value !== null; }
+
 function resolveKnowledgeRoot(): string | null {
-  const candidates = [
-    path.join(process.cwd(), 'demo', 'ecom', 'spaces', 'knowledge', 'knowledge-base'),
-    path.join(process.cwd(), 'spaces', 'knowledge', 'knowledge-base'),
-  ];
-  return candidates.find(candidate => fs.existsSync(candidate)) ?? null;
+  const configured = process.env.AI_CODING_KNOWLEDGE_ROOT;
+  if (!configured) return null;
+  const root = path.resolve(configured);
+  return fs.existsSync(root) && fs.statSync(root).isDirectory() ? root : null;
 }
 
 function readJson<T>(filePath: string): T | null {

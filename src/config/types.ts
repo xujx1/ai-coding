@@ -41,6 +41,34 @@ export interface E2eConfig {
   artifactRetention: 'all' | 'failures' | 'summary-only';
 }
 
+export type StorageDriver = 'file' | 'postgres';
+export type EventBusDriver = 'memory' | 'postgres';
+export type ArtifactStoreDriver = 'local' | 's3';
+export type RuntimeProfile = 'local' | 'production' | 'ecom-demo';
+
+export interface StorageConfig {
+  driver: StorageDriver;
+  databaseUrl?: string;
+  databasePoolMin: number;
+  databasePoolMax: number;
+  databaseSsl: boolean;
+  shadowDatabaseUrl?: string;
+  shadowWriteEnabled: boolean;
+  eventBus: EventBusDriver;
+  artifactStore: ArtifactStoreDriver;
+  artifactLocalDir: string;
+  s3Endpoint?: string;
+  s3Bucket?: string;
+  s3Region?: string;
+  s3AccessKeyId?: string;
+  s3SecretAccessKey?: string;
+  workspaceRoot: string;
+  workspaceRetentionHours: number;
+  temporaryArtifactRetentionHours: number;
+  workerId: string;
+  profile: RuntimeProfile;
+}
+
 export interface PipelineConfig {
   port: number;
   host: string;
@@ -51,4 +79,5 @@ export interface PipelineConfig {
   agent: AgentConfig;
   workflow: WorkflowConfig;
   e2e: E2eConfig;
+  storage: StorageConfig;
 }
